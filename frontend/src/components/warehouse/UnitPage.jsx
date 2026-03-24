@@ -51,7 +51,7 @@ export default function UnitPage() {
     <WarehouseLayout>
       <div style={{ padding: '24px 32px', maxWidth: 1000 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-          <span style={{ cursor: 'pointer', color: 'var(--blue)' }} onClick={() => navigate('/units')}>Остатки</span>
+          <span style={{ cursor: 'pointer', color: 'var(--blue)' }} onClick={() => navigate('/units')}>Склад</span>
           <span>›</span>
           <span>{unit.name}</span>
         </div>
@@ -130,6 +130,8 @@ export default function UnitPage() {
               {unit.warehouse_name && <InfoRow label="Склад" value={unit.warehouse_name} />}
               {unit.cell_name && <InfoRow label="Ячейка" value={unit.cell_name} />}
               {unit.qty && <InfoRow label="Количество" value={`${unit.qty} шт.`} />}
+              {unit.dimensions && <InfoRow label="Размеры" value={unit.dimensions} />}
+              {canSeeValuation && unit.source && <InfoRow label="Источник" value={unit.source} />}
               {unit.condition && <InfoRow label="Состояние" value={unit.condition} last />}
             </div>
 

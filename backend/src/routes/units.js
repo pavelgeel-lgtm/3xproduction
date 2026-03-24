@@ -40,15 +40,19 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // POST /units — add unit (goes to pending, waits for director approval)
 router.post('/', verifyJWT, async (req, res) => {
-  const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation } = req.body
+  const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, source, dimensions } = req.body
   if (!name || !category) return res.status(400).json({ error: 'Missing required fields' })
+
+  const isDirector = req.user.role === 'warehouse_director'
+  const finalStatus = isDirector ? 'on_stock' : 'pending'
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO units (name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending') RETURNING *`,
+      `INSERT INTO units (name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, source, dimensions, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [name, category, serial || null, warehouse_id || null, cell_id || null,
-       description || null, qty || 1, condition || null, valuation || null]
+       description || null, qty || 1, condition || null, valuation || null,
+       source || null, dimensions || null, finalStatus]
     )
     const unit = rows[0]
 
