@@ -1,206 +1,346 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard, ClipboardList, Package, Grid3x3,
+  Users, FileText, Handshake, BarChart2, Bell,
+  User, X, Menu, ChevronDown, LogOut
+} from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
 
 const NAV = [
   {
     section: 'Склад',
     items: [
-      { to: '/dashboard',      icon: '⊞', label: 'Главная' },
-      { to: '/requests',       icon: '📋', label: 'Запросы',    badge: 3 },
-      { to: '/units',          icon: '📦', label: 'Остатки' },
-      { to: '/cells',          icon: '🗂', label: 'Карта ячеек' },
-      { to: '/team',           icon: '👥', label: 'Команда' },
+      { to: '/dashboard',  icon: LayoutDashboard, label: 'Главная' },
+      { to: '/requests',   icon: ClipboardList,   label: 'Запросы',    badge: true },
+      { to: '/units',      icon: Package,          label: 'Остатки' },
+      { to: '/cells',      icon: Grid3x3,          label: 'Карта ячеек' },
+      { to: '/team',       icon: Users,            label: 'Команда' },
     ],
   },
   {
     section: 'Финансы',
     items: [
-      { to: '/acts',  icon: '📄', label: 'Акты' },
-      { to: '/rent',  icon: '🤝', label: 'Аренда' },
+      { to: '/acts',  icon: FileText,  label: 'Акты' },
+      { to: '/rent',  icon: Handshake, label: 'Аренда' },
     ],
   },
   {
     section: 'Аналитика',
     items: [
-      { to: '/analytics', icon: '📊', label: 'Отчёты' },
+      { to: '/analytics', icon: BarChart2, label: 'Отчёты' },
     ],
   },
 ]
 
 const MOBILE_NAV = [
-  { to: '/dashboard',  icon: '⊞', label: 'Главная' },
-  { to: '/requests',   icon: '📋', label: 'Запросы', badge: 3 },
-  { to: '/analytics',  icon: '📊', label: 'Отчёты' },
-  { to: '/profile',    icon: '👤', label: 'Профиль' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Главная' },
+  { to: '/requests',  icon: ClipboardList,   label: 'Запросы' },
+  { to: '/units',     icon: Package,          label: 'Остатки' },
+  { to: '/analytics', icon: BarChart2,        label: 'Отчёты' },
 ]
 
 const MOBILE_BURGER = [
-  { to: '/units', label: 'Остатки' },
-  { to: '/cells', label: 'Карта ячеек' },
-  { to: '/team',  label: 'Команда' },
-  { to: '/acts',  label: 'Акты' },
-  { to: '/rent',  label: 'Аренда' },
+  { to: '/cells',      icon: Grid3x3,   label: 'Карта ячеек' },
+  { to: '/team',       icon: Users,     label: 'Команда' },
+  { to: '/acts',       icon: FileText,  label: 'Акты' },
+  { to: '/rent',       icon: Handshake, label: 'Аренда' },
+  { to: '/notifications', icon: Bell,  label: 'Уведомления' },
+  { to: '/profile',    icon: User,      label: 'Профиль' },
 ]
+
+const css = `
+/* ── Layout ── */
+.wl-root { display: flex; min-height: 100vh; background: var(--bg); }
+
+/* ── Sidebar ── */
+.wl-sidebar {
+  width: 240px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.wl-logo {
+  padding: 22px 20px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.wl-logo-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.wl-logo-sub { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 2px; }
+
+.wl-warehouse {
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.wl-warehouse-select {
+  width: 100%; height: 32px; padding: 0 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: var(--sidebar-text);
+  font-size: 12px;
+  cursor: pointer;
+  appearance: none;
+}
+
+.wl-nav { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.wl-section-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--sidebar-muted);
+  padding: 12px 10px 4px;
+}
+.wl-nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 8px; margin-bottom: 1px;
+  color: var(--sidebar-text);
+  font-size: 13.5px; font-weight: 450;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+  position: relative;
+}
+.wl-nav-item:hover { background: var(--sidebar-hover-bg); color: #fff; }
+.wl-nav-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-active-text); }
+.wl-nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+}
+
+.wl-profile {
+  padding: 12px 12px 18px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.wl-profile-inner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.wl-profile-inner:hover { background: var(--sidebar-hover-bg); }
+.wl-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: #fff;
+  flex-shrink: 0;
+}
+.wl-profile-name { font-size: 13px; font-weight: 500; }
+.wl-profile-role { font-size: 11px; color: var(--sidebar-muted); margin-top: 1px; }
+
+/* ── Main ── */
+.wl-main { margin-left: 240px; flex: 1; min-height: 100vh; }
+
+/* ── Mobile top bar ── */
+.wl-topbar {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  z-index: 200;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.wl-topbar-logo { font-size: 16px; font-weight: 600; }
+.wl-topbar-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: rgba(255,255,255,0.08);
+  border: none; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+/* ── Mobile bottom nav ── */
+.wl-mobile-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+}
+.wl-mobile-nav-inner { display: flex; justify-content: space-around; }
+.wl-mobile-nav-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 4px 12px;
+  font-size: 10px; font-weight: 500;
+  color: var(--muted); text-decoration: none;
+  border: none; background: none; cursor: pointer;
+  transition: color 0.12s;
+}
+.wl-mobile-nav-item.active, .wl-mobile-nav-item:hover { color: var(--accent); }
+
+/* ── Drawer (burger) ── */
+.wl-drawer-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+}
+.wl-drawer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--white);
+  border-radius: 18px 18px 0 0;
+  padding: 8px 16px max(20px, env(safe-area-inset-bottom));
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.wl-drawer-handle {
+  width: 36px; height: 4px; border-radius: 4px;
+  background: var(--border-strong);
+  margin: 8px auto 16px;
+}
+.wl-drawer-title { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; padding: 0 4px; }
+.wl-drawer-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 4px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text); font-size: 15px; font-weight: 450;
+  text-decoration: none;
+}
+.wl-drawer-item:last-child { border-bottom: none; }
+.wl-drawer-item-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .wl-sidebar   { display: none !important; }
+  .wl-main      { margin-left: 0 !important; padding-top: 52px; padding-bottom: 72px; }
+  .wl-topbar    { display: flex !important; }
+  .wl-mobile-nav { display: block !important; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .wl-sidebar { width: 200px; }
+  .wl-main    { margin-left: 200px; }
+}
+`
+
+function getInitials(name = '') {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
 
 export default function WarehouseLayout({ children }) {
   const [burger, setBurger] = useState(false)
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Desktop Sidebar */}
-      <aside style={{
-        width: 220, background: 'var(--black)', color: 'var(--white)',
-        display: 'flex', flexDirection: 'column',
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
-      }} className="sidebar-desktop">
-        {/* Logo */}
-        <div style={{ padding: '24px 20px 16px' }}>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>
-            <span style={{ color: 'var(--blue)' }}>3X</span>Media
-          </div>
-          <div style={{ fontSize: 8, letterSpacing: '1.4px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-            Production
-          </div>
-        </div>
+    <>
+      <style>{css}</style>
+      <div className="wl-root">
 
-        {/* Warehouse selector */}
-        <div style={{ padding: '0 12px 16px' }}>
-          <select style={{
-            width: '100%', height: 34, padding: '0 10px',
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 8, color: 'var(--white)', fontSize: 13, cursor: 'pointer',
-          }}>
-            <option>Все склады</option>
-            <option>Вирки 22</option>
-            <option>Чапаева 6</option>
-          </select>
-        </div>
+        {/* Desktop Sidebar */}
+        <aside className="wl-sidebar">
+          <div className="wl-logo">
+            <div className="wl-logo-title">
+              <span style={{ color: 'var(--accent)' }}>3X</span>Media
+            </div>
+            <div className="wl-logo-sub">Production</div>
+          </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
-          {NAV.map(group => (
-            <div key={group.section} style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', padding: '8px 12px 4px' }}>
-                {group.section}
+          <div className="wl-warehouse">
+            <select className="wl-warehouse-select">
+              <option>Все склады</option>
+              <option>Вирки 22</option>
+              <option>Чапаева 6</option>
+            </select>
+          </div>
+
+          <nav className="wl-nav">
+            {NAV.map(group => (
+              <div key={group.section}>
+                <div className="wl-section-label">{group.section}</div>
+                {group.items.map(item => (
+                  <NavLink key={item.to} to={item.to} className={({ isActive }) => `wl-nav-item${isActive ? ' active' : ''}`}>
+                    <item.icon size={16} strokeWidth={1.8} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                  </NavLink>
+                ))}
               </div>
-              {group.items.map(item => (
-                <NavItem key={item.to} {...item} />
-              ))}
-            </div>
-          ))}
-        </nav>
+            ))}
+          </nav>
 
-        {/* Profile */}
-        <div style={{ padding: '12px 12px 20px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-            onClick={() => navigate('/profile')}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--blue)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 13, fontWeight: 600,
-            }}>ИП</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>Иван Петров</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Директор склада</div>
+          <div className="wl-profile">
+            <div className="wl-profile-inner" onClick={() => navigate('/profile')}>
+              <div className="wl-avatar">{getInitials(user?.name || 'ИП')}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="wl-profile-name truncate">{user?.name || 'Профиль'}</div>
+                <div className="wl-profile-role truncate">{user?.role || ''}</div>
+              </div>
+              <User size={14} style={{ color: 'var(--sidebar-muted)', flexShrink: 0 }} />
             </div>
           </div>
+        </aside>
+
+        {/* Mobile top bar */}
+        <div className="wl-topbar">
+          <div className="wl-topbar-logo">
+            <span style={{ color: 'var(--accent)' }}>3X</span>Media
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="wl-topbar-btn" onClick={() => navigate('/notifications')}>
+              <Bell size={18} />
+            </button>
+            <button className="wl-topbar-btn" onClick={() => setBurger(true)}>
+              <Menu size={18} />
+            </button>
+          </div>
         </div>
-      </aside>
 
-      {/* Main content */}
-      <main style={{ marginLeft: 220, flex: 1, minHeight: '100vh' }} className="main-desktop">
-        {children}
-      </main>
+        {/* Main content */}
+        <main className="wl-main">{children}</main>
 
-      {/* Mobile bottom nav */}
-      <nav style={{
-        display: 'none', position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'var(--white)', borderTop: '1px solid var(--border)',
-        zIndex: 200, padding: '8px 0 max(8px, env(safe-area-inset-bottom))',
-      }} className="mobile-nav">
-        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-          {MOBILE_NAV.map(item => (
-            <NavLink key={item.to} to={item.to} style={({ isActive }) => ({
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 2, padding: '4px 12px', fontSize: 10, fontWeight: 500,
-              color: isActive ? 'var(--blue)' : 'var(--muted)',
-              textDecoration: 'none',
-            })}>
-              <span style={{ fontSize: 20 }}>{item.icon}</span>
-              {item.label}
-              {item.badge ? (
-                <span style={{
-                  position: 'absolute', marginTop: -4, marginLeft: 14,
-                  background: 'var(--red)', color: '#fff', borderRadius: 8,
-                  fontSize: 10, padding: '1px 5px', fontWeight: 600,
-                }}>{item.badge}</span>
-              ) : null}
-            </NavLink>
-          ))}
-          <button onClick={() => setBurger(true)} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 2, padding: '4px 12px', fontSize: 10, fontWeight: 500,
-            color: 'var(--muted)', background: 'none', border: 'none',
-          }}>
-            <span style={{ fontSize: 20 }}>☰</span>
-            Ещё
-          </button>
-        </div>
-      </nav>
-
-      {/* Burger menu overlay */}
-      {burger && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 300,
-          background: 'rgba(0,0,0,0.4)',
-        }} onClick={() => setBurger(false)}>
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            background: 'var(--white)', borderRadius: '16px 16px 0 0',
-            padding: 24,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontWeight: 600, marginBottom: 16 }}>Меню</div>
-            {MOBILE_BURGER.map(item => (
-              <NavLink key={item.to} to={item.to}
-                onClick={() => setBurger(false)}
-                style={{ display: 'block', padding: '12px 0', borderBottom: '1px solid var(--border)', color: 'var(--text)', fontWeight: 500, textDecoration: 'none' }}>
+        {/* Mobile bottom nav */}
+        <nav className="wl-mobile-nav">
+          <div className="wl-mobile-nav-inner">
+            {MOBILE_NAV.map(item => (
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => `wl-mobile-nav-item${isActive ? ' active' : ''}`}>
+                <item.icon size={22} strokeWidth={1.8} />
                 {item.label}
               </NavLink>
             ))}
+            <button className="wl-mobile-nav-item" onClick={() => setBurger(true)}>
+              <Menu size={22} strokeWidth={1.8} />
+              Ещё
+            </button>
           </div>
-        </div>
-      )}
+        </nav>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .sidebar-desktop { display: none !important; }
-          .main-desktop { margin-left: 0 !important; padding-bottom: 72px; }
-          .mobile-nav { display: block !important; }
-        }
-      `}</style>
-    </div>
-  )
-}
-
-function NavItem({ to, icon, label, badge }) {
-  return (
-    <NavLink to={to} style={({ isActive }) => ({
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '8px 12px', borderRadius: 8, marginBottom: 2,
-      background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
-      color: isActive ? 'var(--white)' : 'rgba(255,255,255,0.55)',
-      textDecoration: 'none', fontSize: 14, fontWeight: 500,
-      transition: 'background 0.15s',
-    })}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span style={{ flex: 1 }}>{label}</span>
-      {badge ? (
-        <span style={{
-          background: 'var(--red)', color: '#fff', borderRadius: 10,
-          fontSize: 11, padding: '1px 7px', fontWeight: 600,
-        }}>{badge}</span>
-      ) : null}
-    </NavLink>
+        {/* Drawer */}
+        {burger && (
+          <div className="wl-drawer-overlay" onClick={() => setBurger(false)}>
+            <div className="wl-drawer" onClick={e => e.stopPropagation()}>
+              <div className="wl-drawer-handle" />
+              <div className="wl-drawer-title">Меню</div>
+              {MOBILE_BURGER.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className="wl-drawer-item"
+                  onClick={() => setBurger(false)}
+                >
+                  <div className="wl-drawer-item-icon">
+                    <item.icon size={18} strokeWidth={1.8} />
+                  </div>
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   )
 }

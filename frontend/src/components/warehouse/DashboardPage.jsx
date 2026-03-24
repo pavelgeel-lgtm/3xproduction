@@ -1,35 +1,110 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Bell, Plus, Package, ArrowRightLeft, AlertTriangle, Clock } from 'lucide-react'
 import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { units as unitsApi, requests as requestsApi } from '../../services/api'
 import { useNotifications } from '../../hooks/useNotifications'
 
-const CELL_COLORS = {
-  free:     { bg: 'var(--bg)', border: '1px solid var(--border)' },
-  occupied: { bg: 'var(--blue-dim)', border: '1px solid rgba(30,157,218,0.2)' },
-  overdue:  { bg: 'var(--red-dim)',  border: '1px solid rgba(220,38,38,0.2)' },
-  pending:  { bg: 'var(--amber-dim)',border: '1px solid rgba(217,119,6,0.2)' },
+const css = `
+.dash-page { padding: 28px 32px; max-width: 1100px; }
+.dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px; }
+.dash-title { font-size: 22px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 2px; }
+.dash-sub { color: var(--muted); font-size: 13px; }
+.dash-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.dash-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.dash-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.dash-stat-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.dash-stat-value { font-size: 28px; font-weight: 600; line-height: 1; letter-spacing: -0.04em; }
+.dash-stat-label { font-size: 12px; color: var(--muted); margin-top: 5px; font-weight: 500; }
+
+.dash-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dash-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.dash-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.dash-card-title { font-weight: 600; font-size: 14px; }
+.dash-card-link {
+  font-size: 13px; color: var(--accent); font-weight: 500;
+  background: none; border: none; cursor: pointer;
+  padding: 0;
+}
+.dash-card-empty { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+
+.dash-req-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.dash-req-item:last-child { border-bottom: none; }
+.dash-req-title { font-weight: 500; font-size: 14px; }
+.dash-req-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.dash-notif-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.dash-notif-item:last-child { border-bottom: none; }
+.dash-notif-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.dash-notif-text { font-size: 13px; line-height: 1.4; }
+.dash-notif-time { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.dash-bell {
+  position: relative; width: 38px; height: 38px;
+  border-radius: var(--radius-btn); border: 1px solid var(--border);
+  background: var(--card); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; color: var(--muted);
+  transition: background 0.12s;
+}
+.dash-bell:hover { background: var(--bg-secondary); }
+.dash-bell-dot {
+  position: absolute; top: 7px; right: 7px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
 }
 
-const TYPE_DOT = {
-  overdue:     'red',
-  damage:      'amber',
-  new_request: 'blue',
-  new_version: 'blue',
+@media (max-width: 768px) {
+  .dash-page { padding: 16px; }
+  .dash-stats { grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
+  .dash-cards { grid-template-columns: 1fr; gap: 12px; }
+  .dash-title { font-size: 18px; }
+  .dash-stat { padding: 14px; }
+  .dash-stat-value { font-size: 22px; }
+}
+
+@media (max-width: 400px) {
+  .dash-stats { grid-template-columns: repeat(2,1fr); }
+}
+`
+
+const DOT_COLOR = {
+  overdue: 'var(--red)',
+  damage: 'var(--amber)',
+  new_request: 'var(--accent)',
+  new_version: 'var(--blue)',
 }
 
 function timeAgo(dateStr) {
-  const d = new Date(dateStr)
-  const diff = (Date.now() - d.getTime()) / 1000
+  const diff = (Date.now() - new Date(dateStr)) / 1000
   if (diff < 60)    return 'только что'
   if (diff < 3600)  return `${Math.floor(diff / 60)} мин назад`
   if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`
   return `${Math.floor(diff / 86400)} д назад`
 }
 
-const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -47,141 +122,94 @@ export default function DashboardPage() {
         pending:  us.filter(u => u.status === 'pending').length,
       })
     }).catch(() => {})
-
     requestsApi.list({ status: 'new' }).then(data => {
       setReqs((data.requests || []).slice(0, 4))
     }).catch(() => {})
   }, [])
 
   const STATS = [
-    { label: 'На складе',      value: stats.on_stock, color: 'green', icon: '📦' },
-    { label: 'Выдано',         value: stats.issued,   color: 'blue',  icon: '🔄' },
-    { label: 'Просрочено',     value: stats.overdue,  color: 'red',   icon: '⚠️' },
-    { label: 'На утверждении', value: stats.pending,  color: 'amber', icon: '⏳' },
+    { label: 'На складе',      value: stats.on_stock, color: 'var(--green)',  bg: 'var(--green-dim)',  Icon: Package },
+    { label: 'Выдано',         value: stats.issued,   color: 'var(--blue)',   bg: 'var(--blue-dim)',   Icon: ArrowRightLeft },
+    { label: 'Просрочено',     value: stats.overdue,  color: 'var(--red)',    bg: 'var(--red-dim)',    Icon: AlertTriangle },
+    { label: 'На утверждении', value: stats.pending,  color: 'var(--amber)',  bg: 'var(--amber-dim)',  Icon: Clock },
   ]
 
   return (
     <WarehouseLayout>
-      <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+      <style>{css}</style>
+      <div className="dash-page">
+        <div className="dash-header">
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 2 }}>Главная</h1>
-            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Обзор склада · {today}</p>
+            <h1 className="dash-title">Главная</h1>
+            <p className="dash-sub">{today}</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="secondary" onClick={() => navigate('/units/new')}>+ Добавить единицу</Button>
-            <NotificationBell count={unreadCount} onClick={() => navigate('/notifications')} />
+          <div className="dash-header-actions">
+            <Button variant="primary" onClick={() => navigate('/units/new')}>
+              <Plus size={15} />
+              Добавить
+            </Button>
+            <button className="dash-bell" onClick={() => navigate('/notifications')}>
+              <Bell size={18} />
+              {unreadCount > 0 && <span className="dash-bell-dot" />}
+            </button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
-          {STATS.map(s => <StatCard key={s.label} {...s} />)}
+        <div className="dash-stats">
+          {STATS.map(s => (
+            <div key={s.label} className="dash-stat">
+              <div className="dash-stat-icon" style={{ background: s.bg, color: s.color }}>
+                <s.Icon size={18} strokeWidth={1.8} />
+              </div>
+              <div className="dash-stat-value" style={{ color: s.color }}>{s.value}</div>
+              <div className="dash-stat-label">{s.label}</div>
+            </div>
+          ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-          <Card title="Запросы от проектов" action={{ label: 'Все запросы', to: '/requests' }} navigate={navigate}>
-            {reqs.length === 0 && (
-              <div style={{ color: 'var(--muted)', fontSize: 13, padding: '20px 0' }}>Нет новых запросов</div>
-            )}
-            {reqs.map(r => (
-              <div key={r.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 0', borderBottom: '1px solid var(--border)',
-              }}>
-                <div>
-                  <div style={{ fontWeight: 500, fontSize: 14 }}>Запрос #{r.id}</div>
-                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>
-                    {(r.unit_ids || []).length} ед. · {r.notes || ''}
+        <div className="dash-cards">
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">Запросы от проектов</span>
+              <button className="dash-card-link" onClick={() => navigate('/requests')}>Все →</button>
+            </div>
+            {reqs.length === 0
+              ? <div className="dash-card-empty">Нет новых запросов</div>
+              : reqs.map(r => (
+                <div key={r.id} className="dash-req-item">
+                  <div>
+                    <div className="dash-req-title">Запрос #{r.id.slice(0, 8)}</div>
+                    <div className="dash-req-sub">{(r.unit_ids || []).length} ед. · {r.notes || ''}</div>
+                  </div>
+                  <Button variant="secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }}
+                    onClick={() => navigate(`/issue/${r.id}`)}>
+                    Выдать
+                  </Button>
+                </div>
+              ))
+            }
+          </div>
+
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">Уведомления</span>
+              <button className="dash-card-link" onClick={() => navigate('/notifications')}>Все →</button>
+            </div>
+            {notifs.length === 0
+              ? <div className="dash-card-empty">Нет уведомлений</div>
+              : notifs.slice(0, 4).map(n => (
+                <div key={n.id} className="dash-notif-item">
+                  <div className="dash-notif-dot" style={{ background: DOT_COLOR[n.type] || 'var(--border)' }} />
+                  <div>
+                    <div className="dash-notif-text">{n.text}</div>
+                    <div className="dash-notif-time">{timeAgo(n.created_at)}</div>
                   </div>
                 </div>
-                <Button variant="secondary" style={{ height: 32, fontSize: 13, padding: '0 12px' }}
-                  onClick={() => navigate(`/issue/${r.id}`)}>
-                  Выдать
-                </Button>
-              </div>
-            ))}
-          </Card>
-
-          <Card title="Уведомления" action={{ label: 'Все', to: '/notifications' }} navigate={navigate}>
-            {notifs.slice(0, 4).map(n => (
-              <div key={n.id} style={{
-                display: 'flex', gap: 10, alignItems: 'flex-start',
-                padding: '10px 0', borderBottom: '1px solid var(--border)',
-              }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
-                  background: TYPE_DOT[n.type] === 'red' ? 'var(--red)' : TYPE_DOT[n.type] === 'blue' ? 'var(--blue)' : TYPE_DOT[n.type] === 'amber' ? 'var(--amber)' : 'var(--border)',
-                }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13 }}>{n.text}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{timeAgo(n.created_at)}</div>
-                </div>
-              </div>
-            ))}
-            {notifs.length === 0 && (
-              <div style={{ color: 'var(--muted)', fontSize: 13, padding: '20px 0' }}>Нет уведомлений</div>
-            )}
-          </Card>
+              ))
+            }
+          </div>
         </div>
       </div>
     </WarehouseLayout>
-  )
-}
-
-function StatCard({ label, value, color, icon }) {
-  const bgMap = { green: 'var(--green-dim)', blue: 'var(--blue-dim)', red: 'var(--red-dim)', amber: 'var(--amber-dim)' }
-  const clrMap = { green: 'var(--green)', blue: 'var(--blue)', red: 'var(--red)', amber: 'var(--amber)' }
-  return (
-    <div style={{
-      background: 'var(--white)', borderRadius: 'var(--radius-card)',
-      border: '1px solid var(--border)', padding: '20px',
-    }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 10,
-        background: bgMap[color], display: 'flex', alignItems: 'center',
-        justifyContent: 'center', fontSize: 18, marginBottom: 14,
-      }}>{icon}</div>
-      <div style={{ fontSize: 28, fontWeight: 600, color: clrMap[color], lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{label}</div>
-    </div>
-  )
-}
-
-function Card({ title, action, navigate, children }) {
-  return (
-    <div style={{
-      background: 'var(--white)', borderRadius: 'var(--radius-card)',
-      border: '1px solid var(--border)', padding: '20px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <div style={{ fontWeight: 600, fontSize: 15 }}>{title}</div>
-        {action && (
-          <button onClick={() => navigate(action.to)} style={{
-            background: 'none', border: 'none', color: 'var(--blue)',
-            fontSize: 13, cursor: 'pointer', fontWeight: 500,
-          }}>{action.label} →</button>
-        )}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function NotificationBell({ count, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      position: 'relative', width: 40, height: 40, borderRadius: 'var(--radius-btn)',
-      border: '1px solid var(--border)', background: 'var(--white)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-    }}>
-      🔔
-      {count > 0 && (
-        <span style={{
-          position: 'absolute', top: 6, right: 6,
-          width: 8, height: 8, borderRadius: '50%',
-          background: 'var(--red)',
-        }} />
-      )}
-    </button>
   )
 }

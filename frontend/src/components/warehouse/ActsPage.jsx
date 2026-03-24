@@ -1,22 +1,68 @@
 import { useState, useEffect } from 'react'
+import { FileText, FileCheck } from 'lucide-react'
 import WarehouseLayout from './WarehouseLayout'
 import { issuances as issuancesApi } from '../../services/api'
+
+const css = `
+.acts-page { padding: 28px 32px; max-width: 900px; }
+.acts-title { font-size: 22px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 2px; }
+.acts-sub { color: var(--muted); font-size: 13px; }
+.acts-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin: 20px 0 20px; }
+.acts-tab {
+  padding: 9px 20px; font-size: 14px; font-weight: 500;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: color 0.12s;
+  display: flex; align-items: center; gap: 7px;
+}
+.acts-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.acts-tab-count {
+  font-size: 11px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+  background: var(--bg-secondary); color: var(--muted);
+}
+.acts-tab.active .acts-tab-count { background: var(--accent-dim); color: var(--accent); }
+.acts-list { display: flex; flex-direction: column; gap: 10px; }
+.acts-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 16px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.acts-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent-dim); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.acts-item-body { flex: 1; min-width: 0; }
+.acts-item-title { font-weight: 600; font-size: 14px; margin-bottom: 5px; }
+.acts-item-meta { font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.acts-pdf-btn {
+  padding: 7px 14px; border-radius: var(--radius-btn);
+  background: var(--accent-dim); color: var(--accent);
+  font-size: 13px; font-weight: 500;
+  text-decoration: none; flex-shrink: 0;
+  transition: background 0.12s;
+}
+.acts-pdf-btn:hover { background: var(--accent); color: #fff; }
+.acts-no-pdf { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.acts-returned { color: var(--green); font-weight: 500; }
+.acts-damage { color: var(--amber); }
+.acts-empty { color: var(--muted); font-size: 14px; padding: 60px 0; text-align: center; }
+
+@media (max-width: 768px) {
+  .acts-page { padding: 16px; }
+  .acts-title { font-size: 18px; }
+  .acts-item { flex-wrap: wrap; padding: 14px 16px; }
+  .acts-item-meta { gap: 8px; }
+  .acts-pdf-btn { width: 100%; text-align: center; margin-top: 4px; }
+}
+`
 
 function formatDate(str) {
   if (!str) return '—'
   return new Date(str).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function ActRow({ children }) {
-  return (
-    <div style={{
-      background: 'var(--white)', border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-card)', padding: '16px 20px',
-      display: 'flex', alignItems: 'center', gap: 16,
-    }}>
-      {children}
-    </div>
-  )
 }
 
 export default function ActsPage() {
@@ -31,115 +77,75 @@ export default function ActsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const tabs = [
-    { key: 'issue',  label: 'Акты выдачи',  count: data.issuances.length },
-    { key: 'return', label: 'Акты возврата', count: data.returns.length },
-  ]
-
   return (
     <WarehouseLayout>
-      <div style={{ padding: '28px 32px', maxWidth: 900 }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 2 }}>Акты</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>Акты выдачи и возврата оборудования</p>
-        </div>
+      <style>{css}</style>
+      <div className="acts-page">
+        <h1 className="acts-title">Акты</h1>
+        <p className="acts-sub">Акты выдачи и возврата оборудования</p>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding: '8px 18px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
-              background: 'none', border: 'none',
-              borderBottom: tab === t.key ? '2px solid var(--blue)' : '2px solid transparent',
-              color: tab === t.key ? 'var(--blue)' : 'var(--muted)',
-              marginBottom: -1,
-            }}>
-              {t.label}
-              <span style={{
-                marginLeft: 6, fontSize: 11, fontWeight: 600,
-                background: tab === t.key ? 'var(--blue-dim)' : 'var(--border)',
-                color: tab === t.key ? 'var(--blue)' : 'var(--muted)',
-                padding: '1px 6px', borderRadius: 8,
-              }}>{t.count}</span>
-            </button>
-          ))}
+        <div className="acts-tabs">
+          <button className={`acts-tab${tab === 'issue' ? ' active' : ''}`} onClick={() => setTab('issue')}>
+            <FileText size={15} strokeWidth={1.8} />
+            Выдача
+            <span className="acts-tab-count">{data.issuances.length}</span>
+          </button>
+          <button className={`acts-tab${tab === 'return' ? ' active' : ''}`} onClick={() => setTab('return')}>
+            <FileCheck size={15} strokeWidth={1.8} />
+            Возврат
+            <span className="acts-tab-count">{data.returns.length}</span>
+          </button>
         </div>
 
         {loading ? (
-          <div style={{ color: 'var(--muted)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Загрузка...</div>
+          <div className="acts-empty">Загрузка...</div>
         ) : tab === 'issue' ? (
-          data.issuances.length === 0 ? (
-            <div style={{ color: 'var(--muted)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Нет актов выдачи</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {data.issuances.map(i => (
-                <ActRow key={i.id}>
-                  <div style={{ fontSize: 22 }}>📄</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
-                      Акт выдачи · {formatDate(i.issued_at)}
+          data.issuances.length === 0
+            ? <div className="acts-empty">Нет актов выдачи</div>
+            : <div className="acts-list">
+                {data.issuances.map(i => (
+                  <div key={i.id} className="acts-item">
+                    <div className="acts-icon"><FileText size={18} strokeWidth={1.8} /></div>
+                    <div className="acts-item-body">
+                      <div className="acts-item-title">Акт выдачи · {formatDate(i.issued_at)}</div>
+                      <div className="acts-item-meta">
+                        <span>Выдал: {i.issued_by_name}</span>
+                        <span>Получил: {i.received_by_name}</span>
+                        <span>{(i.unit_ids || []).length} ед.</span>
+                        <span>До: {formatDate(i.deadline)}</span>
+                        {i.returned && <span className="acts-returned">✓ Возвращено</span>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--muted)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                      <span>Выдал: {i.issued_by_name}</span>
-                      <span>Получил: {i.received_by_name}</span>
-                      <span>Единиц: {(i.unit_ids || []).length}</span>
-                      <span>До: {formatDate(i.deadline)}</span>
-                      {i.returned && (
-                        <span style={{ color: 'var(--green)', fontWeight: 500 }}>✓ Возвращено</span>
-                      )}
-                    </div>
+                    {i.act_pdf_url
+                      ? <a href={i.act_pdf_url} target="_blank" rel="noreferrer" className="acts-pdf-btn">PDF →</a>
+                      : <span className="acts-no-pdf">Нет PDF</span>}
                   </div>
-                  {i.act_pdf_url ? (
-                    <a href={i.act_pdf_url} target="_blank" rel="noreferrer" style={{
-                      padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                      background: 'var(--blue-dim)', color: 'var(--blue)',
-                      textDecoration: 'none', flexShrink: 0,
-                    }}>
-                      PDF →
-                    </a>
-                  ) : (
-                    <span style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Нет PDF</span>
-                  )}
-                </ActRow>
-              ))}
-            </div>
-          )
+                ))}
+              </div>
         ) : (
-          data.returns.length === 0 ? (
-            <div style={{ color: 'var(--muted)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Нет актов возврата</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {data.returns.map(r => (
-                <ActRow key={r.id}>
-                  <div style={{ fontSize: 22 }}>📋</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
-                      Акт возврата · {formatDate(r.returned_at)}
+          data.returns.length === 0
+            ? <div className="acts-empty">Нет актов возврата</div>
+            : <div className="acts-list">
+                {data.returns.map(r => (
+                  <div key={r.id} className="acts-item">
+                    <div className="acts-icon" style={{ background: 'var(--green-dim)', color: 'var(--green)' }}>
+                      <FileCheck size={18} strokeWidth={1.8} />
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--muted)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                      <span>Вернул: {r.returned_by_name}</span>
-                      <span>Принял: {r.accepted_by_name}</span>
-                      <span>Единиц: {(r.unit_ids || []).length}</span>
-                      {r.condition_notes && (
-                        <span style={{ color: 'var(--amber)' }}>⚠️ {r.condition_notes}</span>
-                      )}
+                    <div className="acts-item-body">
+                      <div className="acts-item-title">Акт возврата · {formatDate(r.returned_at)}</div>
+                      <div className="acts-item-meta">
+                        <span>Вернул: {r.returned_by_name}</span>
+                        <span>Принял: {r.accepted_by_name}</span>
+                        <span>{(r.unit_ids || []).length} ед.</span>
+                        {r.condition_notes && <span className="acts-damage">⚠ {r.condition_notes}</span>}
+                      </div>
                     </div>
+                    {r.act_pdf_url
+                      ? <a href={r.act_pdf_url} target="_blank" rel="noreferrer" className="acts-pdf-btn">PDF →</a>
+                      : <span className="acts-no-pdf">Нет PDF</span>}
                   </div>
-                  {r.act_pdf_url ? (
-                    <a href={r.act_pdf_url} target="_blank" rel="noreferrer" style={{
-                      padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                      background: 'var(--blue-dim)', color: 'var(--blue)',
-                      textDecoration: 'none', flexShrink: 0,
-                    }}>
-                      PDF →
-                    </a>
-                  ) : (
-                    <span style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Нет PDF</span>
-                  )}
-                </ActRow>
-              ))}
-            </div>
-          )
+                ))}
+              </div>
         )}
       </div>
     </WarehouseLayout>
