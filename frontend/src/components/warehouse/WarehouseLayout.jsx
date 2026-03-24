@@ -12,8 +12,8 @@ const NAV = [
     section: 'Склад',
     items: [
       { to: '/dashboard',  icon: LayoutDashboard, label: 'Главная' },
-      { to: '/requests',   icon: ClipboardList,   label: 'Запросы',    badge: true },
-      { to: '/units',      icon: Package,          label: 'Остатки' },
+      { to: '/requests',   icon: ClipboardList,   label: 'Заявки',     badge: true },
+      { to: '/units',      icon: Package,          label: 'Склад' },
       { to: '/cells',      icon: Grid3x3,          label: 'Карта ячеек' },
       { to: '/team',       icon: Users,            label: 'Команда' },
       { to: '/approvals',  icon: Clock,            label: 'На утверждении' },
@@ -36,8 +36,8 @@ const NAV = [
 
 const MOBILE_NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Главная' },
-  { to: '/requests',  icon: ClipboardList,   label: 'Запросы' },
-  { to: '/units',     icon: Package,          label: 'Остатки' },
+  { to: '/requests',  icon: ClipboardList,   label: 'Заявки' },
+  { to: '/units',     icon: Package,          label: 'Склад' },
   { to: '/analytics', icon: BarChart2,        label: 'Отчёты' },
 ]
 
@@ -70,23 +70,36 @@ const css = `
   padding: 22px 20px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.wl-logo-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.wl-logo-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; cursor: pointer; }
 .wl-logo-sub { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 2px; }
 
 .wl-warehouse {
   padding: 12px 12px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: relative;
 }
-.wl-warehouse-select {
-  width: 100%; height: 32px; padding: 0 10px;
+.wl-warehouse-btn {
+  width: 100%; padding: 7px 10px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  color: var(--sidebar-text);
-  font-size: 12px;
-  cursor: pointer;
-  appearance: none;
+  border-radius: 8px; color: var(--sidebar-text);
+  font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: inherit;
 }
+.wl-warehouse-btn:hover { background: rgba(255,255,255,0.10); }
+.wl-warehouse-dd {
+  position: absolute; top: calc(100% - 8px); left: 12px; right: 12px;
+  background: #252525; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; overflow: hidden; z-index: 200;
+}
+.wl-warehouse-opt {
+  padding: 9px 12px; font-size: 12px; color: rgba(255,255,255,0.85);
+  cursor: pointer; display: block; width: 100%; text-align: left;
+  background: none; border: none; font-family: inherit;
+}
+.wl-warehouse-opt:hover { background: rgba(255,255,255,0.08); }
+.wl-warehouse-opt.sel { color: var(--accent); }
 
 .wl-nav { flex: 1; overflow-y: auto; padding: 8px 10px; }
 .wl-section-label {
@@ -253,10 +266,21 @@ function getInitials(name = '') {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
+const WAREHOUSES = ['Все склады', 'Вирки 22', 'Чапаева 6']
+
 export default function WarehouseLayout({ children }) {
   const [burger, setBurger] = useState(false)
+  const [whOpen, setWhOpen] = useState(false)
+  const [selectedWh, setSelectedWh] = useState(() => localStorage.getItem('warehouse') || 'Все склады')
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+
+  function selectWarehouse(w) {
+    localStorage.setItem('warehouse', w)
+    setSelectedWh(w)
+    setWhOpen(false)
+    window.location.reload()
+  }
 
   return (
     <>
@@ -265,7 +289,7 @@ export default function WarehouseLayout({ children }) {
 
         {/* Desktop Sidebar */}
         <aside className="wl-sidebar">
-          <div className="wl-logo">
+          <div className="wl-logo" onClick={() => navigate('/dashboard')}>
             <div className="wl-logo-title">
               <span style={{ color: 'var(--accent)' }}>3X</span>Media
             </div>
@@ -273,11 +297,17 @@ export default function WarehouseLayout({ children }) {
           </div>
 
           <div className="wl-warehouse">
-            <select className="wl-warehouse-select">
-              <option>Все склады</option>
-              <option>Вирки 22</option>
-              <option>Чапаева 6</option>
-            </select>
+            <button className="wl-warehouse-btn" onClick={() => setWhOpen(o => !o)}>
+              <span>{selectedWh}</span>
+              <ChevronDown size={12} style={{ transform: whOpen ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+            </button>
+            {whOpen && (
+              <div className="wl-warehouse-dd">
+                {WAREHOUSES.map(w => (
+                  <button key={w} className={`wl-warehouse-opt${selectedWh === w ? ' sel' : ''}`} onClick={() => selectWarehouse(w)}>{w}</button>
+                ))}
+              </div>
+            )}
           </div>
 
           <nav className="wl-nav">

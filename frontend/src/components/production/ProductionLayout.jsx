@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   FileText, List, Package, BarChart2,
-  Bell, User, Menu, Users, Home
+  Bell, User, Menu, Users, Home, ChevronDown
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
@@ -19,15 +19,32 @@ const css = `
   position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
   border-right: 1px solid rgba(255,255,255,0.06);
 }
-.pl-logo { padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.pl-logo-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.pl-logo { padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
+.pl-logo-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
 .pl-logo-sub { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 2px; }
 .pl-project {
   padding: 10px 12px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   font-size: 12px; color: var(--sidebar-muted);
+  position: relative;
 }
-.pl-project-name { font-size: 13px; font-weight: 500; color: var(--sidebar-text); margin-top: 2px; }
+.pl-project-btn {
+  width: 100%; background: none; border: none; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: space-between; margin-top: 2px;
+}
+.pl-project-name { font-size: 13px; font-weight: 500; color: var(--sidebar-text); }
+.pl-project-dd {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+  background: #252525; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; overflow: hidden; margin-top: 2px;
+}
+.pl-project-opt {
+  padding: 9px 14px; font-size: 12px; color: rgba(255,255,255,0.85);
+  cursor: pointer; display: block; width: 100%; text-align: left;
+  background: none; border: none; font-family: inherit;
+}
+.pl-project-opt:hover { background: rgba(255,255,255,0.08); }
+.pl-project-opt.sel { color: var(--accent); }
 
 .pl-nav { flex: 1; overflow-y: auto; padding: 8px 10px; }
 .pl-section-label {
@@ -160,7 +177,7 @@ function buildNav(role) {
 
   // All lists (director, production_designer, project_director)
   if (def.seeAllLists || role === 'project_director') {
-    nav.push({ to: '/production/lists', icon: Users, label: 'Все списки' })
+    nav.push({ to: '/production/lists', icon: List, label: 'Наполнение' })
   }
 
   // Warehouse view
@@ -181,10 +198,20 @@ function buildNav(role) {
   return nav
 }
 
+const PROJECTS = ['Наш спецназ', 'Великолепная пятерка', 'Спецы', 'Небо']
+
 export default function ProductionLayout({ children }) {
   const [burger, setBurger] = useState(false)
+  const [projectOpen, setProjectOpen] = useState(false)
+  const [selectedProject, setSelectedProject] = useState(() => localStorage.getItem('project') || 'Наш спецназ')
   const navigate = useNavigate()
   const { user } = useAuth()
+
+  function selectProject(p) {
+    localStorage.setItem('project', p)
+    setSelectedProject(p)
+    setProjectOpen(false)
+  }
 
   const role = user?.role || ''
   const roleDef = ROLES[role] || {}
@@ -202,7 +229,7 @@ export default function ProductionLayout({ children }) {
 
         {/* Desktop Sidebar */}
         <aside className="pl-sidebar">
-          <div className="pl-logo">
+          <div className="pl-logo" onClick={() => navigate(nav[0]?.to || '/production/documents')}>
             <div className="pl-logo-title">
               <span style={{ color: 'var(--accent)' }}>3X</span>Media
             </div>
@@ -211,7 +238,17 @@ export default function ProductionLayout({ children }) {
 
           <div className="pl-project">
             <div>Проект</div>
-            <div className="pl-project-name">— выберите проект —</div>
+            <button className="pl-project-btn" onClick={() => setProjectOpen(o => !o)}>
+              <span className="pl-project-name">{selectedProject}</span>
+              <ChevronDown size={12} style={{ color: 'var(--sidebar-muted)', transform: projectOpen ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+            </button>
+            {projectOpen && (
+              <div className="pl-project-dd">
+                {PROJECTS.map(p => (
+                  <button key={p} className={`pl-project-opt${selectedProject === p ? ' sel' : ''}`} onClick={() => selectProject(p)}>{p}</button>
+                ))}
+              </div>
+            )}
           </div>
 
           <nav className="pl-nav">
