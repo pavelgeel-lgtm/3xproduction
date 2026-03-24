@@ -91,6 +91,7 @@ export const requests = {
 // ─── Issuances ───────────────────────────────────────────────────────────────
 export const issuances = {
   active:  ()           => request('GET',  '/issuances/active'),
+  acts:    ()           => request('GET',  '/issuances/acts'),
   issue:   (formData)   => request('POST', '/issuances', formData),
   return:  (formData)   => request('POST', '/issuances/returns', formData),
   extend:  (body)       => request('POST', '/issuances/extensions', body),
@@ -140,6 +141,11 @@ export const push = {
   vapidKey:    ()  => request('GET', '/push/vapid-key'),
   subscribe:   (sub) => request('POST', '/push/subscribe', sub),
   unsubscribe: (endpoint) => request('DELETE', '/push/subscribe', { endpoint }),
+}
+
+// ─── Team ────────────────────────────────────────────────────────────────────
+export const team = {
+  list: () => request('GET', '/team'),
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────

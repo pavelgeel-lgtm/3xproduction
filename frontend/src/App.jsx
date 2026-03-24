@@ -12,6 +12,9 @@ import CellsPage from './components/warehouse/CellsPage'
 import UnitsPage from './components/warehouse/UnitsPage'
 import RentPage from './components/rent/RentPage'
 import CellConstructorPage from './components/warehouse/CellConstructorPage'
+import RequestsPage from './components/warehouse/RequestsPage'
+import TeamPage from './components/warehouse/TeamPage'
+import ActsPage from './components/warehouse/ActsPage'
 import DocumentsPage from './components/production/DocumentsPage'
 import ProductionListsPage from './components/production/ProductionListsPage'
 import WarehouseViewPage from './components/production/WarehouseViewPage'
@@ -50,6 +53,9 @@ function App() {
         <Route path="/profile"                 element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/analytics"               element={<PrivateRoute><WarehouseAnalyticsPage /></PrivateRoute>} />
         <Route path="/analytics/producer"      element={<PrivateRoute><ProducerDashboardPage /></PrivateRoute>} />
+        <Route path="/requests"                element={<PrivateRoute><RequestsPage /></PrivateRoute>} />
+        <Route path="/team"                    element={<PrivateRoute><TeamPage /></PrivateRoute>} />
+        <Route path="/acts"                    element={<PrivateRoute><ActsPage /></PrivateRoute>} />
         <Route path="/production/documents"    element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
         <Route path="/production/lists"        element={<PrivateRoute><ProductionListsPage /></PrivateRoute>} />
         <Route path="/production/warehouse"    element={<PrivateRoute><WarehouseViewPage /></PrivateRoute>} />

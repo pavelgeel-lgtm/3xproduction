@@ -243,6 +243,42 @@ router.post('/extensions', verifyJWT, checkRole(...WAREHOUSE_ROLES), async (req,
   }
 })
 
+// GET /issuances/acts — all issuances + returns for acts page
+router.get('/acts', verifyJWT, async (req, res) => {
+  try {
+    const { rows: issuances } = await db.query(`
+      SELECT i.id, i.issued_at, i.deadline, i.act_pdf_url,
+             ub.name AS issued_by_name,
+             ur.name AS received_by_name,
+             r.unit_ids,
+             EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id) AS returned
+      FROM issuances i
+      JOIN users ub ON ub.id = i.issued_by
+      JOIN users ur ON ur.id = i.received_by
+      LEFT JOIN requests r ON r.id = i.request_id
+      ORDER BY i.issued_at DESC
+    `)
+
+    const { rows: returns } = await db.query(`
+      SELECT rt.id, rt.returned_at, rt.condition_notes, rt.act_pdf_url,
+             ur.name AS returned_by_name,
+             ua.name AS accepted_by_name,
+             i.issued_at, r.unit_ids
+      FROM returns rt
+      JOIN issuances i ON i.id = rt.issuance_id
+      JOIN users ur ON ur.id = rt.returned_by
+      JOIN users ua ON ua.id = rt.accepted_by
+      LEFT JOIN requests r ON r.id = i.request_id
+      ORDER BY rt.returned_at DESC
+    `)
+
+    res.json({ issuances, returns })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // GET /issuances/active
 router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy'), async (req, res) => {
   try {
