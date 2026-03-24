@@ -1,12 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WarehouseLayout from './WarehouseLayout'
 import Button from '../shared/Button'
 import Input from '../shared/Input'
+import { warehouses as warehousesApi } from '../../services/api'
 
-const CATEGORIES = ['Мебель', 'Посуда', 'Игрушки', 'Костюмы', 'Реквизит', 'Компьютеры', 'Инструменты', 'Декорации', 'Осветительное', 'Текстиль', 'Своя категория']
+const CATEGORIES = [
+  'Мебель', 'Декор', 'Костюмы', 'Бутафория', 'Реквизит',
+  'Декорации', 'Автомобили', 'Техника', 'Осветительное оборудование',
+  'Звуковое оборудование', 'Камерное оборудование', 'Грим и косметика',
+  'Одежда', 'Украшения', 'Прочее', 'Своя категория',
+]
 
-const STEPS = ['Секция', 'Размер', 'Коды', 'Переименование', 'Готово']
+const STEPS = ['Секция', 'Размер', 'Коды', 'Просмотр', 'Готово']
 
 function genCells(rows, shelves) {
   const cells = []
@@ -23,17 +29,32 @@ export default function CellConstructorPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
+  const [selectedCats, setSelectedCats] = useState([])
   const [customCat, setCustomCat] = useState('')
   const [rows, setRows] = useState(3)
   const [shelves, setShelves] = useState(6)
   const [cells, setCells] = useState([])
-  const [editingId, setEditingId] = useState(null)
+  const [warehouseList, setWarehouseList] = useState([])
+  const [warehouseId, setWarehouseId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [created, setCreated] = useState(null)
+
+  useEffect(() => {
+    warehousesApi.list().then(d => {
+      setWarehouseList(d.warehouses || [])
+      if (d.warehouses?.length) setWarehouseId(String(d.warehouses[0].id))
+    }).catch(() => {})
+  }, [])
+
+  function toggleCat(c) {
+    setSelectedCats(prev =>
+      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+    )
+  }
 
   function handleNext() {
-    if (step === 1) {
-      setCells(genCells(rows, shelves))
-    }
+    if (step === 1) setCells(genCells(rows, shelves))
     setStep(s => s + 1)
   }
 
@@ -41,11 +62,33 @@ export default function CellConstructorPage() {
     setCells(cs => cs.map(c => c.id === id ? { ...c, id: value || id } : c))
   }
 
-  function updateCellCustom(id, value) {
-    setCells(cs => cs.map(c => c.id === id ? { ...c, custom: value } : c))
+  const finalCategories = selectedCats.includes('Своя категория')
+    ? [...selectedCats.filter(c => c !== 'Своя категория'), customCat].filter(Boolean)
+    : selectedCats
+
+  async function handleCreate() {
+    setSaving(true)
+    setSaveError('')
+    try {
+      const data = await warehousesApi.createSection({
+        warehouse_id: warehouseId,
+        name,
+        category: finalCategories.join(', '),
+        rows,
+        shelves,
+        cells,
+      })
+      setCreated(data.section)
+      setStep(4)
+    } catch (err) {
+      setSaveError(err.message || 'Ошибка')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const finalCategory = category === 'Своя категория' ? customCat : category
+  const canProceedStep0 = name && selectedCats.length > 0 && warehouseId &&
+    (!selectedCats.includes('Своя категория') || customCat.trim())
 
   return (
     <WarehouseLayout>
@@ -85,24 +128,36 @@ export default function CellConstructorPage() {
           ))}
         </div>
 
-        {/* Step 0 — name + category */}
+        {/* Step 0 — name + categories + warehouse */}
         {step === 0 && (
           <div>
+            {warehouseList.length > 1 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Склад</div>
+                <select value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
+                  style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)' }}>
+                  {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              </div>
+            )}
             <Input label="Название секции" placeholder="А · Реквизит" value={name} onChange={e => setName(e.target.value)} />
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Категория</div>
+              <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Категории <span style={{ color: 'var(--muted)', fontSize: 11 }}>(выберите одну или несколько)</span></div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {CATEGORIES.map(c => (
-                  <button key={c} onClick={() => setCategory(c)} style={{
-                    padding: '6px 14px', borderRadius: 'var(--radius-badge)',
-                    border: `1px solid ${category === c ? 'var(--blue)' : 'var(--border)'}`,
-                    background: category === c ? 'var(--blue-dim)' : 'var(--white)',
-                    color: category === c ? 'var(--blue)' : 'var(--text)',
-                    fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
-                  }}>{c}</button>
-                ))}
+                {CATEGORIES.map(c => {
+                  const sel = selectedCats.includes(c)
+                  return (
+                    <button key={c} onClick={() => toggleCat(c)} style={{
+                      padding: '6px 14px', borderRadius: 'var(--radius-badge)',
+                      border: `1px solid ${sel ? 'var(--blue)' : 'var(--border)'}`,
+                      background: sel ? 'var(--blue-dim)' : 'var(--white)',
+                      color: sel ? 'var(--blue)' : 'var(--text)',
+                      fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
+                    }}>{c}</button>
+                  )
+                })}
               </div>
-              {category === 'Своя категория' && (
+              {selectedCats.includes('Своя категория') && (
                 <input
                   value={customCat} onChange={e => setCustomCat(e.target.value)}
                   placeholder="Введите название категории"
@@ -114,8 +169,7 @@ export default function CellConstructorPage() {
                 />
               )}
             </div>
-            <Button fullWidth disabled={!name || !category || (category === 'Своя категория' && !customCat)}
-              onClick={handleNext}>
+            <Button fullWidth disabled={!canProceedStep0} onClick={handleNext}>
               Далее — Размер
             </Button>
           </div>
@@ -136,7 +190,6 @@ export default function CellConstructorPage() {
               </div>
             </div>
 
-            {/* Preview */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
                 Предпросмотр — {rows * shelves} ячеек
@@ -185,56 +238,38 @@ export default function CellConstructorPage() {
                 />
               ))}
             </div>
-            <Button fullWidth onClick={handleNext}>Далее — Переименование</Button>
+            <Button fullWidth onClick={handleNext}>Далее — Просмотр</Button>
           </div>
         )}
 
-        {/* Step 3 — custom names */}
+        {/* Step 3 — Просмотр (view only) */}
         {step === 3 && (
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Переименование ячеек</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-              Нажмите на ячейку чтобы задать произвольное имя
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Просмотр секции</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
+              {name} · {finalCategories.join(', ')} · {cells.length} ячеек
             </div>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: `repeat(${Math.min(shelves, 6)}, 1fr)`,
-              gap: 8, marginBottom: 24,
+              gridTemplateColumns: `repeat(${Math.min(shelves, 8)}, 1fr)`,
+              gap: 6, marginBottom: 24,
             }}>
               {cells.map(c => (
-                <div key={c.id}>
-                  <div
-                    onClick={() => setEditingId(editingId === c.id ? null : c.id)}
-                    style={{
-                      aspectRatio: '1', borderRadius: 8, cursor: 'pointer',
-                      border: `2px solid ${editingId === c.id ? 'var(--blue)' : 'var(--border)'}`,
-                      background: editingId === c.id ? 'var(--blue-dim)' : c.custom ? 'var(--green-dim)' : 'var(--bg)',
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 500, color: 'var(--text)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <span>{c.id}</span>
-                    {c.custom && <span style={{ fontSize: 8, color: 'var(--muted)', marginTop: 2 }}>{c.custom}</span>}
-                  </div>
-                  {editingId === c.id && (
-                    <input
-                      autoFocus
-                      value={c.custom}
-                      onChange={e => updateCellCustom(c.id, e.target.value)}
-                      placeholder="Имя ячейки"
-                      style={{
-                        marginTop: 4, width: '100%', height: 28, padding: '0 6px',
-                        border: '1px solid var(--blue)', borderRadius: 4,
-                        fontSize: 11, outline: 'none',
-                      }}
-                    />
-                  )}
+                <div key={c.id} style={{
+                  aspectRatio: '1', borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, color: 'var(--muted)', fontWeight: 500,
+                }}>
+                  {c.id}
                 </div>
               ))}
             </div>
-            <Button fullWidth onClick={handleNext}>Создать секцию</Button>
+            {saveError && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 12 }}>{saveError}</div>}
+            <Button fullWidth disabled={saving} onClick={handleCreate}>
+              {saving ? 'Создание...' : 'Создать секцию'}
+            </Button>
           </div>
         )}
 
@@ -244,13 +279,12 @@ export default function CellConstructorPage() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
             <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>Секция создана</div>
             <div style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 8 }}>
-              {name} · {finalCategory}
+              {name} · {finalCategories.join(', ')}
             </div>
             <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 32 }}>
               {cells.length} ячеек · {rows} рядов × {shelves} полок
             </div>
 
-            {/* Final map preview */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: `repeat(${Math.min(shelves, 8)}, 1fr)`,
@@ -259,10 +293,10 @@ export default function CellConstructorPage() {
               {cells.map(c => (
                 <div key={c.id} style={{
                   aspectRatio: '1', borderRadius: 6,
-                  background: 'var(--bg)', border: '1px solid var(--border)',
+                  background: 'var(--green-dim)', border: '1px solid var(--green)',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
-                  fontSize: 9, color: 'var(--muted)',
+                  fontSize: 9, color: 'var(--green)',
                 }}>
                   {c.custom || c.id}
                 </div>
