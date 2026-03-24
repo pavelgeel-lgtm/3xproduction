@@ -71,7 +71,7 @@ const fs   = require('fs')
 const frontendDist = path.join(__dirname, '../../frontend/dist')
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist))
-  app.get('*', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')))
+  app.get('/{*path}', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')))
 } else {
   // 404 for API-only mode (local dev)
   app.use((req, res) => res.status(404).json({ error: 'Not found' }))
