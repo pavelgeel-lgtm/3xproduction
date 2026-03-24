@@ -145,6 +145,31 @@ router.put('/:id', verifyJWT, async (req, res) => {
   }
 })
 
+// GET /units/approvals — pending approvals list
+router.get('/approvals', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy', 'warehouse_staff'), async (req, res) => {
+  try {
+    const isStaff = req.user.role === 'warehouse_staff'
+    let q = `
+      SELECT a.id AS approval_id, a.unit_id, a.action, a.new_data, a.created_at,
+             u.name AS unit_name, u.category, u.status AS unit_status,
+             usr.name AS proposed_by_name, usr.role AS proposed_by_role
+      FROM approvals a
+      JOIN units u ON u.id = a.unit_id
+      JOIN users usr ON usr.id = a.proposed_by
+      WHERE a.status = 'pending'
+    `
+    // Staff only sees their own proposals
+    if (isStaff) q += ` AND a.proposed_by = '${req.user.id}'`
+    q += ` ORDER BY a.created_at DESC`
+
+    const { rows } = await db.query(q)
+    res.json({ approvals: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // POST /units/:id/approve
 router.post('/:id/approve', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
   const { approval_id } = req.body

@@ -15,6 +15,7 @@ import CellConstructorPage from './components/warehouse/CellConstructorPage'
 import RequestsPage from './components/warehouse/RequestsPage'
 import TeamPage from './components/warehouse/TeamPage'
 import ActsPage from './components/warehouse/ActsPage'
+import ApprovalsPage from './components/warehouse/ApprovalsPage'
 import DocumentsPage from './components/production/DocumentsPage'
 import ProductionListsPage from './components/production/ProductionListsPage'
 import WarehouseViewPage from './components/production/WarehouseViewPage'
@@ -56,6 +57,7 @@ function App() {
         <Route path="/requests"                element={<PrivateRoute><RequestsPage /></PrivateRoute>} />
         <Route path="/team"                    element={<PrivateRoute><TeamPage /></PrivateRoute>} />
         <Route path="/acts"                    element={<PrivateRoute><ActsPage /></PrivateRoute>} />
+        <Route path="/approvals"               element={<PrivateRoute><ApprovalsPage /></PrivateRoute>} />
         <Route path="/production/documents"    element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
         <Route path="/production/lists"        element={<PrivateRoute><ProductionListsPage /></PrivateRoute>} />
         <Route path="/production/warehouse"    element={<PrivateRoute><WarehouseViewPage /></PrivateRoute>} />
