@@ -5,6 +5,7 @@ import Input from '../shared/Input'
 import Button from '../shared/Button'
 import { auth as authApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import { getHomeRoute } from '../../utils/getHomeRoute'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -45,7 +46,7 @@ export default function RegisterPage() {
         invite_token: inviteToken,
       })
       login(data.token, data.user)
-      navigate('/dashboard')
+      navigate(getHomeRoute(data.user.role))
     } catch (err) {
       setApiError(err.message || 'Ошибка регистрации')
     } finally {

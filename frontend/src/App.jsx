@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { ROLES } from './constants/roles'
+import { getHomeRoute } from './utils/getHomeRoute'
 import LoginPage from './components/auth/LoginPage'
 import RegisterPage from './components/auth/RegisterPage'
 import InvitePage from './components/auth/InvitePage'
@@ -25,10 +27,31 @@ import ProfilePage from './components/shared/ProfilePage'
 import WarehouseAnalyticsPage from './components/analytics/WarehouseAnalyticsPage'
 import ProducerDashboardPage from './components/analytics/ProducerDashboardPage'
 
+// Requires auth only
 function PrivateRoute({ children }) {
   const { token, loading } = useAuth()
   if (loading) return null
   if (!token) return <Navigate to="/login" replace />
+  return children
+}
+
+// Requires auth + warehouse world
+function WarehouseRoute({ children }) {
+  const { token, user, loading } = useAuth()
+  if (loading) return null
+  if (!token) return <Navigate to="/login" replace />
+  const world = ROLES[user?.role]?.world
+  if (world && world !== 'warehouse') return <Navigate to={getHomeRoute(user.role)} replace />
+  return children
+}
+
+// Requires auth + production world
+function ProductionRoute({ children }) {
+  const { token, user, loading } = useAuth()
+  if (loading) return null
+  if (!token) return <Navigate to="/login" replace />
+  const world = ROLES[user?.role]?.world
+  if (world && world !== 'production') return <Navigate to={getHomeRoute(user.role)} replace />
   return children
 }
 
@@ -42,25 +65,30 @@ function App() {
         <Route path="/invite/:token" element={<InvitePage />} />
         <Route path="/recover" element={<RecoverPage />} />
 
-        <Route path="/dashboard"               element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/units"                   element={<PrivateRoute><UnitsPage /></PrivateRoute>} />
-        <Route path="/units/:id"               element={<PrivateRoute><UnitPage /></PrivateRoute>} />
-        <Route path="/cells"                   element={<PrivateRoute><CellsPage /></PrivateRoute>} />
-        <Route path="/cells/constructor"       element={<PrivateRoute><CellConstructorPage /></PrivateRoute>} />
-        <Route path="/rent"                    element={<PrivateRoute><RentPage /></PrivateRoute>} />
-        <Route path="/issue/:id"               element={<PrivateRoute><IssuePage /></PrivateRoute>} />
-        <Route path="/return/:id"              element={<PrivateRoute><ReturnPage /></PrivateRoute>} />
+        {/* Warehouse routes */}
+        <Route path="/dashboard"               element={<WarehouseRoute><DashboardPage /></WarehouseRoute>} />
+        <Route path="/units"                   element={<WarehouseRoute><UnitsPage /></WarehouseRoute>} />
+        <Route path="/units/:id"               element={<WarehouseRoute><UnitPage /></WarehouseRoute>} />
+        <Route path="/cells"                   element={<WarehouseRoute><CellsPage /></WarehouseRoute>} />
+        <Route path="/cells/constructor"       element={<WarehouseRoute><CellConstructorPage /></WarehouseRoute>} />
+        <Route path="/rent"                    element={<WarehouseRoute><RentPage /></WarehouseRoute>} />
+        <Route path="/issue/:id"               element={<WarehouseRoute><IssuePage /></WarehouseRoute>} />
+        <Route path="/return/:id"              element={<WarehouseRoute><ReturnPage /></WarehouseRoute>} />
+        <Route path="/requests"                element={<WarehouseRoute><RequestsPage /></WarehouseRoute>} />
+        <Route path="/team"                    element={<WarehouseRoute><TeamPage /></WarehouseRoute>} />
+        <Route path="/acts"                    element={<WarehouseRoute><ActsPage /></WarehouseRoute>} />
+        <Route path="/approvals"               element={<WarehouseRoute><ApprovalsPage /></WarehouseRoute>} />
+        <Route path="/analytics"               element={<WarehouseRoute><WarehouseAnalyticsPage /></WarehouseRoute>} />
+
+        {/* Production routes */}
+        <Route path="/production/documents"    element={<ProductionRoute><DocumentsPage /></ProductionRoute>} />
+        <Route path="/production/lists"        element={<ProductionRoute><ProductionListsPage /></ProductionRoute>} />
+        <Route path="/production/warehouse"    element={<ProductionRoute><WarehouseViewPage /></ProductionRoute>} />
+        <Route path="/analytics/producer"      element={<ProductionRoute><ProducerDashboardPage /></ProductionRoute>} />
+
+        {/* Shared routes (any authenticated user) */}
         <Route path="/notifications"           element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
         <Route path="/profile"                 element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-        <Route path="/analytics"               element={<PrivateRoute><WarehouseAnalyticsPage /></PrivateRoute>} />
-        <Route path="/analytics/producer"      element={<PrivateRoute><ProducerDashboardPage /></PrivateRoute>} />
-        <Route path="/requests"                element={<PrivateRoute><RequestsPage /></PrivateRoute>} />
-        <Route path="/team"                    element={<PrivateRoute><TeamPage /></PrivateRoute>} />
-        <Route path="/acts"                    element={<PrivateRoute><ActsPage /></PrivateRoute>} />
-        <Route path="/approvals"               element={<PrivateRoute><ApprovalsPage /></PrivateRoute>} />
-        <Route path="/production/documents"    element={<PrivateRoute><DocumentsPage /></PrivateRoute>} />
-        <Route path="/production/lists"        element={<PrivateRoute><ProductionListsPage /></PrivateRoute>} />
-        <Route path="/production/warehouse"    element={<PrivateRoute><WarehouseViewPage /></PrivateRoute>} />
 
         {/* Public — no auth required */}
         <Route path="/public/warehouse/:token" element={<PublicWarehousePage />} />

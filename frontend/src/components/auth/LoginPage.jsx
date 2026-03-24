@@ -5,6 +5,7 @@ import Input from '../shared/Input'
 import Button from '../shared/Button'
 import { auth as authApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import { getHomeRoute } from '../../utils/getHomeRoute'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -25,7 +26,7 @@ export default function LoginPage() {
     try {
       const data = await authApi.login(form.email, form.password)
       login(data.token, data.user)
-      navigate('/dashboard')
+      navigate(getHomeRoute(data.user.role))
     } catch (err) {
       setError(err.message || 'Неверный email или пароль')
     } finally {
