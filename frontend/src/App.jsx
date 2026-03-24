@@ -21,6 +21,7 @@ import ActsPage from './components/warehouse/ActsPage'
 import ApprovalsPage from './components/warehouse/ApprovalsPage'
 import DocumentsPage from './components/production/DocumentsPage'
 import ProductionListsPage from './components/production/ProductionListsPage'
+import RequestsProductionPage from './components/production/RequestsProductionPage'
 import WarehouseViewPage from './components/production/WarehouseViewPage'
 import PublicWarehousePage from './components/production/PublicWarehousePage'
 import NotificationsPage from './components/shared/NotificationsPage'
@@ -83,6 +84,7 @@ function App() {
         <Route path="/analytics"               element={<WarehouseRoute><WarehouseAnalyticsPage /></WarehouseRoute>} />
 
         {/* Production routes */}
+        <Route path="/production/requests"      element={<ProductionRoute><RequestsProductionPage /></ProductionRoute>} />
         <Route path="/production/documents"    element={<ProductionRoute><DocumentsPage /></ProductionRoute>} />
         <Route path="/production/lists"        element={<ProductionRoute><ProductionListsPage /></ProductionRoute>} />
         <Route path="/production/warehouse"    element={<ProductionRoute><WarehouseViewPage /></ProductionRoute>} />

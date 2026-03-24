@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   FileText, List, Package, BarChart2,
-  Bell, User, Menu, Users, Home, ChevronDown
+  Bell, User, Menu, Users, Home, ChevronDown, Inbox
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
@@ -183,6 +183,7 @@ function buildNav(role) {
   // Warehouse view
   if (def.ownLists?.length || def.seeAllLists || role === 'project_director') {
     nav.push({ to: '/production/warehouse', icon: Package, label: 'Склад' })
+    nav.push({ to: '/production/requests', icon: Inbox, label: 'Заявки' })
   }
 
   // Producer analytics
