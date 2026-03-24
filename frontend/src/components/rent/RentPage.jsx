@@ -5,7 +5,8 @@ import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import Input from '../shared/Input'
 import SignatureCanvas from '../shared/SignatureCanvas'
-import { rent as rentApi, units as unitsApi } from '../../services/api'
+import PhotoUpload from '../shared/PhotoUpload'
+import { rent as rentApi, units as unitsApi, warehouses as warehousesApi } from '../../services/api'
 
 const DEAL_FILTERS = ['Все', 'Сдаём', 'Берём', 'Активные', 'Завершённые']
 
@@ -150,10 +151,20 @@ function NewDeal({ onDone }) {
   const [loading, setLoading] = useState(false)
   const [signLink, setSignLink] = useState('')
   const [copied, setCopied] = useState(false)
+  const [warehouseList, setWarehouseList] = useState([])
+  const [whFilter, setWhFilter] = useState('')
+  const [dealPhotos, setDealPhotos] = useState([null, null, null])
 
   useEffect(() => {
     unitsApi.list({ status: 'on_stock' }).then(data => setAvailableUnits(data.units || []))
+    warehousesApi.list().then(d => setWarehouseList(d.warehouses || []))
   }, [])
+
+  function setDealPhoto(i, file) {
+    setDealPhotos(p => { const a = [...p]; a[i] = file; return a })
+  }
+
+  const filteredUnits = availableUnits.filter(u => !whFilter || String(u.warehouse_id) === whFilter)
 
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
 
@@ -182,9 +193,22 @@ function NewDeal({ onDone }) {
         price_total: calcTotal() || null,
         signature_data: signatureData,
       })
+      const dealId = data.deal?.id
+      if (dealId) {
+        const firstUnitId = selectedUnits[0]
+        if (firstUnitId) {
+          for (const file of dealPhotos) {
+            if (file) {
+              const fd = new FormData()
+              fd.append('photos', file)
+              unitsApi.uploadPhoto(firstUnitId, fd).catch(() => {})
+            }
+          }
+        }
+      }
       if (data.deal?.sign_token) {
         setSignLink(`${window.location.origin}/sign/${data.deal.sign_token}`)
-        setStep(4)
+        setStep(5)
       } else {
         onDone()
       }
@@ -242,7 +266,25 @@ function NewDeal({ onDone }) {
       {step === 2 && (
         <div>
           <div style={{ fontWeight: 600, marginBottom: 14 }}>Единицы и период</div>
-          {availableUnits.map(u => (
+          {warehouseList.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+              <button onClick={() => setWhFilter('')} style={{
+                height: 30, padding: '0 12px', borderRadius: 'var(--radius-badge)',
+                border: `1px solid ${!whFilter ? 'var(--blue)' : 'var(--border)'}`,
+                background: !whFilter ? 'var(--blue-dim)' : 'var(--white)',
+                color: !whFilter ? 'var(--blue)' : 'var(--muted)', fontSize: 12, cursor: 'pointer',
+              }}>Все склады</button>
+              {warehouseList.map(w => (
+                <button key={w.id} onClick={() => setWhFilter(String(w.id))} style={{
+                  height: 30, padding: '0 12px', borderRadius: 'var(--radius-badge)',
+                  border: `1px solid ${whFilter === String(w.id) ? 'var(--blue)' : 'var(--border)'}`,
+                  background: whFilter === String(w.id) ? 'var(--blue-dim)' : 'var(--white)',
+                  color: whFilter === String(w.id) ? 'var(--blue)' : 'var(--muted)', fontSize: 12, cursor: 'pointer',
+                }}>{w.name}</button>
+              ))}
+            </div>
+          )}
+          {filteredUnits.map(u => (
             <div key={u.id} style={{ marginBottom: 12 }}>
               <div onClick={() => toggleUnit(u.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
@@ -298,13 +340,29 @@ function NewDeal({ onDone }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
             <Button variant="secondary" onClick={() => setStep(1)}>Назад</Button>
             <Button fullWidth disabled={selectedUnits.length === 0 || !dateStart || !dateEnd} onClick={() => setStep(3)}>
-              Далее — Подпись
+              Далее — Фото
             </Button>
           </div>
         </div>
       )}
 
       {step === 3 && (
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Фото к сделке</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>До 3 фото — состояние имущества при передаче</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+            {[0, 1, 2].map(i => (
+              <PhotoUpload key={i} label={`Фото ${i + 1}`} onChange={f => setDealPhoto(i, f)} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" onClick={() => setStep(2)}>Назад</Button>
+            <Button fullWidth onClick={() => setStep(4)}>Далее — Подпись</Button>
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
         <div>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись арендатора</div>
           <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{form.name}</div>
@@ -313,11 +371,11 @@ function NewDeal({ onDone }) {
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12, textAlign: 'center' }}>
             После подписи будет сформирован договор аренды{form.email ? ` и отправлен на ${form.email}` : ''}
           </div>
-          <Button variant="secondary" fullWidth style={{ marginTop: 12 }} onClick={() => setStep(2)}>Назад</Button>
+          <Button variant="secondary" fullWidth style={{ marginTop: 12 }} onClick={() => setStep(3)}>Назад</Button>
         </div>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <div>
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
