@@ -1,6 +1,41 @@
 require('dotenv').config()
 const express = require('express')
 const cors    = require('cors')
+const fs      = require('fs')
+const path    = require('path')
+const { pool } = require('./db')
+
+// Run pending migrations on startup
+async function runMigrations() {
+  const client = await pool.connect()
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS _migrations (
+        id SERIAL PRIMARY KEY, filename TEXT NOT NULL UNIQUE,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    const dir = path.join(__dirname, 'db/migrations')
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()
+    for (const file of files) {
+      const { rows } = await client.query('SELECT id FROM _migrations WHERE filename=$1', [file])
+      if (rows.length) continue
+      const sql = fs.readFileSync(path.join(dir, file), 'utf8')
+      await client.query('BEGIN')
+      try {
+        await client.query(sql)
+        await client.query('INSERT INTO _migrations (filename) VALUES ($1)', [file])
+        await client.query('COMMIT')
+        console.log(`migration applied: ${file}`)
+      } catch (err) {
+        await client.query('ROLLBACK')
+        console.error(`migration failed: ${file}`, err.message)
+      }
+    }
+  } finally {
+    client.release()
+  }
+}
 
 const app = express()
 
@@ -98,8 +133,6 @@ setInterval(checkOverdue, 30 * 60 * 1000)
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 // Serve frontend in production
-const path = require('path')
-const fs   = require('fs')
 const frontendDist = path.join(__dirname, '../../frontend/dist')
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist))
@@ -116,4 +149,6 @@ app.use((err, req, res, next) => {
 })
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+runMigrations()
+  .then(() => app.listen(PORT, () => console.log(`Server running on port ${PORT}`)))
+  .catch(err => { console.error('Migration error:', err); process.exit(1) })
