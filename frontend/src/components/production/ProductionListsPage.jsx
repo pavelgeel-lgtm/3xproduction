@@ -2,16 +2,15 @@ import { useState, useEffect } from 'react'
 import ProductionLayout from './ProductionLayout'
 import Button from '../shared/Button'
 import Badge from '../shared/Badge'
-import { lists as listsApi, documents as docsApi } from '../../services/api'
+import { lists as listsApi, documents as docsApi, requests as requestsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
 
 const LIST_TYPES = {
   props:        { label: 'Реквизит',        icon: '🎭' },
   art_fill:     { label: 'Худ. наполнение', icon: '🖼️' },
-  dummy:        { label: 'Муляжи',          icon: '🪆' },
+  dummy:        { label: 'Бутафория',       icon: '🪆' },
   auto:         { label: 'Автомобили',      icon: '🚗' },
-  decoration:   { label: 'Декорации',       icon: '🏛️' },
   costumes:     { label: 'Костюмы',         icon: '👗' },
   makeup:       { label: 'Грим',            icon: '💄' },
   stunts:       { label: 'Трюки',           icon: '🤸' },
@@ -50,12 +49,17 @@ export default function ProductionListsPage() {
   const [importResult, setImportResult] = useState(null)
   const [parsedData, setParsedData] = useState(null)
   const [latestDocId, setLatestDocId] = useState(null)
+  const [search, setSearch] = useState('')
+  const [multiSelected, setMultiSelected] = useState(new Set())
+  const [requesting, setRequesting] = useState(false)
 
   const canEdit = ownListTypes.includes(activeType)
   const projectId = user?.project_id
 
   function loadItems(type) {
     setLoading(true)
+    setMultiSelected(new Set())
+    setSearch('')
     listsApi.items(type, { project_id: projectId })
       .then(data => setItems(data.items || []))
       .catch(() => setItems([]))
@@ -111,6 +115,29 @@ export default function ProductionListsPage() {
     } catch {}
   }
 
+  function toggleSelect(id) {
+    setMultiSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  async function handleRequestSelected() {
+    const selectedItems = items.filter(i => multiSelected.has(i.id))
+    if (!selectedItems.length) return
+    setRequesting(true)
+    try {
+      await requestsApi.create({
+        project_id: projectId,
+        notes: selectedItems.map(i => i.name).join(', '),
+        unit_ids: [],
+      })
+      setMultiSelected(new Set())
+      alert(`Запрошено ${selectedItems.length} позиций`)
+    } catch (err) {
+      alert(err.message || 'Ошибка запроса')
+    } finally {
+      setRequesting(false)
+    }
+  }
+
   async function handleDelete(id) {
     if (!confirm('Удалить позицию?')) return
     try {
@@ -161,13 +188,15 @@ export default function ProductionListsPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            {multiSelected.size > 0 && (
+              <Button disabled={requesting} onClick={handleRequestSelected}>
+                {requesting ? 'Запрос...' : `Запросить (${multiSelected.size})`}
+              </Button>
+            )}
             {canEdit && latestDocId && (
               <Button variant="secondary" disabled={importing} onClick={handleImport}>
                 {importing ? 'Импорт...' : '🤖 Импорт из КПП'}
               </Button>
-            )}
-            {canEdit && (
-              <Button onClick={() => setShowAdd(true)}>+ Добавить</Button>
             )}
           </div>
         </div>
@@ -221,6 +250,11 @@ export default function ProductionListsPage() {
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>
           ) : (
             <div>
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по названию..."
+                  style={{ width: '100%', height: 36, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
               {items.length > 0 && (
                 <div style={{
                   display: 'grid',
@@ -235,7 +269,7 @@ export default function ProductionListsPage() {
                 </div>
               )}
 
-              {items.filter(i => i.ai_status !== 'rejected').map(item => {
+              {items.filter(i => i.ai_status !== 'rejected' && (!search || i.name.toLowerCase().includes(search.toLowerCase()))).map(item => {
                 const src = SOURCE_BADGE[item.source] || SOURCE_BADGE.manual
                 const isAI = item.source === 'ai'
                 const accepted = item.ai_status === 'accepted'
@@ -248,7 +282,11 @@ export default function ProductionListsPage() {
                     border: `1px solid ${isAI && !accepted ? 'rgba(22,163,74,0.2)' : 'var(--border)'}`,
                     marginBottom: 5, alignItems: 'center',
                   }}>
-                    <div style={{ fontWeight: 500, fontSize: 13 }}>{item.name}</div>
+                    <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="checkbox" checked={multiSelected.has(item.id)} onChange={() => toggleSelect(item.id)}
+                        style={{ width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }} />
+                      {item.name}
+                    </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.scene || '—'}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.day || '—'}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.time || '—'}</div>
