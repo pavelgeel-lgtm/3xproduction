@@ -32,13 +32,13 @@ export default function ProducerDashboardPage() {
           <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Все проекты</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
+        <div className="resp-3-col" style={{ marginBottom: 28 }}>
           <StatCard label="Общие расходы" value={totalBudget.toLocaleString('ru-RU') + ' ₽'} color="var(--blue)" />
           <StatCard label="Активных проектов" value={projectComp.length} color="var(--green)" />
           <StatCard label="Категорий задействовано" value={categoryLoad.length} color="var(--amber)" />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        <div className="resp-2-col" style={{ marginBottom: 20 }}>
           <Card title="Расходы по категориям">
             {budgetByCat.length === 0 && <Empty />}
             {budgetByCat.map((c, i) => {
@@ -80,7 +80,7 @@ export default function ProducerDashboardPage() {
           </Card>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="resp-2-col">
           <Card title="Топ участников по выдачам">
             {topUsers.length === 0 && <Empty />}
             {topUsers.slice(0, 5).map((u, i) => (

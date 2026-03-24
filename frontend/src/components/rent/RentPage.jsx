@@ -63,7 +63,7 @@ function DealsList({ deals, allDeals, filter, setFilter, loading }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div className="resp-3-col" style={{ marginBottom: 24 }}>
         <StatCard icon="🤝" label="Активных сделок" value={activeCount} color="blue" />
         <StatCard icon="💰" label="Выручка" value={monthSum.toLocaleString('ru-RU') + ' ₽'} color="green" />
         <StatCard icon="⚠️" label="Просрочено" value={overdueCount} color="red" />
@@ -122,6 +122,11 @@ function DealsList({ deals, allDeals, filter, setFilter, loading }) {
             <Badge color={d.status === 'active' ? 'blue' : d.status === 'done' ? 'green' : 'red'}>
               {d.status === 'active' ? 'Активна' : d.status === 'done' ? 'Завершена' : d.status === 'overdue' ? 'Просрочено' : 'Отменена'}
             </Badge>
+            {d.sign_token && (
+              <Badge color={d.sign_status === 'signed' ? 'green' : 'amber'}>
+                {d.sign_status === 'signed' ? '✓ Подписано' : 'Ожидает подписи'}
+              </Badge>
+            )}
           </div>
         ))}
         {!loading && deals.length === 0 && (
@@ -143,6 +148,8 @@ function NewDeal({ onDone }) {
   const [dateEnd, setDateEnd] = useState('')
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [signLink, setSignLink] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     unitsApi.list({ status: 'on_stock' }).then(data => setAvailableUnits(data.units || []))
@@ -163,7 +170,7 @@ function NewDeal({ onDone }) {
   async function handleSign(signatureData) {
     setLoading(true)
     try {
-      await rentApi.create({
+      const data = await rentApi.create({
         type: dealType,
         counterparty_name: form.name,
         counterparty_type: cpType,
@@ -175,12 +182,24 @@ function NewDeal({ onDone }) {
         price_total: calcTotal() || null,
         signature_data: signatureData,
       })
-      onDone()
+      if (data.deal?.sign_token) {
+        setSignLink(`${window.location.origin}/sign/${data.deal.sign_token}`)
+        setStep(4)
+      } else {
+        onDone()
+      }
     } catch (err) {
       alert(err.message || 'Ошибка создания сделки')
     } finally {
       setLoading(false)
     }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(signLink).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   return (
@@ -295,6 +314,39 @@ function NewDeal({ onDone }) {
             После подписи будет сформирован договор аренды{form.email ? ` и отправлен на ${form.email}` : ''}
           </div>
           <Button variant="secondary" fullWidth style={{ marginTop: 12 }} onClick={() => setStep(2)}>Назад</Button>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Сделка создана</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Отправьте арендатору ссылку для подписания</div>
+          </div>
+          <div style={{
+            background: 'var(--bg)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: '12px 14px',
+            display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+          }}>
+            <span style={{ flex: 1, fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all', color: 'var(--text)' }}>
+              {signLink}
+            </span>
+            <button onClick={copyLink} style={{
+              flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
+              background: copied ? 'var(--green-dim)' : 'var(--accent-dim)',
+              color: copied ? 'var(--green)' : 'var(--accent)',
+              border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+            }}>
+              {copied ? '✓ Скопировано' : 'Скопировать'}
+            </button>
+          </div>
+          {form.email && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginBottom: 16 }}>
+              Ссылка также отправлена на {form.email}
+            </div>
+          )}
+          <Button fullWidth onClick={onDone}>К списку сделок</Button>
         </div>
       )}
     </div>

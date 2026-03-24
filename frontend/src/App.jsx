@@ -5,6 +5,7 @@ import { getHomeRoute } from './utils/getHomeRoute'
 import LoginPage from './components/auth/LoginPage'
 import RegisterPage from './components/auth/RegisterPage'
 import InvitePage from './components/auth/InvitePage'
+import SignPage from './components/rent/SignPage'
 import RecoverPage from './components/auth/RecoverPage'
 import DashboardPage from './components/warehouse/DashboardPage'
 import UnitPage from './components/warehouse/UnitPage'
@@ -92,6 +93,7 @@ function App() {
 
         {/* Public — no auth required */}
         <Route path="/public/warehouse/:token" element={<PublicWarehousePage />} />
+        <Route path="/sign/:token" element={<SignPage />} />
       </Routes>
     </BrowserRouter>
   )

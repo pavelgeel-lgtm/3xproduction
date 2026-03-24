@@ -36,15 +36,19 @@ router.post('/', verifyJWT, checkRole(...RENT_ROLES), async (req, res) => {
     })
     const contract_pdf_url = await uploadFile(Buffer.from(pdfBytes), 'contract.pdf', 'contracts')
 
+    const signToken = type === 'out' ? crypto.randomBytes(20).toString('hex') : null
+
     // Save deal
     const { rows } = await client.query(
       `INSERT INTO rent_deals
          (type, counterparty_name, counterparty_type, counterparty_contact, counterparty_email,
-          unit_ids, period_start, period_end, price_total, signature_url, contract_pdf_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+          unit_ids, period_start, period_end, price_total, signature_url, contract_pdf_url,
+          sign_token, sign_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [type, counterparty_name, counterparty_type || 'person', counterparty_contact || null,
        counterparty_email || null, unit_ids, period_start, period_end,
-       price_total || null, null, contract_pdf_url]
+       price_total || null, null, contract_pdf_url,
+       signToken, signToken ? 'pending' : null]
     )
     const deal = rows[0]
 
@@ -59,6 +63,8 @@ router.post('/', verifyJWT, checkRole(...RENT_ROLES), async (req, res) => {
 
     // Send email to counterparty
     if (counterparty_email) {
+      const frontendUrl = process.env.FRONTEND_URL || ''
+      const signUrl = signToken ? `${frontendUrl}/sign/${signToken}` : null
       sendEmail({
         to: counterparty_email,
         subject: type === 'out'
@@ -67,9 +73,10 @@ router.post('/', verifyJWT, checkRole(...RENT_ROLES), async (req, res) => {
         html: `
           <p>Здравствуйте, ${counterparty_name}!</p>
           ${type === 'out'
-            ? `<p>Договор аренды подписан. Период: ${period_start} — ${period_end}.</p>
+            ? `<p>Договор аренды оформлен. Период: ${period_start} — ${period_end}.</p>
                <p>Сумма: ${price_total ? Number(price_total).toLocaleString('ru-RU') + ' ₽' : 'по договорённости'}.</p>
-               <p>PDF договора прикреплён: <a href="${contract_pdf_url}">Скачать</a></p>`
+               <p>PDF договора: <a href="${contract_pdf_url}">Скачать</a></p>
+               ${signUrl ? `<p><strong>Для подписания договора перейдите по ссылке:</strong><br><a href="${signUrl}">${signUrl}</a></p>` : ''}`
             : `<p>Компания 3XMedia Production берёт в аренду ваше имущество.</p>
                <p>Период: ${period_start} — ${period_end}.</p>`
           }
@@ -161,6 +168,60 @@ router.post('/:id/return', verifyJWT, checkRole(...RENT_ROLES), async (req, res)
       await db.query(`UPDATE units SET status='on_stock' WHERE id=$1`, [uid])
     }
 
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// ─── Public sign routes (no JWT) ────────────────────────────────────────────
+
+// GET /rent/sign/:token — public, get deal info for signing
+router.get('/sign/:token', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT r.id, r.counterparty_name, r.counterparty_type, r.period_start, r.period_end,
+              r.price_total, r.unit_ids, r.sign_status, r.contract_pdf_url,
+              array_agg(u.name) FILTER (WHERE u.name IS NOT NULL) AS unit_names
+       FROM rent_deals r
+       LEFT JOIN units u ON u.id = ANY(r.unit_ids)
+       WHERE r.sign_token = $1
+       GROUP BY r.id`,
+      [req.params.token]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Ссылка не найдена' })
+    res.json({ deal: rows[0] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// POST /rent/sign/:token — public, submit signature
+router.post('/sign/:token', async (req, res) => {
+  const { signature_data } = req.body
+  try {
+    const { rows } = await db.query(
+      `SELECT * FROM rent_deals WHERE sign_token = $1 AND sign_status = 'pending'`,
+      [req.params.token]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Ссылка не найдена или уже подписана' })
+    const deal = rows[0]
+
+    let sig_url = null
+    if (signature_data) {
+      try {
+        const base64 = signature_data.replace(/^data:image\/\w+;base64,/, '')
+        const imgBytes = Buffer.from(base64, 'base64')
+        sig_url = await uploadFile(imgBytes, 'signature.png', 'signatures')
+      } catch {}
+    }
+
+    await db.query(
+      `UPDATE rent_deals SET sign_status = 'signed', signature_url = $1 WHERE id = $2`,
+      [sig_url, deal.id]
+    )
     res.json({ ok: true })
   } catch (err) {
     console.error(err)

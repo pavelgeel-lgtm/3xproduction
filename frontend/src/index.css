@@ -127,6 +127,20 @@ input, textarea, select {
   .grid-3 { grid-template-columns: 1fr; }
 }
 
+/* ── Responsive column grids (for inline-styled pages) ── */
+.resp-3-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.resp-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 1100px) {
+  .resp-3-col { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .resp-2-col { grid-template-columns: 1fr; gap: 14px; }
+}
+@media (max-width: 768px) {
+  .resp-3-col { grid-template-columns: 1fr; gap: 10px; }
+  .resp-2-col { grid-template-columns: 1fr; gap: 10px; }
+}
+
 /* ── Card ── */
 .card {
   background: var(--card);

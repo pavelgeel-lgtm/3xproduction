@@ -1,0 +1,3 @@
+ALTER TABLE rent_deals
+  ADD COLUMN IF NOT EXISTS sign_token  TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS sign_status TEXT DEFAULT 'pending';
