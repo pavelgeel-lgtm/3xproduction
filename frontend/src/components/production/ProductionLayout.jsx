@@ -167,8 +167,10 @@ function buildNav(role) {
   const def = ROLES[role] || {}
   const nav = []
 
-  // Documents — everyone in production
-  nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
+  // Documents — everyone except producer
+  if (role !== 'producer') {
+    nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
+  }
 
   // Own lists
   if (def.ownLists?.length || def.seeAllLists) {
