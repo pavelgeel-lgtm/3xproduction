@@ -27,6 +27,7 @@ import NotificationsPage from './components/shared/NotificationsPage'
 import ProfilePage from './components/shared/ProfilePage'
 import WarehouseAnalyticsPage from './components/analytics/WarehouseAnalyticsPage'
 import ProducerDashboardPage from './components/analytics/ProducerDashboardPage'
+import SeedPage from './components/dev/SeedPage'
 
 // Requires auth only
 function PrivateRoute({ children }) {
@@ -90,6 +91,9 @@ function App() {
         {/* Shared routes (any authenticated user) */}
         <Route path="/notifications"           element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
         <Route path="/profile"                 element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+
+        {/* Dev tools */}
+        <Route path="/dev/seed" element={<PrivateRoute><SeedPage /></PrivateRoute>} />
 
         {/* Public — no auth required */}
         <Route path="/public/warehouse/:token" element={<PublicWarehousePage />} />

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import WarehouseLayout from '../warehouse/WarehouseLayout'
+import ProductionLayout from '../production/ProductionLayout'
 import Button from './Button'
 import Input from './Input'
 import { useAuth } from '../../hooks/useAuth'
@@ -41,8 +42,10 @@ export default function ProfilePage() {
     }
   }
 
+  const Layout = ROLES[user?.role]?.world === 'production' ? ProductionLayout : WarehouseLayout
+
   return (
-    <WarehouseLayout>
+    <Layout>
       <div style={{ padding: '24px 32px', maxWidth: 560 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 28 }}>Профиль</h1>
 
@@ -98,6 +101,6 @@ export default function ProfilePage() {
           </form>
         </div>
       </div>
-    </WarehouseLayout>
+    </Layout>
   )
 }

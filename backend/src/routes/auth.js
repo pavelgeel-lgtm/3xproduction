@@ -169,6 +169,57 @@ router.post('/recover/reset', async (req, res) => {
   }
 })
 
+// POST /auth/seed-test — create test accounts for all roles (idempotent, skips existing)
+router.post('/seed-test', async (req, res) => {
+  try {
+    const password = 'Test1234'
+    const hash = await bcrypt.hash(password, SALT_ROUNDS)
+
+    // Ensure test project exists
+    let projectId
+    const { rows: existingProjects } = await db.query(
+      `SELECT id FROM projects WHERE name = $1 LIMIT 1`, ['Тестовый проект']
+    )
+    if (existingProjects.length) {
+      projectId = existingProjects[0].id
+    } else {
+      const { rows: newProject } = await db.query(
+        `INSERT INTO projects (name) VALUES ($1) RETURNING id`, ['Тестовый проект']
+      )
+      projectId = newProject[0].id
+    }
+
+    const testUsers = [
+      { email: 'test.project_director@3x.test', name: 'Иван Директор Площадки', role: 'project_director', project_id: projectId },
+      { email: 'test.producer@3x.test',          name: 'Мария Продюсер',          role: 'producer',          project_id: null },
+      { email: 'test.warehouse_deputy@3x.test',  name: 'Алексей Зам Склада',      role: 'warehouse_deputy',  project_id: null },
+      { email: 'test.warehouse_staff@3x.test',   name: 'Дмитрий Сотрудник Склада',role: 'warehouse_staff',   project_id: null },
+      { email: 'test.production_designer@3x.test',name:'Анна Художник-постановщик',role: 'production_designer',project_id: projectId },
+      { email: 'test.props_master@3x.test',      name: 'Сергей Реквизитор',       role: 'props_master',      project_id: projectId },
+      { email: 'test.costumer@3x.test',          name: 'Елена Костюмер',          role: 'costumer',          project_id: projectId },
+    ]
+
+    const results = []
+    for (const u of testUsers) {
+      const { rows: existing } = await db.query(`SELECT id FROM users WHERE email=$1`, [u.email])
+      if (existing.length) {
+        results.push({ email: u.email, role: u.role, status: 'already_exists' })
+        continue
+      }
+      await db.query(
+        `INSERT INTO users (name, email, password_hash, role, project_id) VALUES ($1,$2,$3,$4,$5)`,
+        [u.name, u.email, hash, u.role, u.project_id]
+      )
+      results.push({ email: u.email, role: u.role, name: u.name, status: 'created' })
+    }
+
+    res.json({ password, project_id: projectId, users: results })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // PATCH /auth/password — change own password
 const { verifyJWT } = require('../middleware/auth')
 router.patch('/password', verifyJWT, async (req, res) => {
