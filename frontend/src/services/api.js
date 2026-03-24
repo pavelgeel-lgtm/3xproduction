@@ -107,7 +107,9 @@ export const documents = {
   upload:  (formData)  => request('POST', '/documents/upload', formData),
   delta:   (id)        => request('GET',  `/documents/${id}/delta`),
   reparse: (id, text)  => request('POST', `/documents/${id}/parse`, { text }),
-  lists:   (projectId, role) => request('GET', `/documents/lists/${projectId}/${role}`),
+  lists:      (projectId, role) => request('GET', `/documents/lists/${projectId}/${role}`),
+  parsed:     (projectId)      => request('GET',  `/documents/${projectId}/parsed`),
+  importToList: (docId)        => request('POST', `/documents/${docId}/import`),
 }
 
 // ─── Rent ────────────────────────────────────────────────────────────────────

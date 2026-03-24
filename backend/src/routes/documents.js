@@ -1,9 +1,10 @@
-const router = require('express').Router()
-const multer = require('multer')
-const db     = require('../db')
+const router   = require('express').Router()
+const multer   = require('multer')
+const db       = require('../db')
 const { verifyJWT } = require('../middleware/auth')
 const { uploadFile } = require('../services/r2')
 const { parseDocument, computeDelta } = require('../services/groq')
+const pdfParse = require('pdf-parse')
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } })
 
@@ -49,8 +50,8 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
     let delta = null
     if (type !== 'callsheet') {
       try {
-        // Extract text from PDF buffer (basic — real app uses pdf-parse)
-        const text = req.file.buffer.toString('utf8', 0, 15000)
+        const pdfData = await pdfParse(req.file.buffer)
+        const text = pdfData.text.slice(0, 15000)
         parsed_data = await parseDocument(text)
 
         if (latest.length && latest[0].parsed_data) {
@@ -201,9 +202,93 @@ router.get('/lists/:projectId/:role', verifyJWT, async (req, res) => {
 
 // PUT /lists/:id/item — accept/reject AI suggestion, add note
 router.put('/lists/:projectId/item', verifyJWT, async (req, res) => {
-  // In a real app this would persist per-user list customizations to a separate table
-  // For now just return ok
   res.json({ ok: true })
+})
+
+// GET /documents/:projectId/parsed — latest parsed_data (ai_suggestions + cross_check)
+router.get('/:projectId/parsed', verifyJWT, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT parsed_data FROM documents
+       WHERE project_id=$1 AND type IN ('kpp','scenario') AND parsed_data IS NOT NULL
+       ORDER BY version DESC LIMIT 1`,
+      [req.params.projectId]
+    )
+    if (!rows.length) return res.json({ parsed_data: null })
+    res.json({ parsed_data: rows[0].parsed_data })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// POST /documents/:id/import — import parsed items into user's production lists
+const ROLE_OWN_LISTS = {
+  production_designer:    ['props','art_fill','dummy','auto','decoration','costumes','makeup','stunts','pyrotechnics'],
+  art_director_assistant: ['props','art_fill','dummy','auto','decoration','costumes','makeup','stunts','pyrotechnics'],
+  props_master:           ['props','art_fill','dummy','auto'],
+  props_assistant:        ['props','art_fill','dummy','auto'],
+  decorator:              ['decoration','props','art_fill','dummy'],
+  costumer:               ['costumes'],
+  costume_assistant:      ['costumes'],
+  makeup_artist:          ['makeup'],
+  stunt_coordinator:      ['stunts'],
+  pyrotechnician:         ['pyrotechnics'],
+}
+
+router.post('/:id/import', verifyJWT, async (req, res) => {
+  const ownTypes = ROLE_OWN_LISTS[req.user.role]
+  if (!ownTypes) return res.status(403).json({ error: 'No list access for this role' })
+
+  try {
+    const { rows: docRows } = await db.query(`SELECT * FROM documents WHERE id=$1`, [req.params.id])
+    if (!docRows.length) return res.status(404).json({ error: 'Document not found' })
+    const doc = docRows[0]
+    if (!doc.parsed_data) return res.status(400).json({ error: 'Document not parsed yet' })
+
+    const projectId = doc.project_id
+    let imported = 0
+
+    for (const type of ownTypes) {
+      const items = doc.parsed_data[type] || []
+      if (!items.length) continue
+
+      // Ensure list exists
+      await db.query(
+        `INSERT INTO production_lists (project_id, user_id, type)
+         VALUES ($1,$2,$3) ON CONFLICT (project_id,user_id,type) DO NOTHING`,
+        [projectId, req.user.id, type]
+      )
+      const { rows: listRows } = await db.query(
+        `SELECT id FROM production_lists WHERE project_id=$1 AND user_id=$2 AND type=$3`,
+        [projectId, req.user.id, type]
+      )
+      const listId = listRows[0].id
+
+      for (const item of items) {
+        // Skip if already in list by name
+        const { rows: exists } = await db.query(
+          `SELECT id FROM production_list_items WHERE list_id=$1 AND name=$2`,
+          [listId, item.name]
+        )
+        if (exists.length) continue
+
+        await db.query(
+          `INSERT INTO production_list_items (list_id, name, scene, day, time, location, qty, source, note, ai_status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [listId, item.name, item.scene||null, item.day||null, item.time||null,
+           item.location||null, item.qty||1, item.source||'kpp', item.note||null,
+           item.source==='ai' ? 'pending' : null]
+        )
+        imported++
+      }
+    }
+
+    res.json({ ok: true, imported })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
 })
 
 module.exports = router
