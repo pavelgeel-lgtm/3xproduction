@@ -2,6 +2,7 @@ import { useState } from 'react'
 import WarehouseLayout from '../warehouse/WarehouseLayout'
 import Button from './Button'
 import { useNotifications } from '../../hooks/useNotifications'
+import { usePush } from '../../hooks/usePush'
 
 const TYPE_ICON = {
   overdue:       '⚠️',
@@ -34,6 +35,7 @@ function timeAgo(dateStr) {
 export default function NotificationsPage() {
   const [filter, setFilter] = useState('Все')
   const { items, unreadCount, markRead, markAllRead } = useNotifications()
+  const { supported, subscribed, subscribe, unsubscribe } = usePush()
 
   const filtered = items.filter(n => filter === 'Все' || !n.read)
 
@@ -47,11 +49,19 @@ export default function NotificationsPage() {
               <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{unreadCount} непрочитанных</p>
             )}
           </div>
-          {unreadCount > 0 && (
-            <Button variant="secondary" style={{ height: 34, fontSize: 13 }} onClick={markAllRead}>
-              Прочитать все
-            </Button>
-          )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {supported && (
+              <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
+                onClick={subscribed ? unsubscribe : subscribe}>
+                {subscribed ? '🔔 Вкл' : '🔕 Выкл'}
+              </Button>
+            )}
+            {unreadCount > 0 && (
+              <Button variant="secondary" style={{ height: 34, fontSize: 13 }} onClick={markAllRead}>
+                Прочитать все
+              </Button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>

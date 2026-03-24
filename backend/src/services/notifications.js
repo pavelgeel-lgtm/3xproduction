@@ -1,4 +1,5 @@
 const db = require('../db')
+const { sendPush } = require('./push')
 
 async function createNotification({ user_id, type, text, entity_id, entity_type }) {
   await db.query(
@@ -6,6 +7,24 @@ async function createNotification({ user_id, type, text, entity_id, entity_type 
      VALUES ($1, $2, $3, $4, $5)`,
     [user_id, type, text, entity_id || null, entity_type || null]
   )
+
+  // Send push if subscriptions exist
+  const { rows: subs } = await db.query(
+    `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id=$1`,
+    [user_id]
+  )
+  for (const sub of subs) {
+    try {
+      await sendPush(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        { title: '3XMedia Production', body: text, type }
+      )
+    } catch (err) {
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        await db.query(`DELETE FROM push_subscriptions WHERE endpoint=$1`, [sub.endpoint])
+      }
+    }
+  }
 }
 
 // Notify all warehouse directors/deputies

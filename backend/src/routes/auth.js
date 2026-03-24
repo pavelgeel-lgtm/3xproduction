@@ -169,4 +169,24 @@ router.post('/recover/reset', async (req, res) => {
   }
 })
 
+// PATCH /auth/password — change own password
+const { verifyJWT } = require('../middleware/auth')
+router.patch('/password', verifyJWT, async (req, res) => {
+  const { current, next } = req.body
+  if (!current || !next) return res.status(400).json({ error: 'Missing fields' })
+  if (next.length < 6) return res.status(400).json({ error: 'Password too short' })
+  try {
+    const { rows } = await db.query(`SELECT password_hash FROM users WHERE id=$1`, [req.user.id])
+    if (!rows.length) return res.status(404).json({ error: 'User not found' })
+    const match = await bcrypt.compare(current, rows[0].password_hash)
+    if (!match) return res.status(400).json({ error: 'Текущий пароль неверный' })
+    const password_hash = await bcrypt.hash(next, SALT_ROUNDS)
+    await db.query(`UPDATE users SET password_hash=$1 WHERE id=$2`, [password_hash, req.user.id])
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 module.exports = router

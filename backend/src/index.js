@@ -25,6 +25,37 @@ app.use('/analytics',  require('./routes/analytics'))
 // Notifications polling endpoint
 const { verifyJWT } = require('./middleware/auth')
 const db = require('./db')
+const { sendPush, vapidPublicKey } = require('./services/push')
+
+// Push subscription endpoints
+app.get('/push/vapid-key', (req, res) => res.json({ key: vapidPublicKey || null }))
+
+app.post('/push/subscribe', verifyJWT, async (req, res) => {
+  const { endpoint, keys } = req.body
+  if (!endpoint || !keys?.p256dh || !keys?.auth) return res.status(400).json({ error: 'Invalid subscription' })
+  try {
+    await db.query(
+      `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+       VALUES ($1,$2,$3,$4)
+       ON CONFLICT (user_id, endpoint) DO UPDATE SET p256dh=$3, auth=$4`,
+      [req.user.id, endpoint, keys.p256dh, keys.auth]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+app.delete('/push/subscribe', verifyJWT, async (req, res) => {
+  const { endpoint } = req.body
+  try {
+    await db.query(`DELETE FROM push_subscriptions WHERE user_id=$1 AND endpoint=$2`, [req.user.id, endpoint])
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
 
 app.get('/notifications', verifyJWT, async (req, res) => {
   const { unread_only } = req.query

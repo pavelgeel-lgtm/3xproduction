@@ -4,12 +4,14 @@ import Button from './Button'
 import Input from './Input'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
+import { auth } from '../../services/api'
 
 export default function ProfilePage() {
   const { user } = useAuth()
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [pwErrors, setPwErrors] = useState({})
   const [pwSaved, setPwSaved] = useState(false)
+  const [pwLoading, setPwLoading] = useState(false)
 
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
@@ -18,18 +20,25 @@ export default function ProfilePage() {
 
   function set(f) { return e => setPwForm(p => ({ ...p, [f]: e.target.value })) }
 
-  function savePassword(e) {
+  async function savePassword(e) {
     e.preventDefault()
     const errors = {}
     if (!pwForm.current) errors.current = 'Введите текущий пароль'
     if (pwForm.next.length < 6) errors.next = 'Минимум 6 символов'
     if (pwForm.next !== pwForm.confirm) errors.confirm = 'Пароли не совпадают'
     if (Object.keys(errors).length) { setPwErrors(errors); return }
-    // TODO: call PATCH /auth/password when backend supports it
-    setPwErrors({})
-    setPwSaved(true)
-    setPwForm({ current: '', next: '', confirm: '' })
-    setTimeout(() => setPwSaved(false), 3000)
+    setPwLoading(true)
+    try {
+      await auth.changePassword(pwForm.current, pwForm.next)
+      setPwErrors({})
+      setPwSaved(true)
+      setPwForm({ current: '', next: '', confirm: '' })
+      setTimeout(() => setPwSaved(false), 3000)
+    } catch (err) {
+      setPwErrors({ current: err.message })
+    } finally {
+      setPwLoading(false)
+    }
   }
 
   return (
@@ -85,7 +94,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <Button type="submit">Сохранить пароль</Button>
+            <Button type="submit" disabled={pwLoading}>{pwLoading ? 'Сохранение...' : 'Сохранить пароль'}</Button>
           </form>
         </div>
       </div>

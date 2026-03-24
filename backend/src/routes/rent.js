@@ -175,15 +175,22 @@ router.post('/public/generate-link', verifyJWT,
   checkRole('warehouse_director', 'warehouse_deputy', 'warehouse_staff'),
   async (req, res) => {
     const token = crypto.randomBytes(20).toString('hex')
-    // In production store token in DB with warehouse_id
+    await db.query(
+      `INSERT INTO public_tokens (token, created_by) VALUES ($1, $2)`,
+      [token, req.user.id]
+    )
     res.json({ token, url: `/public/warehouse/${token}` })
   }
 )
 
 // GET /public/warehouse/:token — public catalog
 router.get('/public/warehouse/:token', async (req, res) => {
-  // In production validate token against DB
   try {
+    const { rows: tkn } = await db.query(
+      `SELECT id FROM public_tokens WHERE token=$1 AND expires_at > NOW()`,
+      [req.params.token]
+    )
+    if (!tkn.length) return res.status(404).json({ error: 'Invalid or expired link' })
     const { rows } = await db.query(
       `SELECT u.id, u.name, u.category, u.description, u.status, u.serial,
               array_agg(p.url) FILTER (WHERE p.url IS NOT NULL) AS photos

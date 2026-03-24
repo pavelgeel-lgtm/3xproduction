@@ -44,6 +44,7 @@ export const auth = {
   recoverVerify:  (email, code)     => request('POST', '/auth/recover/verify',  { email, code }),
   recoverReset:   (email, code, password) =>
     request('POST', '/auth/recover/reset', { email, code, password }),
+  changePassword: (current, next) => request('PATCH', '/auth/password', { current, next }),
 }
 
 // ─── Invites ─────────────────────────────────────────────────────────────────
@@ -132,6 +133,13 @@ export const notifications = {
     request('GET', `/notifications${unreadOnly ? '?unread_only=true' : ''}`),
   read:    (id)  => request('POST', `/notifications/${id}/read`),
   readAll: ()    => request('POST', '/notifications/read-all'),
+}
+
+// ─── Push ─────────────────────────────────────────────────────────────────────
+export const push = {
+  vapidKey:    ()  => request('GET', '/push/vapid-key'),
+  subscribe:   (sub) => request('POST', '/push/subscribe', sub),
+  unsubscribe: (endpoint) => request('DELETE', '/push/subscribe', { endpoint }),
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
