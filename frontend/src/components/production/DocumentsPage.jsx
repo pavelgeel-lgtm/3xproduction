@@ -5,6 +5,7 @@ import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { documents as docsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import { ROLES } from '../../constants/roles'
 
 const DOC_TYPES = {
   kpp:       { label: 'КПП',      icon: '📋', color: 'blue' },
@@ -25,7 +26,8 @@ const PROJECT_ID = 1
 export default function DocumentsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [tab, setTab] = useState('kpp')
+  const allowedFirst = ROLES[user?.role]?.readDocs?.[0] || 'kpp'
+  const [tab, setTab] = useState(allowedFirst)
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCallDate, setActiveCallDate] = useState(null)
@@ -39,6 +41,12 @@ export default function DocumentsPage() {
   const canUpload = tab === 'callsheet'
     ? UPLOAD_CALLSHEET_ROLES.includes(user?.role)
     : UPLOAD_KPP_ROLES.includes(user?.role)
+
+  // Filter tabs by role's readDocs — if defined, show only allowed tabs
+  const allowedDocs = ROLES[user?.role]?.readDocs
+  const visibleDocTypes = allowedDocs
+    ? Object.fromEntries(Object.entries(DOC_TYPES).filter(([k]) => allowedDocs.includes(k)))
+    : DOC_TYPES
 
   const projectId = user?.project_id || PROJECT_ID
 
@@ -99,7 +107,7 @@ export default function DocumentsPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
-          {Object.entries(DOC_TYPES).map(([key, t]) => (
+          {Object.entries(visibleDocTypes).map(([key, t]) => (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '10px 20px', border: 'none', background: 'none',
               fontWeight: 500, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
