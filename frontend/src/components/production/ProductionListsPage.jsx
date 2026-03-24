@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import WarehouseLayout from '../warehouse/WarehouseLayout'
+import ProductionLayout from './ProductionLayout'
 import Button from '../shared/Button'
 import Badge from '../shared/Badge'
 
@@ -65,7 +65,7 @@ export default function ProductionListsPage() {
   }
 
   return (
-    <WarehouseLayout>
+    <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 1000 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -273,7 +273,7 @@ export default function ProductionListsPage() {
           </div>
         )}
       </div>
-    </WarehouseLayout>
+    </ProductionLayout>
   )
 }
 

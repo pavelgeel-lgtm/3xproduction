@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import WarehouseLayout from '../warehouse/WarehouseLayout'
+import ProductionLayout from '../production/ProductionLayout'
 import { analytics } from '../../services/api'
 
 export default function ProducerDashboardPage() {
@@ -11,7 +11,7 @@ export default function ProducerDashboardPage() {
   }, [])
 
   if (loading) {
-    return <WarehouseLayout><div style={{ padding: '24px 32px', color: 'var(--muted)', fontSize: 14 }}>Загрузка аналитики...</div></WarehouseLayout>
+    return <ProductionLayout><div style={{ padding: '24px 32px', color: 'var(--muted)', fontSize: 14 }}>Загрузка аналитики...</div></ProductionLayout>
   }
 
   const budgetByCat   = data?.budget_by_category || []
@@ -25,7 +25,7 @@ export default function ProducerDashboardPage() {
   const COLORS = ['var(--blue)', 'var(--green)', 'var(--amber)', 'var(--red)', 'var(--muted)']
 
   return (
-    <WarehouseLayout>
+    <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 1000 }}>
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Аналитика компании</h1>
@@ -121,7 +121,7 @@ export default function ProducerDashboardPage() {
           </Card>
         </div>
       </div>
-    </WarehouseLayout>
+    </ProductionLayout>
   )
 }
 

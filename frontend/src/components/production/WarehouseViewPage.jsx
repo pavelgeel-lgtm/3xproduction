@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import WarehouseLayout from '../warehouse/WarehouseLayout'
+import ProductionLayout from './ProductionLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
@@ -43,7 +43,7 @@ export default function WarehouseViewPage() {
   }
 
   return (
-    <WarehouseLayout>
+    <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 900 }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Склад</h1>
@@ -146,6 +146,6 @@ export default function WarehouseViewPage() {
           })}
         </div>
       </div>
-    </WarehouseLayout>
+    </ProductionLayout>
   )
 }

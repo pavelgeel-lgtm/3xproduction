@@ -1,0 +1,315 @@
+import { useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import {
+  FileText, List, Package, BarChart2,
+  Bell, User, Menu, Users, Home
+} from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
+import { ROLES } from '../../constants/roles'
+
+const css = `
+.pl-root { display: flex; min-height: 100vh; background: var(--bg); }
+
+/* Sidebar */
+.pl-sidebar {
+  width: 240px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.pl-logo { padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.pl-logo-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.pl-logo-sub { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 2px; }
+.pl-project {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 12px; color: var(--sidebar-muted);
+}
+.pl-project-name { font-size: 13px; font-weight: 500; color: var(--sidebar-text); margin-top: 2px; }
+
+.pl-nav { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.pl-section-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--sidebar-muted);
+  padding: 12px 10px 4px;
+}
+.pl-nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 8px; margin-bottom: 1px;
+  color: var(--sidebar-text); font-size: 13.5px; font-weight: 450;
+  text-decoration: none; transition: background 0.12s, color 0.12s;
+}
+.pl-nav-item:hover { background: var(--sidebar-hover-bg); color: #fff; }
+.pl-nav-item.active { background: var(--sidebar-active-bg); color: #fff; }
+
+.pl-profile {
+  padding: 12px 12px 18px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.pl-profile-inner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  transition: background 0.12s;
+}
+.pl-profile-inner:hover { background: var(--sidebar-hover-bg); }
+.pl-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0;
+}
+.pl-profile-name { font-size: 13px; font-weight: 500; }
+.pl-profile-role { font-size: 11px; color: var(--sidebar-muted); margin-top: 1px; }
+
+/* Main */
+.pl-main { margin-left: 240px; flex: 1; min-height: 100vh; }
+
+/* Mobile top bar */
+.pl-topbar {
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: var(--sidebar-bg); color: #fff;
+  align-items: center; justify-content: space-between;
+  padding: 0 16px; z-index: 200;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.pl-topbar-logo { font-size: 16px; font-weight: 600; }
+.pl-topbar-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: rgba(255,255,255,0.08); border: none; color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* Mobile bottom nav */
+.pl-mobile-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--white); border-top: 1px solid var(--border);
+  z-index: 200; padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+}
+.pl-mobile-nav-inner { display: flex; justify-content: space-around; }
+.pl-mobile-nav-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 4px 12px; font-size: 10px; font-weight: 500;
+  color: var(--muted); text-decoration: none; border: none; background: none;
+  cursor: pointer; transition: color 0.12s;
+}
+.pl-mobile-nav-item.active, .pl-mobile-nav-item:hover { color: var(--accent); }
+
+/* Drawer */
+.pl-drawer-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
+}
+.pl-drawer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--white); border-radius: 18px 18px 0 0;
+  padding: 8px 16px max(20px, env(safe-area-inset-bottom));
+  max-height: 80vh; overflow-y: auto;
+}
+.pl-drawer-handle {
+  width: 36px; height: 4px; border-radius: 4px;
+  background: var(--border-strong); margin: 8px auto 16px;
+}
+.pl-drawer-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 4px; border-bottom: 1px solid var(--border);
+  color: var(--text); font-size: 15px; font-weight: 450;
+  text-decoration: none;
+}
+.pl-drawer-item:last-child { border-bottom: none; }
+.pl-drawer-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pl-sidebar    { display: none !important; }
+  .pl-main       { margin-left: 0 !important; padding-top: 52px; padding-bottom: 72px; }
+  .pl-topbar     { display: flex !important; }
+  .pl-mobile-nav { display: block !important; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .pl-sidebar { width: 200px; }
+  .pl-main    { margin-left: 200px; }
+}
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .pl-sidebar { width: 220px; }
+  .pl-main    { margin-left: 220px; }
+}
+`
+
+function getInitials(name = '') {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
+function buildNav(role) {
+  const def = ROLES[role] || {}
+  const nav = []
+
+  // Documents — everyone in production
+  nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
+
+  // Own lists
+  if (def.ownLists?.length || def.seeAllLists) {
+    nav.push({ to: '/production/lists', icon: List, label: 'Мои списки' })
+  }
+
+  // All lists (director, production_designer, project_director)
+  if (def.seeAllLists || role === 'project_director') {
+    nav.push({ to: '/production/lists', icon: Users, label: 'Все списки' })
+  }
+
+  // Warehouse view
+  if (def.ownLists?.length || def.seeAllLists || role === 'project_director') {
+    nav.push({ to: '/production/warehouse', icon: Package, label: 'Склад' })
+  }
+
+  // Producer analytics
+  if (role === 'producer') {
+    nav.push({ to: '/analytics/producer', icon: BarChart2, label: 'Аналитика' })
+  }
+
+  // Team (project director)
+  if (role === 'project_director') {
+    nav.push({ to: '/team', icon: Users, label: 'Команда' })
+  }
+
+  return nav
+}
+
+export default function ProductionLayout({ children }) {
+  const [burger, setBurger] = useState(false)
+  const navigate = useNavigate()
+  const { user } = useAuth()
+
+  const role = user?.role || ''
+  const roleDef = ROLES[role] || {}
+  const roleLabel = roleDef.label || role
+  const nav = buildNav(role)
+
+  // Mobile: show first 3 nav items + burger
+  const mobileMain = nav.slice(0, 3)
+  const mobileBurger = nav.slice(3)
+
+  return (
+    <>
+      <style>{css}</style>
+      <div className="pl-root">
+
+        {/* Desktop Sidebar */}
+        <aside className="pl-sidebar">
+          <div className="pl-logo">
+            <div className="pl-logo-title">
+              <span style={{ color: 'var(--accent)' }}>3X</span>Media
+            </div>
+            <div className="pl-logo-sub">Production</div>
+          </div>
+
+          <div className="pl-project">
+            <div>Проект</div>
+            <div className="pl-project-name">— выберите проект —</div>
+          </div>
+
+          <nav className="pl-nav">
+            <div className="pl-section-label">Навигация</div>
+            {nav.map(item => (
+              <NavLink
+                key={item.to + item.label}
+                to={item.to}
+                className={({ isActive }) => `pl-nav-item${isActive ? ' active' : ''}`}
+              >
+                <item.icon size={16} strokeWidth={1.8} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="pl-profile">
+            <div className="pl-profile-inner" onClick={() => navigate('/profile')}>
+              <div className="pl-avatar">{getInitials(user?.name || '')}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="pl-profile-name truncate">{user?.name || 'Профиль'}</div>
+                <div className="pl-profile-role truncate">{roleLabel}</div>
+              </div>
+              <User size={14} style={{ color: 'var(--sidebar-muted)', flexShrink: 0 }} />
+            </div>
+          </div>
+        </aside>
+
+        {/* Mobile top bar */}
+        <div className="pl-topbar">
+          <div className="pl-topbar-logo">
+            <span style={{ color: 'var(--accent)' }}>3X</span>Media
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="pl-topbar-btn" onClick={() => navigate('/notifications')}>
+              <Bell size={18} />
+            </button>
+            <button className="pl-topbar-btn" onClick={() => setBurger(true)}>
+              <Menu size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Main */}
+        <main className="pl-main">{children}</main>
+
+        {/* Mobile bottom nav */}
+        <nav className="pl-mobile-nav">
+          <div className="pl-mobile-nav-inner">
+            {mobileMain.map(item => (
+              <NavLink
+                key={item.to + item.label}
+                to={item.to}
+                className={({ isActive }) => `pl-mobile-nav-item${isActive ? ' active' : ''}`}
+              >
+                <item.icon size={22} strokeWidth={1.8} />
+                {item.label}
+              </NavLink>
+            ))}
+            <NavLink to="/profile" className={({ isActive }) => `pl-mobile-nav-item${isActive ? ' active' : ''}`}>
+              <User size={22} strokeWidth={1.8} />
+              Профиль
+            </NavLink>
+            {mobileBurger.length > 0 && (
+              <button className="pl-mobile-nav-item" onClick={() => setBurger(true)}>
+                <Menu size={22} strokeWidth={1.8} />
+                Ещё
+              </button>
+            )}
+          </div>
+        </nav>
+
+        {/* Burger drawer */}
+        {burger && (
+          <div className="pl-drawer-overlay" onClick={() => setBurger(false)}>
+            <div className="pl-drawer" onClick={e => e.stopPropagation()}>
+              <div className="pl-drawer-handle" />
+              {mobileBurger.map(item => (
+                <NavLink
+                  key={item.to + item.label}
+                  to={item.to}
+                  className="pl-drawer-item"
+                  onClick={() => setBurger(false)}
+                >
+                  <div className="pl-drawer-icon">
+                    <item.icon size={18} strokeWidth={1.8} />
+                  </div>
+                  {item.label}
+                </NavLink>
+              ))}
+              <NavLink to="/notifications" className="pl-drawer-item" onClick={() => setBurger(false)}>
+                <div className="pl-drawer-icon"><Bell size={18} strokeWidth={1.8} /></div>
+                Уведомления
+              </NavLink>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}

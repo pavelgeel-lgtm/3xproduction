@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import WarehouseLayout from '../warehouse/WarehouseLayout'
+import ProductionLayout from './ProductionLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { documents as docsApi } from '../../services/api'
@@ -86,7 +86,7 @@ export default function DocumentsPage() {
   }
 
   return (
-    <WarehouseLayout>
+    <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 860 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
@@ -300,7 +300,7 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
-    </WarehouseLayout>
+    </ProductionLayout>
   )
 }
 
