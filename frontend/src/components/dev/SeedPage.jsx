@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
 
 const BASE = import.meta.env.VITE_API_URL || ''
 
 const ROLE_LABELS = {
+  warehouse_director:  'Директор склада',
   project_director:    'Директор площадки',
   producer:            'Продюсер',
   warehouse_deputy:    'Зам директора склада',
@@ -15,20 +15,11 @@ const ROLE_LABELS = {
 }
 
 export default function SeedPage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(null)
-
-  if (user?.role !== 'warehouse_director') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ color: 'var(--red)', fontSize: 14 }}>Доступ запрещён</div>
-      </div>
-    )
-  }
 
   async function handleSeed() {
     setLoading(true)

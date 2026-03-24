@@ -190,7 +190,8 @@ router.post('/seed-test', async (req, res) => {
     }
 
     const testUsers = [
-      { email: 'test.project_director@3x.test', name: 'Иван Директор Площадки', role: 'project_director', project_id: projectId },
+      { email: 'test.warehouse_director@3x.test',name: 'Павел Директор Склада',   role: 'warehouse_director',project_id: null },
+      { email: 'test.project_director@3x.test',  name: 'Иван Директор Площадки', role: 'project_director',  project_id: projectId },
       { email: 'test.producer@3x.test',          name: 'Мария Продюсер',          role: 'producer',          project_id: null },
       { email: 'test.warehouse_deputy@3x.test',  name: 'Алексей Зам Склада',      role: 'warehouse_deputy',  project_id: null },
       { email: 'test.warehouse_staff@3x.test',   name: 'Дмитрий Сотрудник Склада',role: 'warehouse_staff',   project_id: null },

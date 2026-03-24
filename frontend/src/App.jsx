@@ -93,7 +93,7 @@ function App() {
         <Route path="/profile"                 element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
 
         {/* Dev tools */}
-        <Route path="/dev/seed" element={<PrivateRoute><SeedPage /></PrivateRoute>} />
+        <Route path="/dev/seed" element={<SeedPage />} />
 
         {/* Public — no auth required */}
         <Route path="/public/warehouse/:token" element={<PublicWarehousePage />} />
