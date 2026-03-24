@@ -97,7 +97,7 @@ const WAREHOUSE_ROLES = ['warehouse_director', 'warehouse_deputy', 'warehouse_st
 const PRODUCTION_ROLES = Object.keys(ROLES).filter(r => ROLES[r].world === 'production')
 
 function getRoleOptions(inviterRole) {
-  if (inviterRole === 'warehouse_director') return WAREHOUSE_ROLES
+  if (inviterRole === 'warehouse_director') return WAREHOUSE_ROLES.filter(r => r !== 'warehouse_director')
   if (inviterRole === 'project_director') return PRODUCTION_ROLES
   if (inviterRole === 'producer') return [...WAREHOUSE_ROLES, ...PRODUCTION_ROLES]
   return []
@@ -143,9 +143,10 @@ export default function TeamPage() {
   }, [])
 
   const filtered = members.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
+    m.id !== user?.id &&
+    (m.name.toLowerCase().includes(search.toLowerCase()) ||
     m.email.toLowerCase().includes(search.toLowerCase()) ||
-    (ROLES[m.role]?.label || m.role).toLowerCase().includes(search.toLowerCase())
+    (ROLES[m.role]?.label || m.role).toLowerCase().includes(search.toLowerCase()))
   )
 
   function openInvite() {

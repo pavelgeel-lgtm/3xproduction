@@ -43,7 +43,7 @@ export default function RegisterPage() {
         name: form.name,
         email: form.email,
         password: form.password,
-        invite_token: inviteToken,
+        token: inviteToken,
       })
       login(data.token, data.user)
       navigate(getHomeRoute(data.user.role))
