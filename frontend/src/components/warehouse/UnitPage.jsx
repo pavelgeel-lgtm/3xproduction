@@ -17,6 +17,7 @@ export default function UnitPage() {
   const [loading, setLoading] = useState(true)
 
   const isDirectorOrDeputy = ['warehouse_director', 'warehouse_deputy'].includes(user?.role)
+  const canSeeValuation = ['warehouse_director', 'warehouse_deputy', 'producer'].includes(user?.role)
 
   useEffect(() => {
     Promise.all([
@@ -139,7 +140,7 @@ export default function UnitPage() {
               </div>
             )}
 
-            {isDirectorOrDeputy && unit.valuation && (
+            {canSeeValuation && unit.valuation && (
               <div style={{
                 background: 'var(--green-dim)', borderRadius: 8,
                 padding: '10px 14px', marginBottom: 16,

@@ -15,6 +15,9 @@ const css = `
 .dash-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 .dash-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+@media (max-width: 1100px) {
+  .dash-stats { grid-template-columns: repeat(2,1fr); }
+}
 .dash-stat {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius-card); padding: 20px;

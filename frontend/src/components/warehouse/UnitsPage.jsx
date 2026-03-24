@@ -89,30 +89,36 @@ export default function UnitsPage() {
               <div key={u.id} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '14px 16px',
-                background: 'var(--white)', borderRadius: 'var(--radius-card)',
+                background: isWrittenOff ? 'var(--bg-secondary)' : 'var(--card)',
+                borderRadius: 'var(--radius-card)',
                 border: '1px solid var(--border)',
-                opacity: isWrittenOff ? 0.5 : 1,
-                filter: isWrittenOff ? 'grayscale(0.4)' : 'none',
+                filter: isWrittenOff ? 'grayscale(1)' : 'none',
+                opacity: isWrittenOff ? 0.6 : 1,
                 transition: 'box-shadow 0.15s',
                 cursor: 'pointer',
+                position: 'relative',
               }}
                 onClick={() => navigate(`/units/${u.id}`)}
-                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.07)'}
-                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                onMouseEnter={e => !isWrittenOff && (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.07)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
               >
                 <div style={{
                   width: 48, height: 48, borderRadius: 8, flexShrink: 0,
                   background: 'var(--bg)', border: '1px solid var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 20, overflow: 'hidden',
+                  position: 'relative',
                 }}>
-                  {photo ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+                  {photo
+                    ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isWrittenOff ? 'blur(2px)' : 'none' }} />
+                    : <span style={{ filter: isWrittenOff ? 'grayscale(1)' : 'none' }}>📦</span>}
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontWeight: 500, fontSize: 14,
                     textDecoration: isWrittenOff ? 'line-through' : 'none',
+                    color: isWrittenOff ? 'var(--muted)' : 'var(--text)',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{u.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>

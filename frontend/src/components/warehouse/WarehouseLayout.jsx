@@ -221,9 +221,30 @@ const css = `
   .wl-mobile-nav { display: block !important; }
 }
 
+/* 769–1024px: compact sidebar */
 @media (min-width: 769px) and (max-width: 1024px) {
   .wl-sidebar { width: 200px; }
   .wl-main    { margin-left: 200px; }
+  .wl-logo-title { font-size: 15px; }
+  .wl-nav-item { font-size: 13px; padding: 7px 8px; }
+  .wl-section-label { font-size: 9px; }
+}
+
+/* 1024–1280px: normal sidebar, slightly tighter */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .wl-sidebar { width: 220px; }
+  .wl-main    { margin-left: 220px; }
+}
+
+/* 1280px+: full sidebar */
+@media (min-width: 1281px) {
+  .wl-sidebar { width: 240px; }
+  .wl-main    { margin-left: 240px; }
+}
+
+/* 1440px+: wider content breathing room */
+@media (min-width: 1440px) {
+  .wl-main { padding-left: 8px; }
 }
 `
 
