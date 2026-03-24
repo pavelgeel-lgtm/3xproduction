@@ -57,6 +57,7 @@ app.use('/rent',       require('./routes/rent'))
 app.use('/public',     require('./routes/rent')) // public routes share the rent router
 app.use('/analytics',  require('./routes/analytics'))
 app.use('/team',       require('./routes/team'))
+app.use('/lists',      require('./routes/lists'))
 
 // Notifications polling endpoint
 const { verifyJWT } = require('./middleware/auth')

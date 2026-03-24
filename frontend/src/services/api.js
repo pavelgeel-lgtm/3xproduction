@@ -149,6 +149,18 @@ export const team = {
   list: () => request('GET', '/team'),
 }
 
+// ─── Production Lists ─────────────────────────────────────────────────────────
+export const lists = {
+  all:        (projectId) => request('GET', `/lists${projectId ? '?project_id=' + projectId : ''}`),
+  items:      (type, params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return request('GET', `/lists/${type}/items${q ? '?' + q : ''}`)
+  },
+  addItem:    (type, body) => request('POST', `/lists/${type}/items`, body),
+  updateItem: (id, body)   => request('PATCH', `/lists/items/${id}`, body),
+  deleteItem: (id)         => request('DELETE', `/lists/items/${id}`),
+}
+
 // ─── Analytics ───────────────────────────────────────────────────────────────
 export const analytics = {
   warehouse: ()             => request('GET', '/analytics/warehouse'),
