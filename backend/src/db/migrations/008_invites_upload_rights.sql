@@ -1,0 +1,1 @@
+ALTER TABLE invites ADD COLUMN IF NOT EXISTS upload_rights JSONB DEFAULT '{}';

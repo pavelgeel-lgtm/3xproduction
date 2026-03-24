@@ -75,7 +75,7 @@ function App() {
         <Route path="/issue/:id"               element={<WarehouseRoute><IssuePage /></WarehouseRoute>} />
         <Route path="/return/:id"              element={<WarehouseRoute><ReturnPage /></WarehouseRoute>} />
         <Route path="/requests"                element={<WarehouseRoute><RequestsPage /></WarehouseRoute>} />
-        <Route path="/team"                    element={<WarehouseRoute><TeamPage /></WarehouseRoute>} />
+        <Route path="/team"                    element={<PrivateRoute><TeamPage /></PrivateRoute>} />
         <Route path="/acts"                    element={<WarehouseRoute><ActsPage /></WarehouseRoute>} />
         <Route path="/approvals"               element={<WarehouseRoute><ApprovalsPage /></WarehouseRoute>} />
         <Route path="/analytics"               element={<WarehouseRoute><WarehouseAnalyticsPage /></WarehouseRoute>} />

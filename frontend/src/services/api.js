@@ -50,7 +50,7 @@ export const auth = {
 // ─── Invites ─────────────────────────────────────────────────────────────────
 export const invites = {
   get:      (token) => request('GET',  `/invites/${token}`),
-  generate: (body)  => request('POST', '/invites', body),
+  generate: (body)  => request('POST', '/invites/generate', body),
 }
 
 // ─── Units ───────────────────────────────────────────────────────────────────
