@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #1E9FDA;
+  --black: #0a0a0a;
+  --text: #111111;
+  --muted: #888888;
+  --border: #ebebeb;
+  --bg: #f7f7f8;
+  --white: #ffffff;
+  --green: #16a34a;
+  --red: #dc2626;
+  --amber: #d97706;
+  --blue-dim: rgba(30,157,218,0.10);
+  --green-dim: rgba(22,163,74,0.08);
+  --red-dim: rgba(220,38,38,0.08);
+  --amber-dim: rgba(217,119,6,0.08);
+
+  --radius-card: 12px;
+  --radius-btn: 7px;
+  --radius-btn-lg: 9px;
+  --radius-badge: 20px;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body { min-height: 100vh; }
+#root { min-height: 100vh; }
+
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; font-size: 14px; }

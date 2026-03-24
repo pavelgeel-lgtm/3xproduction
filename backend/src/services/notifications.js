@@ -1,0 +1,47 @@
+const db = require('../db')
+
+async function createNotification({ user_id, type, text, entity_id, entity_type }) {
+  await db.query(
+    `INSERT INTO notifications (user_id, type, text, entity_id, entity_type)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [user_id, type, text, entity_id || null, entity_type || null]
+  )
+}
+
+// Notify all warehouse directors/deputies
+async function notifyWarehouse({ type, text, entity_id, entity_type }) {
+  const { rows } = await db.query(
+    `SELECT id FROM users WHERE role IN ('warehouse_director','warehouse_deputy')`
+  )
+  for (const u of rows) {
+    await createNotification({ user_id: u.id, type, text, entity_id, entity_type })
+  }
+}
+
+// Check overdue issuances and create notifications
+async function checkOverdue() {
+  const { rows } = await db.query(`
+    SELECT i.*, u2.id AS receiver_id, u2.name AS receiver_name,
+           array_agg(un.name) AS unit_names
+    FROM issuances i
+    JOIN users u2 ON u2.id = i.received_by
+    JOIN requests r ON r.id = i.request_id
+    JOIN units un ON un.id = ANY(r.unit_ids)
+    WHERE i.deadline < NOW()
+      AND NOT EXISTS (
+        SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id
+      )
+    GROUP BY i.id, u2.id, u2.name
+  `)
+
+  for (const issuance of rows) {
+    await notifyWarehouse({
+      type: 'overdue',
+      text: `Просрочен возврат: ${issuance.unit_names.join(', ')} — получатель ${issuance.receiver_name}`,
+      entity_id: issuance.id,
+      entity_type: 'request',
+    })
+  }
+}
+
+module.exports = { createNotification, notifyWarehouse, checkOverdue }

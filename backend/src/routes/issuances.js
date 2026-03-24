@@ -1,0 +1,265 @@
+const router  = require('express').Router()
+const multer  = require('multer')
+const db      = require('../db')
+const { verifyJWT, checkRole } = require('../middleware/auth')
+const { uploadFile } = require('../services/r2')
+const { createIssuancePDF, createReturnPDF, createExtensionPDF } = require('../services/pdf')
+const { createNotification, notifyWarehouse } = require('../services/notifications')
+const { sendEmail } = require('../services/resend')
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } })
+const WAREHOUSE_ROLES = ['warehouse_director', 'warehouse_deputy', 'warehouse_staff']
+
+// POST /issuances — issue units with signature
+router.post('/', verifyJWT, checkRole(...WAREHOUSE_ROLES), upload.fields([
+  { name: 'photos', maxCount: 30 },
+  { name: 'signature', maxCount: 1 },
+]), async (req, res) => {
+  const { request_id, received_by, deadline } = req.body
+  if (!received_by || !deadline) return res.status(400).json({ error: 'Missing fields' })
+
+  const client = await db.getClient()
+  try {
+    await client.query('BEGIN')
+
+    // Upload signature
+    let signature_url = null
+    if (req.files?.signature?.[0]) {
+      signature_url = await uploadFile(req.files.signature[0].buffer, 'signature.png', 'signatures')
+    }
+
+    // Get request + units
+    let unit_ids = []
+    if (request_id) {
+      const { rows } = await client.query(`SELECT unit_ids FROM requests WHERE id=$1`, [request_id])
+      if (rows.length) unit_ids = rows[0].unit_ids
+    }
+
+    // Get unit + user details for PDF
+    const { rows: units } = await client.query(
+      `SELECT * FROM units WHERE id = ANY($1)`, [unit_ids]
+    )
+    const { rows: receiver } = await client.query(
+      `SELECT name FROM users WHERE id=$1`, [received_by]
+    )
+    const { rows: issuer } = await client.query(
+      `SELECT name FROM users WHERE id=$1`, [req.user.id]
+    )
+
+    // Generate PDF
+    const pdfBytes = await createIssuancePDF({
+      items: units,
+      issuedTo: receiver[0]?.name || received_by,
+      issuedBy: issuer[0]?.name || 'Склад',
+      deadline,
+      signatureDataUrl: req.body.signature_data,
+    })
+    const pdfBuffer = Buffer.from(pdfBytes)
+    const act_pdf_url = await uploadFile(pdfBuffer, 'act_issue.pdf', 'acts')
+
+    // Create issuance
+    const { rows } = await client.query(
+      `INSERT INTO issuances (request_id, issued_by, received_by, signature_url, act_pdf_url, deadline)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [request_id || null, req.user.id, received_by, signature_url, act_pdf_url, deadline]
+    )
+    const issuance = rows[0]
+
+    // Upload issue photos + update unit status
+    for (const unit_id of unit_ids) {
+      await client.query(`UPDATE units SET status='issued' WHERE id=$1`, [unit_id])
+      await client.query(
+        `INSERT INTO unit_history (unit_id, action, user_id, project_id)
+         VALUES ($1,'Выдано',$2,(SELECT project_id FROM users WHERE id=$3))`,
+        [unit_id, req.user.id, received_by]
+      )
+    }
+
+    // Upload photos
+    if (req.files?.photos) {
+      for (const file of req.files.photos) {
+        const url = await uploadFile(file.buffer, file.originalname, 'units')
+        // Attach to first unit for now; in real app unit_id comes from form fields
+        if (unit_ids[0]) {
+          await client.query(
+            `INSERT INTO unit_photos (unit_id, url, type) VALUES ($1,$2,'issue')`,
+            [unit_ids[0], url]
+          )
+        }
+      }
+    }
+
+    // Mark request as issued
+    if (request_id) {
+      await client.query(`UPDATE requests SET status='issued' WHERE id=$1`, [request_id])
+    }
+
+    await client.query('COMMIT')
+    res.status(201).json({ issuance, act_pdf_url })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  } finally {
+    client.release()
+  }
+})
+
+// POST /returns
+router.post('/returns', verifyJWT, checkRole(...WAREHOUSE_ROLES), upload.fields([
+  { name: 'photos', maxCount: 30 },
+  { name: 'signature', maxCount: 1 },
+]), async (req, res) => {
+  const { issuance_id, condition_notes, items_condition, signature_data } = req.body
+  if (!issuance_id) return res.status(400).json({ error: 'Missing issuance_id' })
+
+  const client = await db.getClient()
+  try {
+    await client.query('BEGIN')
+
+    const { rows: issuances } = await client.query(
+      `SELECT i.*, r.unit_ids FROM issuances i LEFT JOIN requests r ON r.id = i.request_id WHERE i.id=$1`,
+      [issuance_id]
+    )
+    if (!issuances.length) return res.status(404).json({ error: 'Issuance not found' })
+    const issuance = issuances[0]
+
+    const { rows: returnerRow } = await client.query(`SELECT name FROM users WHERE id=$1`, [issuance.received_by])
+    const { rows: acceptorRow } = await client.query(`SELECT name FROM users WHERE id=$1`, [req.user.id])
+    const { rows: units } = await client.query(`SELECT * FROM units WHERE id = ANY($1)`, [issuance.unit_ids])
+
+    // Parse conditions per unit
+    let condMap = {}
+    try { condMap = JSON.parse(items_condition || '{}') } catch {}
+
+    // Generate PDF
+    const pdfBytes = await createReturnPDF({
+      items: units.map(u => ({ ...u, condition: condMap[u.id] })),
+      returnedBy: returnerRow[0]?.name || '',
+      acceptedBy: acceptorRow[0]?.name || '',
+      conditionNotes: condition_notes,
+      signatureDataUrl: signature_data,
+    })
+    const act_pdf_url = await uploadFile(Buffer.from(pdfBytes), 'act_return.pdf', 'acts')
+
+    let sig_url = null
+    if (req.files?.signature?.[0]) {
+      sig_url = await uploadFile(req.files.signature[0].buffer, 'sig.png', 'signatures')
+    }
+
+    await client.query(
+      `INSERT INTO returns (issuance_id, returned_by, accepted_by, condition_notes, signature_url, act_pdf_url)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [issuance_id, issuance.received_by, req.user.id, condition_notes || null, sig_url, act_pdf_url]
+    )
+
+    // Update unit statuses + history
+    for (const unit of units) {
+      const cond = condMap[unit.id]
+      const newStatus = 'on_stock'
+      await client.query(`UPDATE units SET status=$1 WHERE id=$2`, [newStatus, unit.id])
+      await client.query(
+        `INSERT INTO unit_history (unit_id, action, user_id, notes) VALUES ($1,'Возврат',$2,$3)`,
+        [unit.id, req.user.id, cond === 'damaged' ? `Повреждено: ${condition_notes}` : null]
+      )
+
+      // Notify if damaged
+      if (cond === 'damaged') {
+        await notifyWarehouse({
+          type: 'damage',
+          text: `Повреждение при возврате: ${unit.name}`,
+          entity_id: unit.id,
+          entity_type: 'unit',
+        })
+      }
+    }
+
+    await client.query('COMMIT')
+    res.status(201).json({ ok: true, act_pdf_url })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  } finally {
+    client.release()
+  }
+})
+
+// POST /extensions
+router.post('/extensions', verifyJWT, checkRole(...WAREHOUSE_ROLES), async (req, res) => {
+  const { issuance_id, new_deadline, initiator_signature, acceptor_signature, photos } = req.body
+  if (!issuance_id || !new_deadline) return res.status(400).json({ error: 'Missing fields' })
+  if (!initiator_signature || !acceptor_signature) {
+    return res.status(400).json({ error: 'Both signatures required for extension' })
+  }
+
+  const client = await db.getClient()
+  try {
+    await client.query('BEGIN')
+
+    const { rows: issuances } = await client.query(
+      `SELECT i.*, r.unit_ids FROM issuances i LEFT JOIN requests r ON r.id=i.request_id WHERE i.id=$1`,
+      [issuance_id]
+    )
+    if (!issuances.length) return res.status(404).json({ error: 'Issuance not found' })
+    const issuance = issuances[0]
+
+    const { rows: units } = await client.query(`SELECT * FROM units WHERE id = ANY($1)`, [issuance.unit_ids])
+    const { rows: initiator } = await client.query(`SELECT name FROM users WHERE id=$1`, [issuance.received_by])
+    const { rows: acceptor }  = await client.query(`SELECT name FROM users WHERE id=$1`, [req.user.id])
+
+    const pdfBytes = await createExtensionPDF({
+      items: units,
+      newDeadline: new_deadline,
+      initiatorName: initiator[0]?.name || '',
+      acceptorName: acceptor[0]?.name || '',
+      initiatorSig: initiator_signature,
+      acceptorSig: acceptor_signature,
+    })
+    const act_pdf_url = await uploadFile(Buffer.from(pdfBytes), 'act_ext.pdf', 'acts')
+
+    await client.query(
+      `INSERT INTO extensions (issuance_id, new_deadline, initiator_signature, acceptor_signature, photos)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [issuance_id, new_deadline, initiator_signature, acceptor_signature, photos || []]
+    )
+    await client.query(`UPDATE issuances SET deadline=$1 WHERE id=$2`, [new_deadline, issuance_id])
+
+    for (const unit of units) {
+      await client.query(
+        `INSERT INTO unit_history (unit_id, action, user_id, notes) VALUES ($1,'Продление',$2,$3)`,
+        [unit.id, req.user.id, `Новый дедлайн: ${new_deadline}`]
+      )
+    }
+
+    await client.query('COMMIT')
+    res.status(201).json({ ok: true, act_pdf_url })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  } finally {
+    client.release()
+  }
+})
+
+// GET /issuances/active
+router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy'), async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT i.*, u.name AS receiver_name, r.unit_ids,
+             CASE WHEN i.deadline < NOW() THEN true ELSE false END AS is_overdue
+      FROM issuances i
+      JOIN users u ON u.id = i.received_by
+      LEFT JOIN requests r ON r.id = i.request_id
+      WHERE NOT EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id)
+      ORDER BY i.deadline ASC
+    `)
+    res.json({ issuances: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+module.exports = router

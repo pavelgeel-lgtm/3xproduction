@@ -1,0 +1,195 @@
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib')
+
+async function createIssuancePDF({ unit, issuedTo, issuedBy, deadline, signatureDataUrl, items }) {
+  const doc  = await PDFDocument.create()
+  const page = doc.addPage([595, 842]) // A4
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const { height } = page.getSize()
+
+  let y = height - 60
+
+  function text(str, x, yy, opts = {}) {
+    page.drawText(String(str), {
+      x, y: yy,
+      size: opts.size || 11,
+      font: opts.bold ? bold : font,
+      color: opts.color || rgb(0.07, 0.07, 0.07),
+      maxWidth: opts.maxWidth,
+    })
+  }
+
+  function line(y1) {
+    page.drawLine({ start: { x: 50, y: y1 }, end: { x: 545, y: y1 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) })
+  }
+
+  // Header
+  text('АКТ ВЫДАЧИ ИМУЩЕСТВА', 50, y, { bold: true, size: 16 })
+  y -= 24
+  text(`Дата: ${new Date().toLocaleDateString('ru-RU')}   Срок возврата: ${deadline}`, 50, y, { size: 10, color: rgb(0.5, 0.5, 0.5) })
+  y -= 30; line(y); y -= 20
+
+  // Parties
+  text('Выдал:', 50, y, { bold: true }); text(issuedBy, 130, y)
+  y -= 18
+  text('Получил:', 50, y, { bold: true }); text(issuedTo, 130, y)
+  y -= 30; line(y); y -= 20
+
+  // Items table header
+  text('№', 50, y, { bold: true, size: 10 })
+  text('Наименование', 75, y, { bold: true, size: 10 })
+  text('Серийный №', 320, y, { bold: true, size: 10 })
+  text('Кол-во', 460, y, { bold: true, size: 10 })
+  y -= 6; line(y); y -= 16
+
+  // Items
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    text(String(i + 1), 50, y, { size: 10 })
+    text(item.name, 75, y, { size: 10, maxWidth: 230 })
+    text(item.serial || '—', 320, y, { size: 10 })
+    text(String(item.qty || 1), 460, y, { size: 10 })
+    y -= 18
+  }
+
+  y -= 10; line(y); y -= 30
+
+  // Agreement
+  text('Соглашение об ответственности', 50, y, { bold: true })
+  y -= 16
+  const agreementText = 'Получатель принимает на себя полную материальную ответственность за сохранность перечисленного имущества и обязуется вернуть его в надлежащем состоянии в указанный срок.'
+  text(agreementText, 50, y, { size: 9, color: rgb(0.4, 0.4, 0.4), maxWidth: 495 })
+  y -= 50
+
+  // Signature
+  if (signatureDataUrl) {
+    try {
+      const base64 = signatureDataUrl.replace(/^data:image\/\w+;base64,/, '')
+      const imgBytes = Buffer.from(base64, 'base64')
+      const img = await doc.embedPng(imgBytes).catch(() => doc.embedJpg(imgBytes))
+      page.drawImage(img, { x: 50, y: y - 60, width: 240, height: 80 })
+    } catch {}
+  }
+
+  text('Подпись получателя:', 50, y + 5, { size: 9, color: rgb(0.5, 0.5, 0.5) })
+  text('Подпись выдавшего:', 310, y + 5, { size: 9, color: rgb(0.5, 0.5, 0.5) })
+
+  return doc.save()
+}
+
+async function createReturnPDF({ items, returnedBy, acceptedBy, conditionNotes, signatureDataUrl }) {
+  const doc  = await PDFDocument.create()
+  const page = doc.addPage([595, 842])
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const { height } = page.getSize()
+
+  let y = height - 60
+
+  function text(str, x, yy, opts = {}) {
+    page.drawText(String(str), { x, y: yy, size: opts.size || 11, font: opts.bold ? bold : font, color: opts.color || rgb(0.07, 0.07, 0.07), maxWidth: opts.maxWidth })
+  }
+  function line(y1) {
+    page.drawLine({ start: { x: 50, y: y1 }, end: { x: 545, y: y1 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) })
+  }
+
+  text('АКТ ВОЗВРАТА ИМУЩЕСТВА', 50, y, { bold: true, size: 16 })
+  y -= 24
+  text(`Дата возврата: ${new Date().toLocaleDateString('ru-RU')}`, 50, y, { size: 10, color: rgb(0.5, 0.5, 0.5) })
+  y -= 30; line(y); y -= 20
+
+  text('Сдал:', 50, y, { bold: true }); text(returnedBy, 120, y)
+  y -= 18
+  text('Принял:', 50, y, { bold: true }); text(acceptedBy, 120, y)
+  y -= 30; line(y); y -= 20
+
+  text('№', 50, y, { bold: true, size: 10 })
+  text('Наименование', 75, y, { bold: true, size: 10 })
+  text('Серийный №', 300, y, { bold: true, size: 10 })
+  text('Состояние', 430, y, { bold: true, size: 10 })
+  y -= 6; line(y); y -= 16
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    text(String(i + 1), 50, y, { size: 10 })
+    text(item.name, 75, y, { size: 10, maxWidth: 210 })
+    text(item.serial || '—', 300, y, { size: 10 })
+    text(item.condition || 'Не указано', 430, y, { size: 10 })
+    y -= 18
+  }
+
+  if (conditionNotes) {
+    y -= 10; line(y); y -= 20
+    text('Примечания по состоянию:', 50, y, { bold: true })
+    y -= 16
+    text(conditionNotes, 50, y, { size: 10, color: rgb(0.4, 0.4, 0.4), maxWidth: 495 })
+    y -= 30
+  }
+
+  y -= 20
+  if (signatureDataUrl) {
+    try {
+      const base64 = signatureDataUrl.replace(/^data:image\/\w+;base64,/, '')
+      const imgBytes = Buffer.from(base64, 'base64')
+      const img = await doc.embedPng(imgBytes).catch(() => doc.embedJpg(imgBytes))
+      page.drawImage(img, { x: 310, y: y - 60, width: 240, height: 80 })
+    } catch {}
+  }
+  text('Подпись принимающего:', 310, y + 5, { size: 9, color: rgb(0.5, 0.5, 0.5) })
+
+  return doc.save()
+}
+
+async function createExtensionPDF({ items, newDeadline, initiatorName, acceptorName, initiatorSig, acceptorSig }) {
+  const doc  = await PDFDocument.create()
+  const page = doc.addPage([595, 842])
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const { height } = page.getSize()
+  let y = height - 60
+
+  function text(str, x, yy, opts = {}) {
+    page.drawText(String(str), { x, y: yy, size: opts.size || 11, font: opts.bold ? bold : font, color: opts.color || rgb(0.07, 0.07, 0.07), maxWidth: opts.maxWidth })
+  }
+  function line(y1) {
+    page.drawLine({ start: { x: 50, y: y1 }, end: { x: 545, y: y1 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) })
+  }
+
+  text('АКТ ПРОДЛЕНИЯ', 50, y, { bold: true, size: 16 })
+  y -= 24
+  text(`Дата: ${new Date().toLocaleDateString('ru-RU')}   Новый дедлайн: ${newDeadline}`, 50, y, { size: 10, color: rgb(0.5, 0.5, 0.5) })
+  y -= 30; line(y); y -= 20
+
+  text('Инициатор:', 50, y, { bold: true }); text(initiatorName, 140, y)
+  y -= 18
+  text('Принял:', 50, y, { bold: true }); text(acceptorName, 140, y)
+  y -= 30; line(y); y -= 20
+
+  text('Единицы:', 50, y, { bold: true })
+  y -= 16
+  for (const item of items) {
+    text(`• ${item.name} (${item.serial || '—'})`, 60, y, { size: 10 })
+    y -= 16
+  }
+
+  y -= 20
+  text('Подпись инициатора:', 50, y + 5, { size: 9, color: rgb(0.5, 0.5, 0.5) })
+  text('Подпись принимающего:', 310, y + 5, { size: 9, color: rgb(0.5, 0.5, 0.5) })
+
+  const embedSig = async (dataUrl, x, yy) => {
+    if (!dataUrl) return
+    try {
+      const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '')
+      const imgBytes = Buffer.from(base64, 'base64')
+      const img = await doc.embedPng(imgBytes).catch(() => doc.embedJpg(imgBytes))
+      page.drawImage(img, { x, y: yy - 60, width: 220, height: 60 })
+    } catch {}
+  }
+
+  await embedSig(initiatorSig, 50, y)
+  await embedSig(acceptorSig, 310, y)
+
+  return doc.save()
+}
+
+module.exports = { createIssuancePDF, createReturnPDF, createExtensionPDF }
