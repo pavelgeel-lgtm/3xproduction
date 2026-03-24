@@ -15,6 +15,8 @@ export default function UnitPage() {
   const [history, setHistory] = useState([])
   const [activePhoto, setActivePhoto] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showWriteoff, setShowWriteoff] = useState(false)
+  const [writeoffReason, setWriteoffReason] = useState('')
 
   const isDirectorOrDeputy = ['warehouse_director', 'warehouse_deputy'].includes(user?.role)
   const canSeeValuation = ['warehouse_director', 'warehouse_deputy', 'producer'].includes(user?.role)
@@ -159,7 +161,7 @@ export default function UnitPage() {
               <Button onClick={() => navigate(`/issue/${unit.id}`)}>Выдать</Button>
               {isDirectorOrDeputy && (
                 <Button variant="secondary" style={{ color: 'var(--muted)' }}
-                  onClick={() => unitsApi.writeoff(unit.id, '').then(() => navigate('/units'))}>
+                  onClick={() => { setWriteoffReason(''); setShowWriteoff(true) }}>
                   Списать
                 </Button>
               )}
@@ -167,6 +169,26 @@ export default function UnitPage() {
           </div>
         </div>
       </div>
+      {showWriteoff && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowWriteoff(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 400, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Списание: {unit.name}</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>Укажите причину списания</div>
+            <textarea value={writeoffReason} onChange={e => setWriteoffReason(e.target.value)}
+              placeholder="Сломано, утеряно, износ..."
+              style={{ width: '100%', height: 80, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, resize: 'vertical', marginBottom: 16, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowWriteoff(false)}>Отмена</Button>
+              <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }}
+                onClick={() => unitsApi.writeoff(unit.id, writeoffReason).then(() => navigate('/units'))}>
+                Списать
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </WarehouseLayout>
   )
 }

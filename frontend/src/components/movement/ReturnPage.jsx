@@ -4,7 +4,7 @@ import WarehouseLayout from '../warehouse/WarehouseLayout'
 import Button from '../shared/Button'
 import PhotoUpload from '../shared/PhotoUpload'
 import SignatureCanvas from '../shared/SignatureCanvas'
-import { issuances as issuancesApi } from '../../services/api'
+import { issuances as issuancesApi, units as unitsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const CONDITIONS = [
@@ -34,10 +34,15 @@ export default function ReturnPage() {
       const iss = (data.issuances || []).find(i => String(i.id) === String(issuanceId))
       if (iss) {
         setIssuance(iss)
-        // unit_ids are stored on the joined request
         const unitIds = iss.unit_ids || []
-        setUnits(unitIds.map(id => ({ id, name: `Единица #${id}`, serial: '' })))
         setSelected(new Set(unitIds))
+        unitsApi.list().then(ud => {
+          const ids = unitIds.map(String)
+          const us = (ud.units || []).filter(u => ids.includes(String(u.id)))
+          setUnits(us.length ? us : unitIds.map(id => ({ id, name: `Единица #${id}`, serial: '', photos: [] })))
+        }).catch(() => {
+          setUnits(unitIds.map(id => ({ id, name: `Единица #${id}`, serial: '', photos: [] })))
+        })
       }
     }).finally(() => setInitLoading(false))
   }, [issuanceId])
@@ -174,6 +179,17 @@ export default function ReturnPage() {
               <div key={u.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: 16, marginBottom: 20 }}>
                 <div style={{ fontWeight: 600, marginBottom: 14 }}>{u.name}</div>
 
+                {(u.photos || []).length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500, marginBottom: 6 }}>Фото при выдаче</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {(u.photos || []).slice(0, 3).map((p, i) => (
+                        <img key={i} src={p.url || p} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500, marginBottom: 6 }}>Фото при возврате</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
                   {[0, 1, 2].map(i => (
                     <PhotoUpload key={i} label={`Фото ${i + 1}`} onChange={f => setPhoto(u.id, i, f)} />

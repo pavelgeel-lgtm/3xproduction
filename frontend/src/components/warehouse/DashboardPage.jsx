@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Plus, Package, ArrowRightLeft, AlertTriangle, Clock } from 'lucide-react'
+import { Bell, Plus, Package, ArrowRightLeft, AlertTriangle, Clock, MapPin } from 'lucide-react'
 import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
@@ -14,9 +14,9 @@ const css = `
 .dash-sub { color: var(--muted); font-size: 13px; }
 .dash-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
-.dash-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.dash-stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 24px; }
 @media (max-width: 1100px) {
-  .dash-stats { grid-template-columns: repeat(2,1fr); }
+  .dash-stats { grid-template-columns: repeat(3,1fr); }
 }
 .dash-stat {
   background: var(--card); border: 1px solid var(--border);
@@ -112,7 +112,7 @@ const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'nu
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { items: notifs, unreadCount } = useNotifications()
-  const [stats, setStats] = useState({ on_stock: 0, issued: 0, overdue: 0, pending: 0 })
+  const [stats, setStats] = useState({ on_stock: 0, issued: 0, overdue: 0, pending: 0, no_cell: 0 })
   const [reqs, setReqs] = useState([])
 
   useEffect(() => {
@@ -123,6 +123,7 @@ export default function DashboardPage() {
         issued:   us.filter(u => u.status === 'issued').length,
         overdue:  us.filter(u => u.status === 'overdue').length,
         pending:  us.filter(u => u.status === 'pending').length,
+        no_cell:  us.filter(u => u.status === 'on_stock' && !u.cell_id).length,
       })
     }).catch(() => {})
     requestsApi.list({ status: 'new' }).then(data => {
@@ -135,6 +136,7 @@ export default function DashboardPage() {
     { label: 'Выдано',         value: stats.issued,   color: 'var(--blue)',   bg: 'var(--blue-dim)',   Icon: ArrowRightLeft },
     { label: 'Просрочено',     value: stats.overdue,  color: 'var(--red)',    bg: 'var(--red-dim)',    Icon: AlertTriangle },
     { label: 'На утверждении', value: stats.pending,  color: 'var(--amber)',  bg: 'var(--amber-dim)',  Icon: Clock },
+    { label: 'Без ячейки',    value: stats.no_cell,  color: 'var(--muted)',  bg: 'var(--bg)',         Icon: MapPin },
   ]
 
   return (
@@ -147,7 +149,7 @@ export default function DashboardPage() {
             <p className="dash-sub">{today}</p>
           </div>
           <div className="dash-header-actions">
-            <Button variant="primary" onClick={() => navigate('/units/new')}>
+            <Button variant="primary" onClick={() => navigate('/units')}>
               <Plus size={15} />
               Добавить
             </Button>

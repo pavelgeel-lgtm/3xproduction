@@ -6,7 +6,7 @@ import PhotoUpload from '../shared/PhotoUpload'
 import SignatureCanvas from '../shared/SignatureCanvas'
 import { requests as requestsApi, issuances as issuancesApi, units as unitsApi } from '../../services/api'
 
-const STEPS = ['Список', 'Фото', 'Соглашение', 'Подпись']
+const STEPS = ['Список', 'Сборка', 'Фото', 'Соглашение', 'Подпись']
 
 function getAgreementText(receiverName, unitList, deadline) {
   const today = new Date().toLocaleDateString('ru-RU')
@@ -34,6 +34,7 @@ export default function IssuePage() {
   const [deadline, setDeadline] = useState('')
   const [receiverName, setReceiverName] = useState('')
   const [receiverId, setReceiverId] = useState('')
+  const [gathered, setGathered] = useState({})
   const [loading, setLoading] = useState(false)
   const [initLoading, setInitLoading] = useState(true)
 
@@ -180,13 +181,62 @@ export default function IssuePage() {
 
             <Button fullWidth disabled={selected.size === 0 || !deadline} style={{ marginTop: 8 }}
               onClick={() => setStep(1)}>
-              Далее — Фото ({selected.size} ед.)
+              Далее — Сборка ({selected.size} ед.)
             </Button>
           </div>
         )}
 
-        {/* Step 1 — photos */}
-        {step === 1 && (
+        {/* Step 1 — сборка */}
+        {step === 1 && (() => {
+          const allGathered = selectedUnits.length > 0 && selectedUnits.every(u => gathered[u.id])
+          return (
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Сборка</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+                Отметьте каждую единицу по мере сбора
+              </div>
+              <div style={{
+                fontSize: 13, fontWeight: 600, marginBottom: 16, color: allGathered ? 'var(--green)' : 'var(--amber)',
+              }}>
+                {allGathered ? '✓ Все собрано' : `Собираю... (${selectedUnits.filter(u => gathered[u.id]).length}/${selectedUnits.length})`}
+              </div>
+              {selectedUnits.map(u => {
+                const done = !!gathered[u.id]
+                return (
+                  <div key={u.id} onClick={() => setGathered(g => ({ ...g, [u.id]: !done }))} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+                    borderRadius: 'var(--radius-card)',
+                    border: `2px solid ${done ? 'var(--green)' : 'var(--border)'}`,
+                    background: done ? 'var(--green-dim)' : 'var(--white)',
+                    marginBottom: 10, cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 4, flexShrink: 0,
+                      border: `2px solid ${done ? 'var(--green)' : 'var(--border)'}`,
+                      background: done ? 'var(--green)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 13,
+                    }}>
+                      {done ? '✓' : ''}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500 }}>{u.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.serial} · {u.category}</div>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: done ? 'var(--green)' : 'var(--muted)' }}>
+                      {done ? 'Собрано' : 'Не собрано'}
+                    </div>
+                  </div>
+                )
+              })}
+              <Button fullWidth disabled={!allGathered} style={{ marginTop: 8 }} onClick={() => setStep(2)}>
+                Далее — Фото
+              </Button>
+            </div>
+          )
+        })()}
+
+        {/* Step 2 — photos */}
+        {step === 2 && (
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Фото при выдаче</div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Минимум 3 фото на каждую единицу</div>
@@ -201,14 +251,14 @@ export default function IssuePage() {
                 </div>
               </div>
             ))}
-            <Button fullWidth onClick={() => setStep(2)} style={{ marginTop: 8 }}>
+            <Button fullWidth onClick={() => setStep(3)} style={{ marginTop: 8 }}>
               Далее — Соглашение
             </Button>
           </div>
         )}
 
-        {/* Step 2 — agreement */}
-        {step === 2 && (
+        {/* Step 3 — agreement */}
+        {step === 3 && (
           <div>
             <div style={{ fontWeight: 600, marginBottom: 14 }}>Соглашение об ответственности</div>
             <div style={{
@@ -227,12 +277,12 @@ export default function IssuePage() {
                 ))}
               </div>
             </div>
-            <Button fullWidth onClick={() => setStep(3)}>Принять и подписать</Button>
+            <Button fullWidth onClick={() => setStep(4)}>Принять и подписать</Button>
           </div>
         )}
 
-        {/* Step 3 — signature */}
-        {step === 3 && (
+        {/* Step 4 — signature */}
+        {step === 4 && (
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись получателя</div>
             {receiverName && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{receiverName}</div>}
