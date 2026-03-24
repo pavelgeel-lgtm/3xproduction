@@ -54,7 +54,9 @@ export const ROLES = {
     label: 'Директор проекта',
     world: 'production',
     canInvite: ['production'],
-    uploadDocs: false,
+    uploadKpp: true,
+    uploadScenario: true,
+    uploadCallsheet: true,
   },
   project_deputy_upload: {
     label: 'Зам директора проекта (загрузка)',
