@@ -1,98 +1,62 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WarehouseLayout from './WarehouseLayout'
-import Badge from '../shared/Badge'
 import Button from '../shared/Button'
-import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
-
-const CELL_STATUS = {
-  free:     { bg: 'var(--bg)',        border: '1px solid var(--border)',                label: 'Свободно' },
-  occupied: { bg: 'var(--blue-dim)',  border: '1px solid rgba(30,157,218,0.25)',         label: 'Занято' },
-  overdue:  { bg: 'var(--red-dim)',   border: '1px solid rgba(220,38,38,0.25)',          label: 'Просрочено' },
-  pending:  { bg: 'var(--amber-dim)', border: '1px solid rgba(217,119,6,0.25)',          label: 'На утверждении' },
-  written_off: { bg: 'var(--bg)',     border: '1px solid var(--border)', opacity: 0.35, label: 'Списано' },
-}
-
-const FILTERS = ['Все', 'Свободные', 'Занятые', 'Просроченные']
-
-const SECTIONS = [
-  {
-    id: 'A', name: 'А · Реквизит', rows: 3, shelves: 6,
-    cells: [
-      { id: 'A-1', status: 'occupied', unit: { name: 'Кресло Честерфилд', serial: 'CHR-001', project: 'Проект «Рассвет»', deadline: '28.03.2026', status: 'issued' } },
-      { id: 'A-2', status: 'free' },
-      { id: 'A-3', status: 'overdue', unit: { name: 'Ваза напольная', serial: 'VZA-002', project: 'Проект «Закат»', deadline: '20.03.2026', status: 'overdue' } },
-      { id: 'A-4', status: 'occupied', unit: { name: 'Зеркало настенное', serial: 'ZRK-003', project: 'Проект «Рассвет»', deadline: '01.04.2026', status: 'issued' } },
-      { id: 'A-5', status: 'free' },
-      { id: 'A-6', status: 'pending', unit: { name: 'Стол обеденный', serial: 'STL-004', project: '—', deadline: '—', status: 'pending' } },
-      { id: 'B-1', status: 'free' },
-      { id: 'B-2', status: 'occupied', unit: { name: 'Диван угловой', serial: 'DVN-005', project: 'Проект «Закат»', deadline: '05.04.2026', status: 'issued' } },
-      { id: 'B-3', status: 'free' },
-      { id: 'B-4', status: 'free' },
-      { id: 'B-5', status: 'overdue', unit: { name: 'Торшер бронзовый', serial: 'TRS-006', project: 'Проект «Рассвет»', deadline: '18.03.2026', status: 'overdue' } },
-      { id: 'B-6', status: 'occupied', unit: { name: 'Книжный шкаф', serial: 'KNS-007', project: 'Проект «Рассвет»', deadline: '28.03.2026', status: 'issued' } },
-      { id: 'C-1', status: 'free' },
-      { id: 'C-2', status: 'free' },
-      { id: 'C-3', status: 'occupied', unit: { name: 'Сервиз чайный', serial: 'SRV-008', project: 'Проект «Закат»', deadline: '10.04.2026', status: 'issued' } },
-      { id: 'C-4', status: 'free' },
-      { id: 'C-5', status: 'written_off', unit: { name: 'Ваза битая', serial: 'VZA-009', project: '—', deadline: '—', status: 'written_off' } },
-      { id: 'C-6', status: 'free' },
-    ],
-  },
-  {
-    id: 'B', name: 'Б · Костюмы', rows: 2, shelves: 4,
-    cells: [
-      { id: 'D-1', status: 'occupied', unit: { name: 'Платье вечернее', serial: 'PLT-010', project: 'Проект «Рассвет»', deadline: '28.03.2026', status: 'issued' } },
-      { id: 'D-2', status: 'free' },
-      { id: 'D-3', status: 'free' },
-      { id: 'D-4', status: 'occupied', unit: { name: 'Костюм деловой', serial: 'KST-011', project: 'Проект «Закат»', deadline: '05.04.2026', status: 'issued' } },
-      { id: 'E-1', status: 'free' },
-      { id: 'E-2', status: 'pending', unit: { name: 'Шуба норковая', serial: 'SHB-012', project: '—', deadline: '—', status: 'pending' } },
-      { id: 'E-3', status: 'free' },
-      { id: 'E-4', status: 'free' },
-    ],
-  },
-  {
-    id: 'SUB', name: 'Подсклад · Проект «Рассвет»', isSubWarehouse: true, rows: 1, shelves: 4,
-    cells: [
-      { id: 'P-1', status: 'occupied', unit: { name: 'Камера Sony FX3', serial: 'CAM-020', project: 'Проект «Рассвет»', deadline: '28.03.2026', status: 'issued' } },
-      { id: 'P-2', status: 'occupied', unit: { name: 'Штатив Sachtler', serial: 'SHT-021', project: 'Проект «Рассвет»', deadline: '28.03.2026', status: 'issued' } },
-      { id: 'P-3', status: 'free' },
-      { id: 'P-4', status: 'free' },
-    ],
-  },
-]
-
-const FILTER_MAP = {
-  'Все': () => true,
-  'Свободные': c => c.status === 'free',
-  'Занятые': c => c.status === 'occupied',
-  'Просроченные': c => c.status === 'overdue',
-}
+import UnitCardModal from '../shared/UnitCardModal'
+import { warehouses as warehousesApi } from '../../services/api'
 
 export default function CellsPage() {
   const navigate = useNavigate()
-  const [warehouse, setWarehouse] = useState('Вирки 22')
-  const [filter, setFilter] = useState('Все')
+  const [warehouseList, setWarehouseList] = useState([])
+  const [selWh, setSelWh] = useState('')
+  const [sections, setSections] = useState([])
+  const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [cardId, setCardId] = useState(null)
 
-  const selectedCell = SECTIONS.flatMap(s => s.cells).find(c => c.id === selected)
+  useEffect(() => {
+    warehousesApi.list().then(d => {
+      const whs = d.warehouses || []
+      setWarehouseList(whs)
+      if (whs.length) setSelWh(String(whs[0].id))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!selWh) return
+    setLoading(true)
+    warehousesApi.cells(selWh)
+      .then(d => setSections(d.sections || []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [selWh])
+
+  const selectedCell = sections.flatMap(s => s.cells || []).find(c => String(c.id) === String(selected))
 
   return (
     <WarehouseLayout>
-      <div style={{ display: 'flex', height: '100%', minHeight: 'calc(100vh - 0px)' }}>
-        {/* Main area */}
-        <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
-          {/* Top bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <style>{`
+        .cells-page { display: flex; height: 100%; min-height: calc(100vh - 60px); }
+        .cells-main { flex: 1; padding: 24px 28px; overflow-y: auto; min-width: 0; }
+        .cells-detail { width: 280px; border-left: 1px solid var(--border); background: var(--white); padding: 20px; overflow-y: auto; flex-shrink: 0; }
+        @media (max-width: 768px) {
+          .cells-page { flex-direction: column; }
+          .cells-main { padding: 16px; }
+          .cells-detail { display: none; }
+          .cells-sheet { display: block !important; }
+          .cells-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
+        }
+      `}</style>
+      <div className="cells-page">
+        <div className="cells-main">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
             <h1 style={{ fontSize: 20, fontWeight: 600 }}>Карта ячеек</h1>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select value={warehouse} onChange={e => setWarehouse(e.target.value)} style={{
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <select value={selWh} onChange={e => setSelWh(e.target.value)} style={{
                 height: 36, padding: '0 10px', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
               }}>
-                <option>Вирки 22</option>
-                <option>Чапаева 6</option>
+                {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
               <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
                 onClick={() => navigate('/cells/constructor')}>
@@ -101,74 +65,53 @@ export default function CellsPage() {
             </div>
           </div>
 
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
-            {FILTERS.map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{
-                height: 32, padding: '0 14px', borderRadius: 'var(--radius-badge)',
-                border: `1px solid ${filter === f ? 'var(--blue)' : 'var(--border)'}`,
-                background: filter === f ? 'var(--blue-dim)' : 'var(--white)',
-                color: filter === f ? 'var(--blue)' : 'var(--muted)',
-                fontSize: 13, fontWeight: filter === f ? 500 : 400, cursor: 'pointer',
-              }}>{f}</button>
-            ))}
-          </div>
+          {loading && <div style={{ color: 'var(--muted)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Загрузка...</div>}
 
-          {/* Legend */}
-          <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-            {Object.entries(CELL_STATUS).map(([key, val]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
-                <div style={{ width: 14, height: 14, borderRadius: 4, background: val.bg, border: val.border, opacity: val.opacity || 1 }} />
-                {val.label}
-              </div>
-            ))}
-          </div>
-
-          {/* Sections */}
-          {SECTIONS.map(section => {
-            const filtered = section.cells.filter(FILTER_MAP[filter])
-            if (filtered.length === 0 && filter !== 'Все') return null
+          {sections.map(section => {
+            const cells = section.cells || []
             return (
               <div key={section.id} style={{ marginBottom: 28 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{section.name}</div>
-                  {section.isSubWarehouse && (
-                    <span style={{
-                      fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-badge)',
-                      background: 'var(--blue-dim)', color: 'var(--blue)', fontWeight: 500,
-                    }}>Подсклад</span>
-                  )}
                   <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {section.cells.filter(c => c.status === 'free').length} свободных из {section.cells.length}
+                    {cells.filter(c => !c.unit_id || c.unit_status !== 'on_stock').length} свободных из {cells.length}
                   </span>
                 </div>
-                <div style={{
+                <div className="cells-grid" style={{
                   display: 'grid',
-                  gridTemplateColumns: `repeat(${section.shelves}, 1fr)`,
+                  gridTemplateColumns: `repeat(${Math.min(section.cells?.length || 6, 8)}, 1fr)`,
                   gap: 8,
                 }}>
-                  {section.cells.filter(FILTER_MAP[filter]).map(cell => {
-                    const s = CELL_STATUS[cell.status]
+                  {cells.map(cell => {
+                    const isOccupied = cell.unit_id && cell.unit_status === 'on_stock'
+                    const isSelected = String(selected) === String(cell.id)
                     return (
                       <div key={cell.id}
-                        onClick={() => setSelected(selected === cell.id ? null : cell.id)}
+                        onClick={() => setSelected(isSelected ? null : cell.id)}
                         style={{
                           aspectRatio: '1',
-                          background: s.bg,
-                          border: selected === cell.id ? '2px solid var(--blue)' : s.border,
+                          background: isOccupied ? 'var(--blue-dim)' : 'var(--bg)',
+                          border: isSelected
+                            ? '2px solid var(--blue)'
+                            : isOccupied
+                              ? '1px solid rgba(30,157,218,0.3)'
+                              : '1px solid var(--border)',
                           borderRadius: 8,
                           display: 'flex', flexDirection: 'column',
                           alignItems: 'center', justifyContent: 'center',
-                          cursor: 'pointer',
-                          opacity: s.opacity || 1,
-                          filter: cell.status === 'written_off' ? 'blur(1px)' : 'none',
-                          transition: 'all 0.15s',
+                          cursor: 'pointer', transition: 'all 0.15s',
                           fontSize: 10, fontWeight: 500,
-                          color: cell.status === 'free' ? 'var(--muted)' : 'var(--text)',
+                          color: isOccupied ? 'var(--blue)' : 'var(--muted)',
                           userSelect: 'none',
+                          overflow: 'hidden', padding: 4,
                         }}
                       >
-                        {cell.id}
+                        <div style={{ fontSize: 9, fontWeight: 600 }}>{cell.custom_name || cell.code}</div>
+                        {isOccupied && (
+                          <div style={{ fontSize: 8, marginTop: 2, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', maxWidth: '100%', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {cell.unit_name}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -176,106 +119,57 @@ export default function CellsPage() {
               </div>
             )
           })}
+
+          {!loading && sections.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)', fontSize: 14 }}>
+              Нет секций. <span style={{ color: 'var(--blue)', cursor: 'pointer' }} onClick={() => navigate('/cells/constructor')}>Создать секцию</span>
+            </div>
+          )}
         </div>
 
-        {/* Detail panel (desktop) */}
+        {/* Desktop detail panel */}
         {selected && selectedCell && (
-          <aside style={{
-            width: 300, borderLeft: '1px solid var(--border)',
-            background: 'var(--white)', padding: 24,
-            overflowY: 'auto',
-          }} className="cell-detail">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>Ячейка {selected}</div>
-              <button onClick={() => setSelected(null)} style={{
-                background: 'none', border: 'none', fontSize: 18,
-                cursor: 'pointer', color: 'var(--muted)',
-              }}>✕</button>
+          <aside className="cells-detail">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>
+                {selectedCell.custom_name || selectedCell.code}
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
-            {selectedCell.status === 'free' ? (
-              <div style={{ color: 'var(--muted)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>
-                Ячейка свободна
-              </div>
+            {!selectedCell.unit_id || selectedCell.unit_status !== 'on_stock' ? (
+              <div style={{ color: 'var(--muted)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>Ячейка свободна</div>
             ) : (
               <>
-                <Badge color={STATUS_COLOR[selectedCell.unit?.status || 'muted']}>
-                  {STATUS_LABEL[selectedCell.unit?.status] || '—'}
-                </Badge>
-
-                <div style={{ marginTop: 16, marginBottom: 16 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>
-                    {selectedCell.unit?.name}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {selectedCell.unit?.serial}
-                  </div>
-                </div>
-
-                <div style={{ background: 'var(--bg)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-                  <DetailRow label="Проект" value={selectedCell.unit?.project} />
-                  <DetailRow label="Дедлайн" value={selectedCell.unit?.deadline} last />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <Button fullWidth variant="secondary"
-                    onClick={() => navigate(`/units/${selected}`)}>
-                    Карточка единицы
-                  </Button>
-                  {selectedCell.status === 'overdue' && (
-                    <Button fullWidth variant="secondary" style={{ color: 'var(--amber)' }}>
-                      Уведомить
-                    </Button>
-                  )}
-                </div>
+                <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>{selectedCell.unit_name}</div>
+                <Button fullWidth style={{ marginTop: 12 }} onClick={() => { setCardId(selectedCell.unit_id); setSelected(null) }}>
+                  Открыть карточку
+                </Button>
               </>
             )}
           </aside>
         )}
       </div>
 
-      {/* Mobile: bottom sheet on cell click */}
+      {/* Mobile bottom sheet */}
       {selected && selectedCell && (
-        <div style={{ display: 'none' }} className="cell-sheet">
-          <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
-          }} onClick={() => setSelected(null)} />
-          <div style={{
-            position: 'fixed', bottom: 72, left: 0, right: 0, zIndex: 201,
-            background: 'var(--white)', borderRadius: '16px 16px 0 0', padding: 24,
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Ячейка {selected}</div>
-            {selectedCell.unit && (
+        <div className="cells-sheet" style={{ display: 'none' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} onClick={() => setSelected(null)} />
+          <div style={{ position: 'fixed', bottom: 72, left: 0, right: 0, zIndex: 201, background: 'var(--white)', borderRadius: '16px 16px 0 0', padding: 24 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>{selectedCell.custom_name || selectedCell.code}</div>
+            {selectedCell.unit_id && selectedCell.unit_status === 'on_stock' ? (
               <>
-                <div style={{ fontWeight: 500, marginBottom: 4 }}>{selectedCell.unit.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>{selectedCell.unit.serial}</div>
-                <Button fullWidth onClick={() => navigate(`/units/${selected}`)}>Карточка</Button>
+                <div style={{ fontSize: 14, color: 'var(--text)', marginBottom: 16 }}>{selectedCell.unit_name}</div>
+                <Button fullWidth onClick={() => { setCardId(selectedCell.unit_id); setSelected(null) }}>Открыть карточку</Button>
               </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Ячейка свободна</div>
             )}
           </div>
         </div>
       )}
 
-      <style>{`
-        @media (max-width: 768px) {
-          .cell-detail { display: none !important; }
-          .cell-sheet { display: block !important; }
-        }
-      `}</style>
+      {cardId && <UnitCardModal unitId={cardId} onClose={() => setCardId(null)} />}
     </WarehouseLayout>
-  )
-}
-
-function DetailRow({ label, value, last }) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between',
-      paddingBottom: last ? 0 : 8, marginBottom: last ? 0 : 8,
-      borderBottom: last ? 'none' : '1px solid var(--border)',
-      fontSize: 13,
-    }}>
-      <span style={{ color: 'var(--muted)' }}>{label}</span>
-      <span style={{ fontWeight: 500 }}>{value}</span>
-    </div>
   )
 }

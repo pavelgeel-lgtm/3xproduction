@@ -5,14 +5,14 @@ const { createNotification, notifyWarehouse } = require('../services/notificatio
 
 // POST /requests
 router.post('/', verifyJWT, async (req, res) => {
-  const { unit_ids, warehouse_id, deadline } = req.body
-  if (!unit_ids?.length) return res.status(400).json({ error: 'No units specified' })
+  const { unit_ids, warehouse_id, deadline, project_id, notes } = req.body
+  if (!unit_ids) return res.status(400).json({ error: 'unit_ids required' })
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO requests (unit_ids, requester_id, warehouse_id, deadline)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [unit_ids, req.user.id, warehouse_id || null, deadline || null]
+      `INSERT INTO requests (unit_ids, requester_id, warehouse_id, deadline, project_id, notes)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [unit_ids, req.user.id, warehouse_id || null, deadline || null, project_id || null, notes || null]
     )
     const request = rows[0]
 
@@ -57,7 +57,7 @@ router.put('/:id/status', verifyJWT, checkRole('warehouse_director', 'warehouse_
 
 // GET /requests
 router.get('/', verifyJWT, async (req, res) => {
-  const { status, warehouse_id } = req.query
+  const { status, warehouse_id, project_id, requester_id } = req.query
   try {
     let q = `
       SELECT r.*, u.name AS requester_name, u.role AS requester_role
@@ -68,6 +68,8 @@ router.get('/', verifyJWT, async (req, res) => {
     const params = []
     if (status)       { params.push(status);       q += ` AND r.status = $${params.length}` }
     if (warehouse_id) { params.push(warehouse_id); q += ` AND r.warehouse_id = $${params.length}` }
+    if (project_id)   { params.push(project_id);   q += ` AND r.project_id = $${params.length}` }
+    if (requester_id) { params.push(requester_id); q += ` AND r.requester_id = $${params.length}` }
     q += ` ORDER BY r.created_at DESC`
 
     const { rows } = await db.query(q, params)

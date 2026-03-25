@@ -127,12 +127,11 @@ export default function ProductionListsPage() {
       await requestsApi.create({
         project_id: projectId,
         notes: selectedItems.map(i => i.name).join(', '),
-        unit_ids: [],
+        unit_ids: selectedItems.map(i => i.unit_id).filter(Boolean),
       })
       setMultiSelected(new Set())
-      alert(`Запрошено ${selectedItems.length} позиций`)
     } catch (err) {
-      alert(err.message || 'Ошибка запроса')
+      console.error(err)
     } finally {
       setRequesting(false)
     }
@@ -178,9 +177,22 @@ export default function ProductionListsPage() {
 
   return (
     <ProductionLayout>
-      <div style={{ padding: '24px 32px', maxWidth: 1100 }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .pll-page { padding: 16px !important; }
+          .pll-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .pll-tabs { overflow-x: auto !important; scrollbar-width: none; white-space: nowrap; }
+          .pll-tabs::-webkit-scrollbar { display: none; }
+          .pll-type-tabs { overflow-x: auto !important; scrollbar-width: none; }
+          .pll-type-tabs::-webkit-scrollbar { display: none; }
+          .pll-item { flex-wrap: wrap !important; gap: 8px !important; }
+          .pll-item-actions { flex-wrap: wrap !important; }
+          .pll-actions-row { flex-wrap: wrap !important; gap: 8px !important; }
+        }
+      `}</style>
+      <div className="pll-page" style={{ padding: '24px 32px', maxWidth: 1100 }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="pll-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 600 }}>{canSeeAll ? 'Все списки' : 'Мои списки'}</h1>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
@@ -213,7 +225,7 @@ export default function ProductionListsPage() {
         )}
 
         {/* List type tabs */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid var(--border)', overflowX: 'auto' }}>
+        <div className="pll-type-tabs" style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid var(--border)', overflowX: 'auto' }}>
           {visibleTypes.map(type => {
             const t = LIST_TYPES[type]
             return (

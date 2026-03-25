@@ -44,11 +44,15 @@ export default function RequestsProductionPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    requestsApi.list({ project_id: user?.project_id })
+    if (!user?.id) return
+    const params = user?.project_id
+      ? { project_id: user.project_id }
+      : { requester_id: user.id }
+    requestsApi.list(params)
       .then(data => setAllRequests(data.requests || []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [user?.project_id])
+  }, [user?.id])
 
   const filtered = allRequests.filter(r => (STATUS_MAP[tab] || []).includes(r.status))
 

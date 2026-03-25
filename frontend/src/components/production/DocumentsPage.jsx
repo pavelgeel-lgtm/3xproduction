@@ -98,8 +98,22 @@ export default function DocumentsPage() {
 
   return (
     <ProductionLayout>
-      <div style={{ padding: '24px 32px', maxWidth: 860 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .doc-page { padding: 16px !important; }
+          .doc-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .doc-tabs { overflow-x: auto !important; scrollbar-width: none; }
+          .doc-tabs::-webkit-scrollbar { display: none; }
+          .doc-filters { flex-direction: column !important; align-items: stretch !important; }
+          .doc-filters input { min-width: unset !important; width: 100% !important; }
+          .doc-filters select { width: 100% !important; }
+          .doc-item-row { flex-wrap: wrap !important; gap: 10px !important; }
+          .doc-item-actions { width: 100% !important; display: flex !important; }
+          .doc-item-actions a, .doc-item-actions button { flex: 1 !important; text-align: center !important; }
+        }
+      `}</style>
+      <div className="doc-page" style={{ padding: '24px 32px', maxWidth: 860 }}>
+        <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 600 }}>Документы</h1>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Проект #{projectId}</p>
@@ -109,7 +123,7 @@ export default function DocumentsPage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
+        <div className="doc-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
           {Object.entries(visibleDocTypes).map(([key, t]) => (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '10px 20px', border: 'none', background: 'none',
@@ -127,7 +141,7 @@ export default function DocumentsPage() {
 
         {(tab === 'kpp' || tab === 'scenario') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+            <div className="doc-filters" style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <input value={docSearch} onChange={e => setDocSearch(e.target.value)}
                 placeholder="Поиск..."
                 style={{ flex: 1, minWidth: 140, height: 36, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
