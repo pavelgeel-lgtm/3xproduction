@@ -53,7 +53,7 @@ export default function ProductionListsPage() {
   const [multiSelected, setMultiSelected] = useState(new Set())
   const [requesting, setRequesting] = useState(false)
 
-  const canEdit = ownListTypes.includes(activeType)
+  const canEdit = ownListTypes.includes(activeType) && user?.role !== 'production_designer'
   const projectId = user?.project_id
 
   function loadItems(type) {

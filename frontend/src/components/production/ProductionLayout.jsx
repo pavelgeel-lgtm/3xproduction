@@ -192,7 +192,6 @@ function buildNav(role) {
   if (role === 'producer') {
     nav.push({ to: '/production/warehouse', icon: Package,   label: 'Склад' })
     nav.push({ to: '/production/requests',  icon: Inbox,     label: 'Заявки' })
-    nav.push({ to: '/rent',                 icon: List,      label: 'Аренда' })
     nav.push({ to: '/analytics/producer',   icon: BarChart2, label: 'Аналитика' })
   }
 

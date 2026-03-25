@@ -6,17 +6,19 @@ import { useAuth } from '../../hooks/useAuth'
 const TABS = ['На рассмотрении', 'Выдано', 'Архив']
 
 const STATUS_MAP = {
-  'На рассмотрении': ['new', 'approved'],
+  'На рассмотрении': ['new', 'approved', 'collecting', 'ready'],
   'Выдано':          ['issued'],
   'Архив':           ['cancelled', 'rejected'],
 }
 
 const STATUS_BADGE = {
-  new:       { label: 'Новая',         bg: 'var(--blue-dim)',   color: 'var(--blue)' },
-  approved:  { label: 'Одобрено',      bg: 'var(--green-dim)',  color: 'var(--green)' },
-  issued:    { label: 'Выдано',        bg: 'var(--green-dim)',  color: 'var(--green)' },
-  cancelled: { label: 'Отменено',      bg: 'var(--bg)',         color: 'var(--muted)' },
-  rejected:  { label: 'Отклонено',     bg: 'var(--red-dim)',    color: 'var(--red)' },
+  new:        { label: 'Новая',              bg: 'var(--blue-dim)',   color: 'var(--blue)' },
+  approved:   { label: 'Одобрено',           bg: 'var(--green-dim)',  color: 'var(--green)' },
+  collecting: { label: 'Принято в работу',   bg: 'var(--amber-dim)',  color: 'var(--amber)' },
+  ready:      { label: 'Готово к выдаче',    bg: 'var(--green-dim)',  color: 'var(--green)' },
+  issued:     { label: 'Выдано',             bg: 'var(--green-dim)',  color: 'var(--green)' },
+  cancelled:  { label: 'Отменено',           bg: 'var(--bg)',         color: 'var(--muted)' },
+  rejected:   { label: 'Отклонено',          bg: 'var(--red-dim)',    color: 'var(--red)' },
 }
 
 function formatDate(str) {

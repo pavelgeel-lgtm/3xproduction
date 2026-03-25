@@ -36,16 +36,22 @@ export default function UnitCardModal({ unitId, onClose }) {
       .catch(() => setLoading(false))
   }, [unitId])
 
-  // Load warehouses when cell panel opens
+  // Load warehouses when cell panel opens, preselect unit's warehouse
   useEffect(() => {
     if (!showCell) return
-    warehousesApi.list().then(d => setWarehouses(d.warehouses || d || []))
+    warehousesApi.list().then(d => {
+      setWarehouses(d.warehouses || [])
+      if (unit?.warehouse_id) setSelWh(String(unit.warehouse_id))
+    })
   }, [showCell])
 
   // Load cells when warehouse selected
   useEffect(() => {
     if (!selWh) { setCells([]); setSelCell(''); return }
-    warehousesApi.cells(selWh).then(d => setCells(d.cells || d || []))
+    warehousesApi.cells(selWh).then(d => {
+      const allCells = (d.sections || []).flatMap(s => s.cells || [])
+      setCells(allCells)
+    })
   }, [selWh])
 
   async function handleAssignCell() {
@@ -157,15 +163,22 @@ export default function UnitCardModal({ unitId, onClose }) {
           {/* Warehouse buttons */}
           {isWarehouse && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <Button onClick={() => { setShowCell(v => !v); setShowWriteoff(false) }}>
-                Ячейка <ChevronDown size={13} style={{ marginLeft: 4, transform: showCell ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
-              </Button>
+              {!unit.cell_id && (
+                <Button onClick={() => { setShowCell(v => !v); setShowWriteoff(false) }}>
+                  Ячейка <ChevronDown size={13} style={{ marginLeft: 4, transform: showCell ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+                </Button>
+              )}
               {isDirector && (
                 <Button variant="secondary" style={{ color: 'var(--red)' }}
                   onClick={() => { setShowWriteoff(v => !v); setShowCell(false) }}>
                   Списать
                 </Button>
               )}
+            </div>
+          )}
+          {isWarehouse && unit.cell_id && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+              Ячейка: <strong>{unit.cell_custom || unit.cell_code || '—'}</strong>
             </div>
           )}
 
