@@ -80,11 +80,14 @@ const css = `
 
 @media (max-width: 768px) {
   .dash-page { padding: 16px; }
+  .dash-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .dash-header-actions { width: 100%; display: flex; justify-content: flex-start; }
   .dash-stats { grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
   .dash-cards { grid-template-columns: 1fr; gap: 12px; }
   .dash-title { font-size: 18px; }
   .dash-stat { padding: 14px; }
   .dash-stat-value { font-size: 22px; }
+  .dash-stat-label { font-size: 11px; }
 }
 
 @media (max-width: 400px) {

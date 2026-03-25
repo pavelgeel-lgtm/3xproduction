@@ -1,22 +1,12 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import ProductionLayout from './ProductionLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
+import UnitCardModal from '../shared/UnitCardModal'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
+import { units as unitsApi } from '../../services/api'
 
-const CATEGORIES = ['Все категории', 'Мебель', 'Декор', 'Костюмы', 'Реквизит', 'Декорации']
-
-const MOCK_UNITS = [
-  { id: '1', name: 'Кресло Честерфилд', serial: 'CHR-001', category: 'Мебель', cell: 'A-1', description: 'Кожаное, коричневое, 2 шт. Потёртости на подлокотниках.', status: 'on_stock', projects: ['Проект «Закат»', 'Проект «Восход»'] },
-  { id: '2', name: 'Ваза напольная', serial: 'VZA-002', category: 'Декор', cell: 'A-3', description: 'Керамика, белая, высота 80 см.', status: 'issued', projects: ['Проект «Рассвет»'] },
-  { id: '3', name: 'Зеркало настенное', serial: 'ZRK-003', category: 'Декор', cell: 'A-4', description: 'Рама золочёная, 120×80 см.', status: 'on_stock', projects: [] },
-  { id: '4', name: 'Стол обеденный', serial: 'STL-004', category: 'Мебель', cell: 'A-6', description: 'Дерево, раздвижной, 6 персон.', status: 'on_stock', projects: ['Проект «Закат»', 'Проект «Рассвет»', 'Проект «Лето»'] },
-  { id: '5', name: 'Диван угловой', serial: 'DVN-005', category: 'Мебель', cell: 'B-2', description: 'Серая рогожка, модульный.', status: 'on_stock', projects: [] },
-  { id: '6', name: 'Торшер бронзовый', serial: 'TRS-006', category: 'Декор', cell: 'B-5', description: 'Бронза, высота 160 см, абажур кремовый.', status: 'on_stock', projects: ['Проект «Восход»'] },
-  { id: '7', name: 'Книжный шкаф', serial: 'KNS-007', category: 'Мебель', cell: 'B-6', description: 'Дуб, 6 полок, остекление.', status: 'on_stock', projects: [] },
-  { id: '8', name: 'Сервиз чайный', serial: 'SRV-008', category: 'Реквизит', cell: 'C-3', description: 'Фарфор, 12 предметов, роспись.', status: 'issued', projects: ['Проект «Закат»'] },
-]
+const CATEGORIES = ['Все категории', 'Мебель', 'Декор', 'Костюмы', 'Реквизит', 'Декорации', 'Бутафория', 'Худ. наполнение', 'Автомобили', 'Прочее']
 
 const REQUEST_STATUSES = {
   none:      null,
@@ -26,14 +16,20 @@ const REQUEST_STATUSES = {
 }
 
 export default function WarehouseViewPage() {
-  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Все категории')
   const [requests, setRequests] = useState({})
   const [expanded, setExpanded] = useState(null)
+  const [units, setUnits] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [cardId, setCardId] = useState(null)
 
-  const filtered = MOCK_UNITS.filter(u => {
-    const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.serial.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    unitsApi.list().then(d => setUnits(d.units || [])).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const filtered = units.filter(u => {
+    const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || (u.serial || '').toLowerCase().includes(search.toLowerCase())
     const matchCat = category === 'Все категории' || u.category === category
     return matchSearch && matchCat
   })
@@ -91,9 +87,10 @@ export default function WarehouseViewPage() {
                   }}>📦</div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, fontSize: 14 }}>{u.name}</div>
+                    <div style={{ fontWeight: 500, fontSize: 14, cursor: 'pointer', color: 'var(--accent)' }}
+                      onClick={e => { e.stopPropagation(); setCardId(u.id) }}>{u.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                      {u.serial} · {u.category} · Ячейка {u.cell}
+                      {u.serial ? `${u.serial} · ` : ''}{u.category}{(u.cell_custom || u.cell_code) ? ` · Ячейка ${u.cell_custom || u.cell_code}` : ''}
                     </div>
                   </div>
 
@@ -119,33 +116,19 @@ export default function WarehouseViewPage() {
                 </div>
 
                 {/* Expanded details */}
-                {isOpen && (
-                  <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg)' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                      <div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Описание</div>
-                        <div style={{ fontSize: 13, lineHeight: 1.5 }}>{u.description}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>История проектов</div>
-                        {u.projects.length > 0 ? u.projects.map((p, i) => (
-                          <div key={i} style={{
-                            fontSize: 12, padding: '4px 10px', borderRadius: 6,
-                            background: 'var(--white)', border: '1px solid var(--border)',
-                            display: 'inline-block', marginRight: 6, marginBottom: 6,
-                          }}>{p}</div>
-                        )) : (
-                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Не использовалось</span>
-                        )}
-                      </div>
-                    </div>
+                {isOpen && u.description && (
+                  <div style={{ borderTop: '1px solid var(--border)', padding: '14px 16px', background: 'var(--bg)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Описание</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.5 }}>{u.description}</div>
                   </div>
                 )}
               </div>
             )
           })}
         </div>
+        {loading && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>Загрузка...</div>}
       </div>
+      {cardId && <UnitCardModal unitId={cardId} onClose={() => setCardId(null)} />}
     </ProductionLayout>
   )
 }

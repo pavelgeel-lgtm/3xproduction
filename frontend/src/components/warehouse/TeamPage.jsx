@@ -131,6 +131,7 @@ export default function TeamPage() {
   const [generating, setGenerating] = useState(false)
   const [inviteLink, setInviteLink] = useState('')
   const [copied, setCopied] = useState(false)
+  const [inviteError, setInviteError] = useState('')
 
   const canInvite = ROLES[user?.role]?.canInvite?.length > 0
   const roleOptions = getRoleOptions(user?.role)
@@ -155,6 +156,7 @@ export default function TeamPage() {
     setUploadCallsheet(false)
     setInviteLink('')
     setCopied(false)
+    setInviteError('')
     setShowInvite(true)
   }
 
@@ -183,11 +185,12 @@ export default function TeamPage() {
         project_id: user?.project_id || null,
         upload_rights,
       })
-      const token = data.invite.token
-      const link = `${window.location.origin}/invite/${token}`
-      setInviteLink(link)
+      const token = data?.invite?.token
+      if (!token) { setInviteError('Сервер не вернул токен'); return }
+      setInviteLink(`${window.location.origin}/invite/${token}`)
+      setInviteError('')
     } catch (err) {
-      alert(err.message || 'Ошибка генерации')
+      setInviteError(err.message || 'Ошибка генерации ссылки')
     } finally {
       setGenerating(false)
     }
@@ -317,6 +320,11 @@ export default function TeamPage() {
               </div>
             )}
 
+            {inviteError && (
+              <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'var(--red-dim, #fee2e2)', borderRadius: 8 }}>
+                {inviteError}
+              </div>
+            )}
             {!inviteLink ? (
               <Button fullWidth disabled={!inviteRole || generating} onClick={handleGenerate}>
                 {generating ? 'Генерация...' : 'Создать ссылку'}

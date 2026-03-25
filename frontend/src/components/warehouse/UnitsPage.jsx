@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WarehouseLayout from './WarehouseLayout'
+import UnitCardModal from '../shared/UnitCardModal'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
@@ -36,6 +37,7 @@ export default function UnitsPage() {
   const [photos, setPhotos] = useState([])
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
+  const [cardId, setCardId] = useState(null)
   const fileRef = useRef()
   const camRef = useRef()
 
@@ -130,7 +132,7 @@ export default function UnitsPage() {
                 borderRadius: 'var(--radius-card)', border: '1px solid var(--border)',
                 filter: isWrittenOff ? 'grayscale(1)' : 'none', opacity: isWrittenOff ? 0.6 : 1,
                 cursor: 'pointer', position: 'relative',
-              }} onClick={() => navigate(`/units/${u.id}`)}>
+              }} onClick={() => setCardId(u.id)}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 8, flexShrink: 0,
                   background: 'var(--bg)', border: '1px solid var(--border)',
@@ -233,6 +235,7 @@ export default function UnitsPage() {
           </div>
         </div>
       )}
+      {cardId && <UnitCardModal unitId={cardId} onClose={() => setCardId(null)} />}
     </WarehouseLayout>
   )
 }
