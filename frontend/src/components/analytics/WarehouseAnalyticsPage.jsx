@@ -32,25 +32,33 @@ export default function WarehouseAnalyticsPage() {
 
   return (
     <WarehouseLayout>
-      <div style={{ padding: '24px 32px', maxWidth: 1000 }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .wa-page { padding: 16px !important; }
+          .wa-stats { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+          .wa-cards { grid-template-columns: 1fr !important; }
+          .wa-stat-val { font-size: 22px !important; }
+        }
+      `}</style>
+      <div className="wa-page" style={{ padding: '24px 32px', maxWidth: 1000 }}>
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Аналитика склада</h1>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Все данные</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+        <div className="wa-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
           {MOVEMENT.map(m => (
             <div key={m.label} style={{
               background: 'var(--white)', border: '1px solid var(--border)',
               borderRadius: 'var(--radius-card)', padding: '18px',
             }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
+              <div className="wa-stat-val" style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{m.label}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        <div className="wa-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
           <Card title="По категориям">
             {byCategory.length === 0 && <Empty />}
             {byCategory.map(c => (
@@ -89,7 +97,7 @@ export default function WarehouseAnalyticsPage() {
           </Card>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="wa-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <Card title="Динамика по месяцам">
             {dynamics.length === 0 && <Empty />}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120, marginBottom: 8 }}>

@@ -74,7 +74,7 @@ function App() {
         <Route path="/units/:id"               element={<WarehouseRoute><UnitPage /></WarehouseRoute>} />
         <Route path="/cells"                   element={<WarehouseRoute><CellsPage /></WarehouseRoute>} />
         <Route path="/cells/constructor"       element={<WarehouseRoute><CellConstructorPage /></WarehouseRoute>} />
-        <Route path="/rent"                    element={<WarehouseRoute><RentPage /></WarehouseRoute>} />
+        <Route path="/rent"                    element={<PrivateRoute><RentPage /></PrivateRoute>} />
         <Route path="/issue/:id"               element={<WarehouseRoute><IssuePage /></WarehouseRoute>} />
         <Route path="/return/:id"              element={<WarehouseRoute><ReturnPage /></WarehouseRoute>} />
         <Route path="/requests"                element={<WarehouseRoute><RequestsPage /></WarehouseRoute>} />

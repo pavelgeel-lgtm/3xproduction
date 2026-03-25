@@ -25,7 +25,7 @@ const css = `
 .req-item {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius-card); padding: 16px 20px;
-  display: flex; align-items: center; gap: 16;
+  display: flex; align-items: center; gap: 16px;
   box-shadow: var(--shadow-sm);
 }
 .req-item-body { flex: 1; min-width: 0; }
@@ -34,9 +34,11 @@ const css = `
 .req-item-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 @media (max-width: 768px) {
-  .req-page { padding: 16px; }
+  .req-page { padding: 16px; overflow-x: hidden; }
   .req-title { font-size: 18px; }
   .req-item { flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 16px; }
+  .req-item-body { width: 100%; }
+  .req-item-meta { flex-wrap: wrap; gap: 8px; }
   .req-item-actions { width: 100%; }
   .req-item-actions .btn { flex: 1; }
 }

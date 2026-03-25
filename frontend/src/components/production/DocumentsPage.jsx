@@ -32,6 +32,8 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [activeCallDate, setActiveCallDate] = useState(null)
   const [docSearch, setDocSearch] = useState('')
+  const [blockFilter, setBlockFilter] = useState('')
+  const [seasonFilter, setSeasonFilter] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [uploadType, setUploadType] = useState('kpp')
@@ -127,18 +129,26 @@ export default function DocumentsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <input value={docSearch} onChange={e => setDocSearch(e.target.value)}
-                placeholder="Поиск по блоку, сезону..."
-                style={{ flex: 1, minWidth: 180, height: 36, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
-              {['Блок 1','Блок 2','Блок 3','Сезон 1','Сезон 2'].map(b => (
-                <button key={b} onClick={() => setDocSearch(docSearch === b ? '' : b)} style={{
-                  height: 36, padding: '0 12px', borderRadius: 'var(--radius-btn)', fontSize: 12, cursor: 'pointer',
-                  border: `1px solid ${docSearch === b ? 'var(--blue)' : 'var(--border)'}`,
-                  background: docSearch === b ? 'var(--blue-dim)' : 'var(--white)',
-                  color: docSearch === b ? 'var(--blue)' : 'var(--muted)',
-                }}>{b}</button>
-              ))}
+                placeholder="Поиск..."
+                style={{ flex: 1, minWidth: 140, height: 36, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
+              <select value={blockFilter} onChange={e => setBlockFilter(e.target.value)}
+                style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: blockFilter ? 'var(--blue-dim)' : 'var(--white)', color: blockFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>
+                <option value="">Блок</option>
+                {Array.from({ length: 50 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Блок {n}</option>)}
+              </select>
+              <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
+                style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: seasonFilter ? 'var(--blue-dim)' : 'var(--white)', color: seasonFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>
+                <option value="">Сезон</option>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Сезон {n}</option>)}
+              </select>
             </div>
-            {tabDocs.filter(d => !docSearch || (d.original_name || d.file_url || '').toLowerCase().includes(docSearch.toLowerCase())).map((doc, i) => (
+            {tabDocs.filter(d => {
+              const name = (d.original_name || d.file_url || '').toLowerCase()
+              if (docSearch && !name.includes(docSearch.toLowerCase())) return false
+              if (blockFilter && !name.includes(`блок ${blockFilter}`)) return false
+              if (seasonFilter && !name.includes(`сезон ${seasonFilter}`)) return false
+              return true
+            }).map((doc, i) => (
               <div key={doc.id} style={{
                 background: 'var(--white)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-card)', padding: '16px',

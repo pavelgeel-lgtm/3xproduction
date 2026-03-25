@@ -24,6 +24,17 @@ function formatDate(str) {
   return new Date(str).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 
+const css = `
+@media (max-width: 768px) {
+  .rp-page { padding: 16px !important; }
+  .rp-tabs { overflow-x: auto; scrollbar-width: none; }
+  .rp-tabs::-webkit-scrollbar { display: none; }
+  .rp-tabs button { white-space: nowrap; padding: 9px 14px !important; font-size: 13px !important; }
+  .rp-card { padding: 14px 16px !important; }
+  .rp-card-head { flex-wrap: wrap; gap: 6px; }
+}
+`
+
 export default function RequestsProductionPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('На рассмотрении')
@@ -41,7 +52,8 @@ export default function RequestsProductionPage() {
 
   return (
     <ProductionLayout>
-      <div style={{ padding: '24px 32px', maxWidth: 800 }}>
+      <style>{css}</style>
+      <div className="rp-page" style={{ padding: '24px 32px', maxWidth: 800 }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Заявки на склад</h1>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
@@ -49,7 +61,7 @@ export default function RequestsProductionPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
+        <div className="rp-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '9px 20px', border: 'none', background: 'none',
@@ -79,11 +91,11 @@ export default function RequestsProductionPage() {
             {filtered.map(r => {
               const badge = STATUS_BADGE[r.status] || { label: r.status, bg: 'var(--bg)', color: 'var(--muted)' }
               return (
-                <div key={r.id} style={{
+                <div key={r.id} className="rp-card" style={{
                   background: 'var(--white)', border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-card)', padding: '16px 20px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div className="rp-card-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>
                       Заявка #{String(r.id).slice(0, 8)}
                     </div>
