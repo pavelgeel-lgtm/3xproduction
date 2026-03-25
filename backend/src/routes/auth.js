@@ -221,6 +221,117 @@ router.post('/seed-test', async (req, res) => {
   }
 })
 
+// POST /auth/seed-units — seed 10 units + 2 acts (idempotent)
+router.post('/seed-units', async (req, res) => {
+  try {
+    const { rows: directors } = await db.query(
+      `SELECT id FROM users WHERE email = $1`, ['test.warehouse_director@3x.test']
+    )
+    if (!directors.length) return res.status(400).json({ error: 'Run /auth/seed-test first' })
+    const directorId = directors[0].id
+
+    const { rows: staffRows } = await db.query(
+      `SELECT id FROM users WHERE email = $1`, ['test.warehouse_staff@3x.test']
+    )
+    const staffId = staffRows[0]?.id
+
+    const { rows: whs } = await db.query(`SELECT id FROM warehouses LIMIT 1`)
+    if (!whs.length) return res.status(400).json({ error: 'No warehouses found' })
+    const warehouseId = whs[0].id
+
+    const seedUnits = [
+      { name: 'Пистолет Беретта 92',         category: 'props',    serial: 'SED-WPN-01', condition: 'Хорошее',           qty: 2 },
+      { name: 'Телефон Nokia 3310',           category: 'props',    serial: 'SED-ELC-01', condition: 'Хорошее',           qty: 1 },
+      { name: 'Чемодан кожаный коричневый',   category: 'props',    serial: 'SED-BAG-01', condition: 'Удовлетворительное', qty: 1 },
+      { name: 'Портфель деловой чёрный',      category: 'props',    serial: 'SED-BAG-02', condition: 'Хорошее',           qty: 3 },
+      { name: 'Бутылка вина (бутафория)',     category: 'dummy',    serial: 'SED-DUM-01', condition: 'Отличное',          qty: 6 },
+      { name: 'Пачка денег (бутафория)',      category: 'dummy',    serial: 'SED-DUM-02', condition: 'Отличное',          qty: 4 },
+      { name: 'Ваза декоративная белая',      category: 'art_fill', serial: 'SED-ART-01', condition: 'Хорошее',           qty: 1 },
+      { name: 'Картина масло 60x80',          category: 'art_fill', serial: 'SED-ART-02', condition: 'Хорошее',           qty: 1 },
+      { name: 'Ковёр восточный 2x3 м',        category: 'art_fill', serial: 'SED-ART-03', condition: 'Удовлетворительное', qty: 1 },
+      { name: 'Автомобиль BMW E39 (реквизит)', category: 'auto',    serial: 'SED-CAR-01', condition: 'Рабочее',           qty: 1 },
+    ]
+
+    const results = []
+    const createdIds = []
+    for (const u of seedUnits) {
+      const { rows: ex } = await db.query(`SELECT id FROM units WHERE serial=$1`, [u.serial])
+      if (ex.length) { results.push({ ...u, status: 'already_exists' }); createdIds.push(ex[0].id); continue }
+      const { rows } = await db.query(
+        `INSERT INTO units (name,category,serial,warehouse_id,condition,qty,status)
+         VALUES ($1,$2,$3,$4,$5,$6,'on_stock') RETURNING id`,
+        [u.name, u.category, u.serial, warehouseId, u.condition, u.qty]
+      )
+      createdIds.push(rows[0].id)
+      results.push({ ...u, id: rows[0].id, status: 'created' })
+    }
+
+    // Seed acts
+    const actResults = []
+    if (createdIds.length >= 4 && staffId) {
+      const deadline1 = new Date(); deadline1.setDate(deadline1.getDate() + 30)
+      const { rows: ex1 } = await db.query(
+        `SELECT id FROM requests WHERE notes='seed-act-issue' LIMIT 1`
+      )
+      let req1Id
+      if (!ex1.length) {
+        const { rows: r1 } = await db.query(
+          `INSERT INTO requests (unit_ids, project_id, status, notes)
+           VALUES ($1, null, 'issued', 'seed-act-issue') RETURNING id`,
+          [[createdIds[0], createdIds[1]]]
+        )
+        req1Id = r1[0].id
+        const { rows: i1 } = await db.query(
+          `INSERT INTO issuances (request_id, issued_by, received_by, deadline)
+           VALUES ($1,$2,$3,$4) RETURNING id`,
+          [req1Id, directorId, staffId, deadline1.toISOString()]
+        )
+        for (const uid of [createdIds[0], createdIds[1]]) {
+          await db.query(`UPDATE units SET status='issued' WHERE id=$1`, [uid])
+          await db.query(`INSERT INTO unit_history(unit_id,action,user_id) VALUES($1,'Выдано',$2)`, [uid, directorId])
+        }
+        actResults.push({ type: 'issue', issuance_id: i1[0].id, status: 'created' })
+      } else {
+        actResults.push({ type: 'issue', status: 'already_exists' })
+      }
+
+      const { rows: ex2 } = await db.query(
+        `SELECT id FROM requests WHERE notes='seed-act-return' LIMIT 1`
+      )
+      if (!ex2.length) {
+        const { rows: r2 } = await db.query(
+          `INSERT INTO requests (unit_ids, project_id, status, notes)
+           VALUES ($1, null, 'issued', 'seed-act-return') RETURNING id`,
+          [[createdIds[2], createdIds[3]]]
+        )
+        const deadline2 = new Date(); deadline2.setDate(deadline2.getDate() - 5)
+        const { rows: i2 } = await db.query(
+          `INSERT INTO issuances (request_id, issued_by, received_by, deadline)
+           VALUES ($1,$2,$3,$4) RETURNING id`,
+          [r2[0].id, directorId, staffId, deadline2.toISOString()]
+        )
+        const { rows: ret } = await db.query(
+          `INSERT INTO returns (issuance_id, returned_by, accepted_by, condition_notes)
+           VALUES ($1,$2,$3,'Состояние хорошее') RETURNING id`,
+          [i2[0].id, staffId, directorId]
+        )
+        for (const uid of [createdIds[2], createdIds[3]]) {
+          await db.query(`INSERT INTO unit_history(unit_id,action,user_id) VALUES($1,'Выдано',$2)`, [uid, directorId])
+          await db.query(`INSERT INTO unit_history(unit_id,action,user_id) VALUES($1,'Возврат',$2)`, [uid, directorId])
+        }
+        actResults.push({ type: 'return', return_id: ret[0].id, status: 'created' })
+      } else {
+        actResults.push({ type: 'return', status: 'already_exists' })
+      }
+    }
+
+    res.json({ units: results, acts: actResults })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // PATCH /auth/password — change own password
 const { verifyJWT } = require('../middleware/auth')
 router.patch('/password', verifyJWT, async (req, res) => {
