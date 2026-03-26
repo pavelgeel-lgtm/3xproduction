@@ -75,7 +75,7 @@ export const units = {
 export const warehouses = {
   list:          ()             => request('GET',  '/warehouses'),
   cells:         (warehouseId) => request('GET',  `/warehouses/${warehouseId}/cells`),
-  createSection: (warehouseId, body) => request('POST', `/warehouses/${warehouseId}/sections`, body),
+  createSection: (body) => request('POST', '/warehouses/sections', body),
   renameCell:    (cellId, name) => request('PUT', `/warehouses/cells/${cellId}`, { name }),
 }
 
