@@ -4,7 +4,8 @@ import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import UnitCardModal from '../shared/UnitCardModal'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
-import { units as unitsApi } from '../../services/api'
+import { units as unitsApi, requests as requestsApi } from '../../services/api'
+import { useAuth } from '../../hooks/useAuth'
 
 const CATEGORIES = ['Все категории', 'Мебель', 'Декор', 'Костюмы', 'Реквизит', 'Декорации', 'Бутафория', 'Худ. наполнение', 'Автомобили', 'Прочее']
 
@@ -23,6 +24,7 @@ export default function WarehouseViewPage() {
   const [units, setUnits] = useState([])
   const [loading, setLoading] = useState(true)
   const [cardId, setCardId] = useState(null)
+  const { user } = useAuth()
 
   useEffect(() => {
     unitsApi.list().then(d => setUnits(d.units || [])).catch(() => {}).finally(() => setLoading(false))
@@ -34,8 +36,16 @@ export default function WarehouseViewPage() {
     return matchSearch && matchCat
   })
 
-  function requestUnit(id) {
+  async function requestUnit(id) {
     setRequests(r => ({ ...r, [id]: 'pending' }))
+    try {
+      await requestsApi.create({
+        unit_ids: [id],
+        project_id: user?.project_id || null,
+      })
+    } catch {
+      setRequests(r => ({ ...r, [id]: null }))
+    }
   }
 
   return (
