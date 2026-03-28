@@ -13,7 +13,7 @@ const CONDITIONS = [
   { value: 'damaged',   label: 'Повреждено', color: 'var(--red)' },
 ]
 
-const STEPS = ['Список', 'Фото и состояние', 'Подпись']
+const STEPS = ['Список', 'Фото и состояние', 'Подпись сдающего', 'Подпись принимающего']
 
 export default function ReturnPage() {
   const navigate = useNavigate()
@@ -28,6 +28,7 @@ export default function ReturnPage() {
   const [photos, setPhotos] = useState({})
   const [loading, setLoading] = useState(false)
   const [initLoading, setInitLoading] = useState(true)
+  const [returnerSignature, setReturnerSignature] = useState(null)
 
   useEffect(() => {
     issuancesApi.active().then(data => {
@@ -75,7 +76,8 @@ export default function ReturnPage() {
       const fd = new FormData()
       fd.append('issuance_id', issuanceId)
       fd.append('items_condition', JSON.stringify(condMap))
-      fd.append('signature_data', signatureData)
+      fd.append('signature_data', returnerSignature || '')
+      fd.append('acceptor_signature_data', signatureData)
       // merge all damage notes
       const allNotes = Object.entries(damages)
         .filter(([, v]) => v)
@@ -174,7 +176,7 @@ export default function ReturnPage() {
         {step === 1 && (
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Фото и состояние при возврате</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Минимум 3 фото на каждую единицу</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Минимум 2 фото на каждую единицу</div>
             {selectedUnits.map(u => (
               <div key={u.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: 16, marginBottom: 20 }}>
                 <div style={{ fontWeight: 600, marginBottom: 14 }}>{u.name}</div>
@@ -231,11 +233,26 @@ export default function ReturnPage() {
           </div>
         )}
 
-        {/* Step 2 — signature */}
+        {/* Step 2 — returner signature */}
         {step === 2 && (
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись сотрудника склада</div>
-            {user?.name && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{user.name}</div>}
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись сдающего</div>
+            {issuance?.receiver_name && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{issuance.receiver_name}</div>}
+            <SignatureCanvas
+              onSave={data => { setReturnerSignature(data); setStep(3) }}
+              onClear={() => {}}
+            />
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12, textAlign: 'center' }}>
+              Подпись лица, возвращающего имущество
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 — acceptor signature */}
+        {step === 3 && (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись принимающего</div>
+            {user?.name && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{user.name} (сотрудник склада)</div>}
             <SignatureCanvas
               onSave={data => handleReturn(data)}
               onClear={() => {}}

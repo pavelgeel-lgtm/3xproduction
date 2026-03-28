@@ -4,7 +4,7 @@ import WarehouseLayout from '../warehouse/WarehouseLayout'
 import Button from '../shared/Button'
 import PhotoUpload from '../shared/PhotoUpload'
 import SignatureCanvas from '../shared/SignatureCanvas'
-import { requests as requestsApi, issuances as issuancesApi, units as unitsApi } from '../../services/api'
+import { requests as requestsApi, issuances as issuancesApi, units as unitsApi, notifications as notifApi } from '../../services/api'
 
 const STEPS = ['Список', 'Сборка', 'Фото', 'Соглашение', 'Подпись']
 
@@ -35,6 +35,7 @@ export default function IssuePage() {
   const [receiverName, setReceiverName] = useState('')
   const [receiverId, setReceiverId] = useState('')
   const [gathered, setGathered] = useState({})
+  const [missing, setMissing] = useState(new Set())
   const [loading, setLoading] = useState(false)
   const [initLoading, setInitLoading] = useState(true)
 
@@ -61,7 +62,14 @@ export default function IssuePage() {
     }
   }, [requestId])
 
-  const selectedUnits = units.filter(u => selected.has(u.id))
+  const selectedUnits = units.filter(u => selected.has(u.id) && !missing.has(u.id))
+
+  function markMissing(unitId) {
+    if (!window.confirm('Отметить предмет как отсутствующий?')) return
+    setMissing(s => { const n = new Set(s); n.add(unitId); return n })
+    setSelected(s => { const n = new Set(s); n.delete(unitId); return n })
+    setGathered(g => { const n = { ...g }; delete n[unitId]; return n })
+  }
 
   function toggleUnit(id) {
     setSelected(s => {
@@ -222,8 +230,17 @@ export default function IssuePage() {
                       <div style={{ fontWeight: 500 }}>{u.name}</div>
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.serial} · {u.category}</div>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: done ? 'var(--green)' : 'var(--muted)' }}>
-                      {done ? 'Собрано' : 'Не собрано'}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: done ? 'var(--green)' : 'var(--muted)' }}>
+                        {done ? 'Собрано' : 'Не собрано'}
+                      </div>
+                      {!done && (
+                        <button onClick={e => { e.stopPropagation(); markMissing(u.id) }} style={{
+                          fontSize: 11, color: 'var(--red)', background: 'none',
+                          border: '1px solid var(--red)', borderRadius: 4,
+                          padding: '2px 8px', cursor: 'pointer',
+                        }}>Нет в наличии</button>
+                      )}
                     </div>
                   </div>
                 )
@@ -239,7 +256,7 @@ export default function IssuePage() {
         {step === 2 && (
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Фото при выдаче</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Минимум 3 фото на каждую единицу</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Минимум 2 фото на каждую единицу</div>
             {selectedUnits.map(u => (
               <div key={u.id} style={{ marginBottom: 24 }}>
                 <div style={{ fontWeight: 500, marginBottom: 10 }}>{u.name}</div>

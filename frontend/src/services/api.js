@@ -79,6 +79,8 @@ export const warehouses = {
   cells:         (warehouseId) => request('GET',  `/warehouses/${warehouseId}/cells`),
   createSection: (body) => request('POST', '/warehouses/sections', body),
   renameCell:    (cellId, name) => request('PUT', `/warehouses/cells/${cellId}`, { custom_name: name }),
+  deleteCell:    (cellId)      => request('DELETE', `/warehouses/cells/${cellId}`),
+  reorderSections: (section_ids) => request('PUT', '/warehouses/sections/reorder', { section_ids }),
   requestVisibility: ()         => request('GET', '/warehouses/request-visibility'),
   setRequestVisibility: (user_id, can_see_requests) =>
     request('PUT', '/warehouses/request-visibility', { user_id, can_see_requests }),
@@ -172,6 +174,14 @@ export const lists = {
 // ─── Projects ───────────────────────────────────────────────────────────────
 export const projects = {
   list: () => request('GET', '/projects'),
+}
+
+// ─── Debts ──────────────────────────────────────────────────────────────────
+export const debts = {
+  list:   (status) => request('GET', `/debts${status ? '?status=' + status : ''}`),
+  create: (body)   => request('POST', '/debts', body),
+  close:  (id)     => request('POST', `/debts/${id}/close`),
+  stats:  ()       => request('GET', '/debts/stats'),
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────

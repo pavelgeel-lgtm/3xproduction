@@ -13,6 +13,7 @@ export default function CellsPage() {
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
   const [cardId, setCardId] = useState(null)
+  const [dragIdx, setDragIdx] = useState(null)
 
   useEffect(() => {
     warehousesApi.list().then(d => {
@@ -67,11 +68,26 @@ export default function CellsPage() {
 
           {loading && <div style={{ color: 'var(--muted)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Загрузка...</div>}
 
-          {sections.map(section => {
+          {sections.map((section, sIdx) => {
             const cells = section.cells || []
             return (
-              <div key={section.id} style={{ marginBottom: 28 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div key={section.id} style={{ marginBottom: 28 }}
+                draggable
+                onDragStart={() => setDragIdx(sIdx)}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIdx === null || dragIdx === sIdx) return
+                  const reordered = [...sections]
+                  const [moved] = reordered.splice(dragIdx, 1)
+                  reordered.splice(sIdx, 0, moved)
+                  setSections(reordered)
+                  setDragIdx(null)
+                  warehousesApi.reorderSections(reordered.map(s => s.id)).catch(() => {})
+                }}
+                onDragEnd={() => setDragIdx(null)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, cursor: 'grab' }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 14 }}>⠿</span>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{section.name}</div>
                   <span style={{ fontSize: 12, color: 'var(--muted)' }}>
                     {cells.filter(c => !c.unit_id || c.unit_status !== 'on_stock').length} свободных из {cells.length}
@@ -138,7 +154,23 @@ export default function CellsPage() {
             </div>
 
             {!selectedCell.unit_id || selectedCell.unit_status !== 'on_stock' ? (
-              <div style={{ color: 'var(--muted)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>Ячейка свободна</div>
+              <div style={{ textAlign: 'center', paddingTop: 40 }}>
+                <div style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 16 }}>Ячейка свободна</div>
+                <button onClick={async () => {
+                  if (!window.confirm('Удалить ячейку?')) return
+                  try {
+                    await warehousesApi.deleteCell(selectedCell.id)
+                    setSections(prev => prev.map(s => ({
+                      ...s, cells: (s.cells || []).filter(c => c.id !== selectedCell.id)
+                    })))
+                    setSelected(null)
+                  } catch (e) { alert(e.message || 'Ошибка') }
+                }} style={{
+                  fontSize: 12, color: 'var(--red)', background: 'none',
+                  border: '1px solid var(--red)', borderRadius: 6,
+                  padding: '6px 14px', cursor: 'pointer',
+                }}>Удалить ячейку</button>
+              </div>
             ) : (
               <>
                 <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>{selectedCell.unit_name}</div>

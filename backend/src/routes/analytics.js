@@ -95,6 +95,15 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director'), async (req,
       FROM returns
     `)
 
+    // Debt stats
+    const { rows: debtStats } = await db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'open') AS open_debts,
+        COUNT(*) FILTER (WHERE status = 'closed') AS closed_debts,
+        COUNT(*) AS total_debts
+      FROM debts
+    `)
+
     // Active rent deals
     const { rows: activeRentDeals } = await db.query(`
       SELECT COUNT(*) FILTER (WHERE status = 'active') AS active,
@@ -112,6 +121,7 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director'), async (req,
       idle_units:       idleUnits,
       damage_stats:     damageStats[0],
       rent_summary:     activeRentDeals[0],
+      debt_stats:       debtStats[0],
     })
   } catch (err) {
     console.error(err)

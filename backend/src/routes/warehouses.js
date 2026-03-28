@@ -19,7 +19,7 @@ router.get('/', verifyJWT, async (req, res) => {
 router.get('/:id/cells', verifyJWT, async (req, res) => {
   try {
     const { rows: sections } = await db.query(
-      `SELECT * FROM warehouse_sections WHERE warehouse_id = $1 ORDER BY name`,
+      `SELECT * FROM warehouse_sections WHERE warehouse_id = $1 ORDER BY sort_order, name`,
       [req.params.id]
     )
 
@@ -87,6 +87,40 @@ router.put('/cells/:id', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, re
     )
     if (!rows.length) return res.status(404).json({ error: 'Cell not found' })
     res.json({ cell: rows[0] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// PUT /sections/reorder — reorder sections
+router.put('/sections/reorder', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, res) => {
+  const { section_ids } = req.body
+  if (!Array.isArray(section_ids)) return res.status(400).json({ error: 'section_ids required' })
+  try {
+    for (let i = 0; i < section_ids.length; i++) {
+      await db.query(`UPDATE warehouse_sections SET sort_order=$1 WHERE id=$2`, [i, section_ids[i]])
+    }
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// DELETE /cells/:id — delete cell
+router.delete('/cells/:id', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, res) => {
+  try {
+    // Check if cell has units
+    const { rows: units } = await db.query(
+      `SELECT id FROM units WHERE cell_id = $1 AND status != 'written_off' LIMIT 1`,
+      [req.params.id]
+    )
+    if (units.length) return res.status(400).json({ error: 'Cell has units, cannot delete' })
+
+    const { rows } = await db.query(`DELETE FROM cells WHERE id = $1 RETURNING *`, [req.params.id])
+    if (!rows.length) return res.status(404).json({ error: 'Cell not found' })
+    res.json({ ok: true })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })

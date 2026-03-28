@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ClipboardList, Package, Grid3x3,
   Users, FileText, Handshake, BarChart2, Bell,
-  User, X, Menu, ChevronDown, LogOut, Clock
+  User, X, Menu, ChevronDown, LogOut, Clock, AlertTriangle
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -17,6 +17,7 @@ const NAV = [
       { to: '/cells',      icon: Grid3x3,          label: 'Карта ячеек' },
       { to: '/team',       icon: Users,            label: 'Команда' },
       { to: '/approvals',  icon: Clock,            label: 'На утверждении' },
+      { to: '/debts',      icon: AlertTriangle,    label: 'Долги' },
     ],
   },
   {

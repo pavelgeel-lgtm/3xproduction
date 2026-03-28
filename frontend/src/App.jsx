@@ -18,6 +18,7 @@ import CellConstructorPage from './components/warehouse/CellConstructorPage'
 import RequestsPage from './components/warehouse/RequestsPage'
 import TeamPage from './components/warehouse/TeamPage'
 import ActsPage from './components/warehouse/ActsPage'
+import DebtsPage from './components/warehouse/DebtsPage'
 import ApprovalsPage from './components/warehouse/ApprovalsPage'
 import DocumentsPage from './components/production/DocumentsPage'
 import ProductionListsPage from './components/production/ProductionListsPage'
@@ -80,6 +81,7 @@ function App() {
         <Route path="/requests"                element={<WarehouseRoute><RequestsPage /></WarehouseRoute>} />
         <Route path="/team"                    element={<PrivateRoute><TeamPage /></PrivateRoute>} />
         <Route path="/acts"                    element={<WarehouseRoute><ActsPage /></WarehouseRoute>} />
+        <Route path="/debts"                   element={<WarehouseRoute><DebtsPage /></WarehouseRoute>} />
         <Route path="/approvals"               element={<WarehouseRoute><ApprovalsPage /></WarehouseRoute>} />
         <Route path="/analytics"               element={<WarehouseRoute><WarehouseAnalyticsPage /></WarehouseRoute>} />
 

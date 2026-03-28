@@ -26,7 +26,7 @@ router.get('/', verifyJWT, async (req, res) => {
     if (cell_id)   { params.push(cell_id);   q += ` AND u.cell_id = $${params.length}` }
     if (search) {
       params.push(`%${search}%`)
-      q += ` AND (u.name ILIKE $${params.length} OR u.serial ILIKE $${params.length})`
+      q += ` AND (u.name ILIKE $${params.length} OR u.serial ILIKE $${params.length} OR u.description ILIKE $${params.length} OR c.code ILIKE $${params.length} OR c.custom_name ILIKE $${params.length})`
     }
     q += ` ORDER BY u.created_at DESC`
 

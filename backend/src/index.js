@@ -58,6 +58,7 @@ app.use('/public',     require('./routes/publicRent')) // only public endpoints,
 app.use('/analytics',  require('./routes/analytics'))
 app.use('/team',       require('./routes/team'))
 app.use('/lists',      require('./routes/lists'))
+app.use('/debts',      require('./routes/debts'))
 
 // GET /projects — list all projects
 app.get('/projects', require('./middleware/auth').verifyJWT, async (req, res) => {
