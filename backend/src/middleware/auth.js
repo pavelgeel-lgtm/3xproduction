@@ -1,16 +1,28 @@
 const jwt = require('jsonwebtoken')
+const db  = require('../db')
 
-function verifyJWT(req, res, next) {
+async function verifyJWT(req, res, next) {
   const header = req.headers.authorization
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
   const token = header.slice(7)
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+
+    // Check actual role from DB to handle role changes
+    const { rows } = await db.query(
+      `SELECT id, role, project_id FROM users WHERE id = $1`, [payload.id]
+    )
+    if (!rows.length) return res.status(401).json({ error: 'User not found' })
+
+    req.user = { id: rows[0].id, role: rows[0].role, project_id: rows[0].project_id }
     next()
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' })
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+    return res.status(500).json({ error: 'Server error' })
   }
 }
 

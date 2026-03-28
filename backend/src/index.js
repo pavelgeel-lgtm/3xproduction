@@ -54,7 +54,7 @@ app.use('/requests',   require('./routes/requests'))
 app.use('/issuances',  require('./routes/issuances'))
 app.use('/documents',  require('./routes/documents'))
 app.use('/rent',       require('./routes/rent'))
-app.use('/public',     require('./routes/rent')) // public routes share the rent router
+app.use('/public',     require('./routes/publicRent')) // only public endpoints, no JWT
 app.use('/analytics',  require('./routes/analytics'))
 app.use('/team',       require('./routes/team'))
 app.use('/lists',      require('./routes/lists'))

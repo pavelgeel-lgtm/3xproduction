@@ -7,6 +7,7 @@ const { sendEmail } = require('../services/resend')
 
 const SALT_ROUNDS = 12
 const CODE_TTL_MIN = 15
+const MAX_CODES_PER_HOUR = 5
 
 // POST /auth/register  — only via invite token
 router.post('/register', async (req, res) => {
@@ -96,6 +97,13 @@ router.post('/recover/request', async (req, res) => {
     // Always return 200 to not leak user existence
     if (!rows.length) return res.json({ ok: true })
 
+    // Rate limit: max N codes per hour per email
+    const { rows: recent } = await db.query(
+      `SELECT COUNT(*) AS cnt FROM recover_codes WHERE email = $1 AND created_at > NOW() - INTERVAL '1 hour'`,
+      [email]
+    )
+    if (Number(recent[0].cnt) >= MAX_CODES_PER_HOUR) return res.json({ ok: true })
+
     const code = String(Math.floor(100000 + Math.random() * 900000))
     const expires_at = new Date(Date.now() + CODE_TTL_MIN * 60 * 1000)
 
@@ -160,7 +168,7 @@ router.post('/recover/reset', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS)
     await db.query(`UPDATE users SET password_hash = $1 WHERE email = $2`, [password_hash, email])
-    await db.query(`UPDATE recover_codes SET used = TRUE WHERE id = $1`, [rows[0].id])
+    await db.query(`UPDATE recover_codes SET used = TRUE WHERE email = $1 AND used = FALSE`, [email])
 
     res.json({ ok: true })
   } catch (err) {
@@ -170,7 +178,10 @@ router.post('/recover/reset', async (req, res) => {
 })
 
 // POST /auth/seed-test — create test accounts for all roles (idempotent, skips existing)
-router.post('/seed-test', async (req, res) => {
+router.post('/seed-test', (req, res, next) => {
+  if (process.env.NODE_ENV === 'production') return res.status(404).json({ error: 'Not found' })
+  next()
+}, async (req, res) => {
   try {
     const password = 'Test1234'
     const hash = await bcrypt.hash(password, SALT_ROUNDS)
@@ -222,7 +233,10 @@ router.post('/seed-test', async (req, res) => {
 })
 
 // POST /auth/seed-units — seed 10 units + 2 acts (idempotent)
-router.post('/seed-units', async (req, res) => {
+router.post('/seed-units', (req, res, next) => {
+  if (process.env.NODE_ENV === 'production') return res.status(404).json({ error: 'Not found' })
+  next()
+}, async (req, res) => {
   try {
     const { rows: directors } = await db.query(
       `SELECT id FROM users WHERE email = $1`, ['test.warehouse_director@3x.test']
