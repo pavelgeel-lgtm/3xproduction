@@ -1,0 +1,2 @@
+ALTER TABLE requests ADD COLUMN project_id UUID REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE requests ADD COLUMN notes TEXT;
