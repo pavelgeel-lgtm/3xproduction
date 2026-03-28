@@ -267,8 +267,8 @@ router.post('/:id/photos', verifyJWT, upload.array('photos', 10), async (req, re
     }
     res.json({ photos: urls })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
+    console.error('Photo upload error:', err)
+    res.status(500).json({ error: err.message || 'Server error' })
   }
 })
 
