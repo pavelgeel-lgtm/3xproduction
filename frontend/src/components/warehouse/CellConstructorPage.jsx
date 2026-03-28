@@ -10,12 +10,13 @@ const CATEGORIES = [...ALL_CATEGORIES, 'custom']
 
 const STEPS = ['Секция', 'Размер', 'Коды', 'Просмотр', 'Готово']
 
+let _cellIdx = 0
 function genCells(rows, shelves) {
   const cells = []
   for (let r = 0; r < rows; r++) {
     for (let s = 0; s < shelves; s++) {
       const row = String.fromCharCode(65 + r)
-      cells.push({ id: `${row}-${s + 1}`, custom: '' })
+      cells.push({ _idx: ++_cellIdx, id: `${row}-${s + 1}`, custom: '' })
     }
   }
   return cells
@@ -58,8 +59,8 @@ export default function CellConstructorPage() {
     setStep(s => s + 1)
   }
 
-  function updateCellCode(id, value) {
-    setCells(cs => cs.map(c => c.id === id ? { ...c, id: value || id } : c))
+  function updateCellCode(idx, value) {
+    setCells(cs => cs.map(c => c._idx === idx ? { ...c, id: value || c.id } : c))
   }
 
   const finalCategories = selectedCats.includes('Своя категория')
@@ -232,9 +233,9 @@ export default function CellConstructorPage() {
               gap: 8, marginBottom: 24,
             }}>
               {cells.map(c => (
-                <input key={c.id}
+                <input key={c._idx}
                   value={c.id}
-                  onChange={e => updateCellCode(c.id, e.target.value)}
+                  onChange={e => updateCellCode(c._idx, e.target.value)}
                   style={{
                     height: 36, textAlign: 'center', fontSize: 12, fontWeight: 500,
                     border: '1px solid var(--border)', borderRadius: 6,

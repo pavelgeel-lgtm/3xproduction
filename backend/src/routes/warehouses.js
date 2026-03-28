@@ -73,10 +73,14 @@ router.post('/sections', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, re
     const section = sec[0]
 
     if (cells && cells.length) {
+      const seen = new Set()
       for (const cell of cells) {
+        const code = (cell.id || '').trim()
+        if (!code || seen.has(code)) continue
+        seen.add(code)
         await client.query(
           `INSERT INTO cells (section_id, code, custom_name) VALUES ($1,$2,$3)`,
-          [section.id, cell.id, cell.custom || null]
+          [section.id, code, cell.custom || null]
         )
       }
     }
