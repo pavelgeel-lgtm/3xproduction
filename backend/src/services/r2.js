@@ -3,12 +3,13 @@ const crypto = require('crypto')
 const path   = require('path')
 
 const s3 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  region: process.env.S3_REGION || 'auto',
+  endpoint: process.env.S3_ENDPOINT,
   credentials: {
-    accessKeyId:     process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    accessKeyId:     process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   },
+  forcePathStyle: true,
 })
 
 async function uploadFile(buffer, originalName, folder = 'uploads') {
@@ -16,19 +17,19 @@ async function uploadFile(buffer, originalName, folder = 'uploads') {
   const key  = `${folder}/${crypto.randomBytes(16).toString('hex')}${ext}`
 
   await s3.send(new PutObjectCommand({
-    Bucket:      process.env.R2_BUCKET_NAME,
+    Bucket:      process.env.S3_BUCKET_NAME,
     Key:         key,
     Body:        buffer,
     ContentType: getContentType(ext),
   }))
 
-  return `${process.env.R2_PUBLIC_URL}/${key}`
+  return `${process.env.S3_PUBLIC_URL}/${key}`
 }
 
 async function deleteFile(url) {
-  const key = url.replace(`${process.env.R2_PUBLIC_URL}/`, '')
+  const key = url.replace(`${process.env.S3_PUBLIC_URL}/`, '')
   await s3.send(new DeleteObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME,
+    Bucket: process.env.S3_BUCKET_NAME,
     Key:    key,
   }))
 }
