@@ -6,7 +6,7 @@ import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
 import { ALL_CATEGORIES, CATEGORY_MAP, categoryLabel } from '../../constants/categories'
-import { units as unitsApi } from '../../services/api'
+import { units as unitsApi, warehouses as warehousesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const CATEGORIES = ['all', ...ALL_CATEGORIES]
@@ -16,7 +16,7 @@ const STATUS_KEY = {
   'На утверждении': 'pending', 'Списано': 'written_off',
 }
 
-const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1 }
+const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1, warehouse_id: '', cell_id: '' }
 const catOption = (key) => key === 'all' ? 'Все категории' : categoryLabel(key)
 
 export default function UnitsPage() {
@@ -39,9 +39,21 @@ export default function UnitsPage() {
 
   const canSeeSource = ['warehouse_director', 'warehouse_deputy', 'producer'].includes(user?.role)
 
+  const [warehouses, setWarehouses] = useState([])
+  const [cells, setCells] = useState([])
+
   useEffect(() => {
     unitsApi.list().then(data => setAllUnits(data.units || [])).catch(() => {}).finally(() => setLoading(false))
+    warehousesApi.list().then(d => setWarehouses(d.warehouses || [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!form.warehouse_id) { setCells([]); setForm(f => ({ ...f, cell_id: '' })); return }
+    warehousesApi.cells(form.warehouse_id).then(d => {
+      const allCells = (d.sections || []).flatMap(s => s.cells || [])
+      setCells(allCells)
+    }).catch(() => setCells([]))
+  }, [form.warehouse_id])
 
   const filtered = allUnits.filter(u => {
     const matchSearch = !search ||
@@ -69,6 +81,8 @@ export default function UnitsPage() {
         description: form.description || null,
         source: canSeeSource ? form.source : null,
         qty: Number(form.qty) || 1,
+        warehouse_id: form.warehouse_id || null,
+        cell_id: form.cell_id || null,
       })
       const unitId = data.unit?.id
       if (unitId && photos.length > 0) {
@@ -125,7 +139,7 @@ export default function UnitsPage() {
           )}
           {filtered.map(u => {
             const isWrittenOff = u.status === 'written_off'
-            const photo = u.photos?.[0]
+            const photo = u.photo_url
             return (
               <div key={u.id} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
@@ -198,6 +212,26 @@ export default function UnitsPage() {
                   </select>
                 </div>
               )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+              <div>
+                <FL>Склад</FL>
+                <select value={form.warehouse_id} onChange={e => setForm(f => ({ ...f, warehouse_id: e.target.value, cell_id: '' }))}
+                  style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)' }}>
+                  <option value="">— не выбран —</option>
+                  {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <FL>Ячейка</FL>
+                <select value={form.cell_id} onChange={e => setForm(f => ({ ...f, cell_id: e.target.value }))}
+                  disabled={!form.warehouse_id || cells.length === 0}
+                  style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)' }}>
+                  <option value="">— не выбрана —</option>
+                  {cells.map(c => <option key={c.id} value={c.id}>{c.custom_name || c.code}</option>)}
+                </select>
+              </div>
             </div>
 
             <FL>Комментарий</FL>

@@ -104,7 +104,12 @@ export default function WarehouseViewPage() {
                     width: 52, height: 52, borderRadius: 8, flexShrink: 0,
                     background: 'var(--bg)', border: '1px solid var(--border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-                  }}>📦</div>
+                    overflow: 'hidden',
+                  }}>
+                    {u.photo_url
+                      ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : '📦'}
+                  </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14, cursor: 'pointer', color: 'var(--accent)' }}
