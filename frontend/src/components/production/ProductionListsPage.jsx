@@ -3,6 +3,7 @@ import ProductionLayout from './ProductionLayout'
 import Button from '../shared/Button'
 import Badge from '../shared/Badge'
 import { lists as listsApi, documents as docsApi, requests as requestsApi } from '../../services/api'
+import { categoryLabel } from '../../constants/categories'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
 
@@ -381,7 +382,7 @@ export default function ProductionListsPage() {
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                               <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-badge)', background: 'var(--green-dim)', color: 'var(--green)', fontWeight: 500 }}>🤖 ИИ</span>
-                              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{s.category}</span>
+                              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{categoryLabel(s.category)}</span>
                             </div>
                             <div style={{ fontWeight: 500, marginBottom: 4 }}>{s.item}</div>
                             <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{s.reason}</div>

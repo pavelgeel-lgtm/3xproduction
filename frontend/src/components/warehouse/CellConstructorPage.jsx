@@ -4,13 +4,9 @@ import WarehouseLayout from './WarehouseLayout'
 import Button from '../shared/Button'
 import Input from '../shared/Input'
 import { warehouses as warehousesApi } from '../../services/api'
+import { ALL_CATEGORIES, categoryLabel } from '../../constants/categories'
 
-const CATEGORIES = [
-  'Мебель', 'Декор', 'Костюмы', 'Бутафория', 'Реквизит',
-  'Декорации', 'Автомобили', 'Техника', 'Осветительное оборудование',
-  'Звуковое оборудование', 'Камерное оборудование', 'Грим и косметика',
-  'Одежда', 'Украшения', 'Прочее', 'Своя категория',
-]
+const CATEGORIES = [...ALL_CATEGORIES, 'custom']
 
 const STEPS = ['Секция', 'Размер', 'Коды', 'Просмотр', 'Готово']
 
@@ -153,11 +149,11 @@ export default function CellConstructorPage() {
                       background: sel ? 'var(--blue-dim)' : 'var(--white)',
                       color: sel ? 'var(--blue)' : 'var(--text)',
                       fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
-                    }}>{c}</button>
+                    }}>{c === 'custom' ? 'Своя категория' : categoryLabel(c)}</button>
                   )
                 })}
               </div>
-              {selectedCats.includes('Своя категория') && (
+              {selectedCats.includes('custom') && (
                 <input
                   value={customCat} onChange={e => setCustomCat(e.target.value)}
                   placeholder="Введите название категории"

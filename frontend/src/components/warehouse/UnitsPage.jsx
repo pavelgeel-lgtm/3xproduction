@@ -5,16 +5,11 @@ import UnitCardModal from '../shared/UnitCardModal'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
+import { ALL_CATEGORIES, CATEGORY_MAP, categoryLabel } from '../../constants/categories'
 import { units as unitsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
-const ALL_CATEGORIES = [
-  'Мебель', 'Декор', 'Костюмы', 'Бутафория', 'Реквизит',
-  'Декорации', 'Автомобили', 'Техника', 'Осветительное оборудование',
-  'Звуковое оборудование', 'Камерное оборудование', 'Грим и косметика',
-  'Одежда', 'Украшения', 'Прочее',
-]
-const CATEGORIES = ['Все категории', ...ALL_CATEGORIES]
+const CATEGORIES = ['all', ...ALL_CATEGORIES]
 const STATUSES = ['Все статусы', 'На складе', 'Выдано', 'Просрочено', 'На утверждении', 'Списано']
 const STATUS_KEY = {
   'На складе': 'on_stock', 'Выдано': 'issued', 'Просрочено': 'overdue',
@@ -22,12 +17,13 @@ const STATUS_KEY = {
 }
 
 const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1 }
+const catOption = (key) => key === 'all' ? 'Все категории' : categoryLabel(key)
 
 export default function UnitsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('Все категории')
+  const [category, setCategory] = useState('all')
   const [statusFilter, setStatusFilter] = useState('Все статусы')
   const [allUnits, setAllUnits] = useState([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +47,7 @@ export default function UnitsPage() {
     const matchSearch = !search ||
       (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (u.serial || '').toLowerCase().includes(search.toLowerCase())
-    const matchCat = category === 'Все категории' || u.category === category
+    const matchCat = category === 'all' || u.category === category
     const matchStatus = statusFilter === 'Все статусы' || u.status === STATUS_KEY[statusFilter]
     return matchSearch && matchCat && matchStatus
   })
@@ -112,7 +108,12 @@ export default function UnitsPage() {
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           <Select value={statusFilter} onChange={setStatusFilter} options={STATUSES} />
-          <Select value={category} onChange={setCategory} options={CATEGORIES} />
+          <select value={category} onChange={e => setCategory(e.target.value)} style={{
+            height: 36, padding: '0 10px', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer', color: 'var(--text)',
+          }}>
+            {CATEGORIES.map(k => <option key={k} value={k}>{catOption(k)}</option>)}
+          </select>
           <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--muted)', alignSelf: 'center' }}>{filtered.length} ед.</span>
         </div>
 
@@ -145,7 +146,7 @@ export default function UnitsPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 14, textDecoration: isWrittenOff ? 'line-through' : 'none', color: isWrittenOff ? 'var(--muted)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.serial ? `${u.serial} · ` : ''}{u.category}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.serial ? `${u.serial} · ` : ''}{categoryLabel(u.category)}</div>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'right', flexShrink: 0 }}>
                   {u.cell_name && <div>Ячейка {u.cell_name}</div>}
@@ -172,7 +173,7 @@ export default function UnitsPage() {
             <FL>Категория *</FL>
             <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
               style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, marginBottom: 12, background: 'var(--white)' }}>
-              {ALL_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              {ALL_CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
             </select>
 
             <FL>Название *</FL>

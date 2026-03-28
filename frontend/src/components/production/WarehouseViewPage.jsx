@@ -4,10 +4,9 @@ import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import UnitCardModal from '../shared/UnitCardModal'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
+import { ALL_CATEGORIES, CATEGORIES_FILTER, categoryLabel } from '../../constants/categories'
 import { units as unitsApi, requests as requestsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
-
-const CATEGORIES = ['Все категории', 'Мебель', 'Декор', 'Костюмы', 'Реквизит', 'Декорации', 'Бутафория', 'Худ. наполнение', 'Автомобили', 'Прочее']
 
 const REQUEST_STATUSES = {
   none:      null,
@@ -18,7 +17,7 @@ const REQUEST_STATUSES = {
 
 export default function WarehouseViewPage() {
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('Все категории')
+  const [category, setCategory] = useState('all')
   const [requests, setRequests] = useState({})
   const [expanded, setExpanded] = useState(null)
   const [units, setUnits] = useState([])
@@ -32,7 +31,7 @@ export default function WarehouseViewPage() {
 
   const filtered = units.filter(u => {
     const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || (u.serial || '').toLowerCase().includes(search.toLowerCase())
-    const matchCat = category === 'Все категории' || u.category === category
+    const matchCat = category === 'all' || u.category === category
     return matchSearch && matchCat
   })
 
@@ -72,7 +71,7 @@ export default function WarehouseViewPage() {
             height: 40, padding: '0 12px', border: '1px solid var(--border)',
             borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
           }}>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            {CATEGORIES_FILTER.map(c => <option key={c} value={c}>{c === 'all' ? 'Все категории' : categoryLabel(c)}</option>)}
           </select>
         </div>
 
@@ -100,7 +99,7 @@ export default function WarehouseViewPage() {
                     <div style={{ fontWeight: 500, fontSize: 14, cursor: 'pointer', color: 'var(--accent)' }}
                       onClick={e => { e.stopPropagation(); setCardId(u.id) }}>{u.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                      {u.serial ? `${u.serial} · ` : ''}{u.category}{(u.cell_custom || u.cell_code) ? ` · Ячейка ${u.cell_custom || u.cell_code}` : ''}
+                      {u.serial ? `${u.serial} · ` : ''}{categoryLabel(u.category)}{(u.cell_custom || u.cell_code) ? ` · Ячейка ${u.cell_custom || u.cell_code}` : ''}
                     </div>
                   </div>
 

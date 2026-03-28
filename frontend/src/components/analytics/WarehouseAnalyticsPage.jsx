@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import WarehouseLayout from '../warehouse/WarehouseLayout'
+import { categoryLabel } from '../../constants/categories'
 import { analytics } from '../../services/api'
 
 export default function WarehouseAnalyticsPage() {
@@ -64,7 +65,7 @@ export default function WarehouseAnalyticsPage() {
             {byCategory.map(c => (
               <div key={c.category} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                  <span>{c.category || '—'}</span>
+                  <span>{categoryLabel(c.category) || '—'}</span>
                   <span style={{ fontWeight: 500 }}>{c.total} ед.</span>
                 </div>
                 <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
@@ -89,7 +90,7 @@ export default function WarehouseAnalyticsPage() {
                 }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{u.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{u.category}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{categoryLabel(u.category)}</div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue)' }}>{u.request_count}×</div>
               </div>
@@ -134,7 +135,7 @@ export default function WarehouseAnalyticsPage() {
               }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{u.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{u.category}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{categoryLabel(u.category)}</div>
                 </div>
                 <span style={{
                   fontSize: 12, padding: '2px 10px', borderRadius: 'var(--radius-badge)',

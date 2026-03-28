@@ -5,6 +5,7 @@ import WarehouseLayout from './WarehouseLayout'
 import Button from '../shared/Button'
 import Badge from '../shared/Badge'
 import { units as unitsApi } from '../../services/api'
+import { categoryLabel } from '../../constants/categories'
 import { useAuth } from '../../hooks/useAuth'
 
 const css = `
@@ -127,7 +128,7 @@ export default function ApprovalsPage() {
                   </div>
                   <div>
                     <div className="apr-unit-name">{item.unit_name}</div>
-                    <div className="apr-unit-meta">{item.category} · {ACTION_LABEL[item.action]}</div>
+                    <div className="apr-unit-meta">{categoryLabel(item.category)} · {ACTION_LABEL[item.action]}</div>
                   </div>
                   <div className="apr-by">
                     <div style={{ fontWeight: 500 }}>{item.proposed_by_name}</div>

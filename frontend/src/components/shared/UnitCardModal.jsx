@@ -5,6 +5,7 @@ import Button from './Button'
 import { units as unitsApi, warehouses as warehousesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
+import { categoryLabel } from '../../constants/categories'
 
 const WAREHOUSE_ROLES = ['warehouse_director', 'warehouse_deputy', 'warehouse_staff']
 const DIRECTOR_ROLES  = ['warehouse_director', 'warehouse_deputy']
@@ -105,7 +106,7 @@ export default function UnitCardModal({ unitId, onClose }) {
         <div style={styles.header}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 17 }}>{unit.name}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{unit.category}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{categoryLabel(unit.category)}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Badge color={STATUS_COLOR[unit.status]}>{STATUS_LABEL[unit.status]}</Badge>

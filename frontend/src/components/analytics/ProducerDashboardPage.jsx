@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ProductionLayout from '../production/ProductionLayout'
+import { categoryLabel } from '../../constants/categories'
 import { analytics } from '../../services/api'
 
 export default function ProducerDashboardPage() {
@@ -48,7 +49,7 @@ export default function ProducerDashboardPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <div style={{ width: 10, height: 10, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
-                      {c.category || '—'}
+                      {categoryLabel(c.category) || '—'}
                     </span>
                     <span style={{ fontWeight: 600 }}>{Number(c.estimated_cost || 0).toLocaleString('ru-RU')} ₽</span>
                   </div>
@@ -109,7 +110,7 @@ export default function ProducerDashboardPage() {
               return (
                 <div key={c.category} style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                    <span>{c.category || '—'}</span>
+                    <span>{categoryLabel(c.category) || '—'}</span>
                     <span style={{ fontWeight: 500 }}>{c.request_count} запросов</span>
                   </div>
                   <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>

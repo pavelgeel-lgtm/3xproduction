@@ -4,6 +4,7 @@ import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
+import { categoryLabel } from '../../constants/categories'
 import { units as unitsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -122,7 +123,7 @@ export default function UnitPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
                 <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{unit.name}</h1>
-                <div style={{ color: 'var(--muted)', fontSize: 13 }}>{unit.category}</div>
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>{categoryLabel(unit.category)}</div>
               </div>
               <Badge color={STATUS_COLOR[unit.status]}>{STATUS_LABEL[unit.status]}</Badge>
             </div>
