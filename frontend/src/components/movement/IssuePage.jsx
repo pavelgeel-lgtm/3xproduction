@@ -43,8 +43,8 @@ export default function IssuePage() {
       requestsApi.list().then(data => {
         const req = (data.requests || []).find(r => String(r.id) === String(requestId))
         if (req) {
-          setReceiverId(req.user_id)
-          setReceiverName(req.user_name || 'Пользователь')
+          setReceiverId(req.requester_id)
+          setReceiverName(req.requester_name || 'Пользователь')
           const ids = req.unit_ids || []
           // fetch unit details
           unitsApi.list().then(ud => {

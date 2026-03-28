@@ -90,10 +90,11 @@ router.get('/approvals', verifyJWT, checkRole('warehouse_director', 'warehouse_d
       WHERE a.status = 'pending'
     `
     // Staff only sees their own proposals
-    if (isStaff) q += ` AND a.proposed_by = '${req.user.id}'`
+    const params = []
+    if (isStaff) { params.push(req.user.id); q += ` AND a.proposed_by = $${params.length}` }
     q += ` ORDER BY a.created_at DESC`
 
-    const { rows } = await db.query(q)
+    const { rows } = await db.query(q, params)
     res.json({ approvals: rows })
   } catch (err) {
     console.error(err)
