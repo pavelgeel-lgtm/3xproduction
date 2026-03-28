@@ -200,9 +200,43 @@ router.get('/lists/:projectId/:role', verifyJWT, async (req, res) => {
   }
 })
 
-// PUT /lists/:id/item — accept/reject AI suggestion, add note
+// PUT /lists/:projectId/item — accept/reject AI suggestion, add to list
 router.put('/lists/:projectId/item', verifyJWT, async (req, res) => {
-  res.json({ ok: true })
+  const { item_name, ai_status, list_type, scene, day, qty, note } = req.body
+  if (!item_name || !ai_status) return res.status(400).json({ error: 'Missing item_name or ai_status' })
+
+  const projectId = req.params.projectId
+
+  try {
+    // If accepted, add item to the user's production list
+    if (ai_status === 'accepted' && list_type) {
+      // Ensure list exists
+      await db.query(
+        `INSERT INTO production_lists (project_id, user_id, type)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (project_id, user_id, type) DO NOTHING`,
+        [projectId, req.user.id, list_type]
+      )
+
+      const { rows: listRows } = await db.query(
+        `SELECT id FROM production_lists WHERE project_id=$1 AND user_id=$2 AND type=$3`,
+        [projectId, req.user.id, list_type]
+      )
+
+      if (listRows.length) {
+        await db.query(
+          `INSERT INTO production_list_items (list_id, name, scene, day, qty, source, note)
+           VALUES ($1, $2, $3, $4, $5, 'ai', $6)`,
+          [listRows[0].id, item_name, scene || null, day || null, qty || 1, note || null]
+        )
+      }
+    }
+
+    res.json({ ok: true, ai_status })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
 })
 
 // GET /documents/:projectId/parsed — latest parsed_data (ai_suggestions + cross_check)

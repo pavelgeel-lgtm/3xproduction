@@ -62,6 +62,7 @@ export const units = {
   get:      (id)   => request('GET',  `/units/${id}`),
   create:   (body) => request('POST', '/units', body),
   update:   (id, body) => request('PUT', `/units/${id}`, body),
+  delete:   (id)       => request('DELETE', `/units/${id}`),
   approvals: ()    => request('GET',  '/units/approvals'),
   approve:  (id, approval_id) => request('POST', `/units/${id}/approve`, { approval_id }),
   reject:   (id, approval_id, reason) => request('POST', `/units/${id}/reject`, { approval_id, reason }),
@@ -161,6 +162,11 @@ export const lists = {
   addItem:    (type, body) => request('POST', `/lists/${type}/items`, body),
   updateItem: (id, body)   => request('PATCH', `/lists/items/${id}`, body),
   deleteItem: (id)         => request('DELETE', `/lists/items/${id}`),
+}
+
+// ─── Projects ───────────────────────────────────────────────────────────────
+export const projects = {
+  list: () => request('GET', '/projects'),
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────

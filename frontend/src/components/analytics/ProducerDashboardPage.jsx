@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react'
 import ProductionLayout from '../production/ProductionLayout'
 import { categoryLabel } from '../../constants/categories'
-import { analytics } from '../../services/api'
+import { analytics, projects as projectsApi } from '../../services/api'
 
 export default function ProducerDashboardPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [projectList, setProjectList] = useState([])
+  const [selectedProject, setSelectedProject] = useState('')
 
   useEffect(() => {
-    analytics.producer().then(setData).catch(() => {}).finally(() => setLoading(false))
+    projectsApi.list().then(d => setProjectList(d.projects || [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    analytics.producer(selectedProject || undefined).then(setData).catch(() => {}).finally(() => setLoading(false))
+  }, [selectedProject])
 
   if (loading) {
     return <ProductionLayout><div style={{ padding: '24px 32px', color: 'var(--muted)', fontSize: 14 }}>Загрузка аналитики...</div></ProductionLayout>
@@ -28,9 +35,20 @@ export default function ProducerDashboardPage() {
   return (
     <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 1000 }}>
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600 }}>Аналитика компании</h1>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Все проекты</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 600 }}>Аналитика компании</h1>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+              {selectedProject ? projectList.find(p => p.id === selectedProject)?.name : 'Все проекты'}
+            </p>
+          </div>
+          <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} style={{
+            height: 36, padding: '0 12px', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
+          }}>
+            <option value="">Все проекты</option>
+            {projectList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
         </div>
 
         <div className="resp-3-col" style={{ marginBottom: 28 }}>

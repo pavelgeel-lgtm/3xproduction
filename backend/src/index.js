@@ -59,6 +59,17 @@ app.use('/analytics',  require('./routes/analytics'))
 app.use('/team',       require('./routes/team'))
 app.use('/lists',      require('./routes/lists'))
 
+// GET /projects — list all projects
+app.get('/projects', require('./middleware/auth').verifyJWT, async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT id, name, created_at FROM projects ORDER BY name`)
+    res.json({ projects: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // Notifications polling endpoint
 const { verifyJWT } = require('./middleware/auth')
 const db = require('./db')

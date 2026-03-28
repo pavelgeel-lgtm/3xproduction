@@ -5,7 +5,7 @@ import Button from '../shared/Button'
 import UnitCardModal from '../shared/UnitCardModal'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
 import { ALL_CATEGORIES, CATEGORIES_FILTER, categoryLabel } from '../../constants/categories'
-import { units as unitsApi, requests as requestsApi } from '../../services/api'
+import { units as unitsApi, requests as requestsApi, warehouses as warehousesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const REQUEST_STATUSES = {
@@ -23,16 +23,20 @@ export default function WarehouseViewPage() {
   const [units, setUnits] = useState([])
   const [loading, setLoading] = useState(true)
   const [cardId, setCardId] = useState(null)
+  const [whList, setWhList] = useState([])
+  const [selectedWh, setSelectedWh] = useState('all')
   const { user } = useAuth()
 
   useEffect(() => {
+    warehousesApi.list().then(d => setWhList(d.warehouses || [])).catch(() => {})
     unitsApi.list().then(d => setUnits(d.units || [])).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const filtered = units.filter(u => {
     const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || (u.serial || '').toLowerCase().includes(search.toLowerCase())
     const matchCat = category === 'all' || u.category === category
-    return matchSearch && matchCat
+    const matchWh = selectedWh === 'all' || u.warehouse_id === selectedWh
+    return matchSearch && matchCat && matchWh
   })
 
   async function requestUnit(id) {
@@ -52,7 +56,7 @@ export default function WarehouseViewPage() {
       <div style={{ padding: '24px 32px', maxWidth: 900 }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Склад</h1>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Вирки 22 · Просмотр остатков</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Просмотр остатков</p>
         </div>
 
         {/* Search + filter */}
@@ -72,6 +76,13 @@ export default function WarehouseViewPage() {
             borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
           }}>
             {CATEGORIES_FILTER.map(c => <option key={c} value={c}>{c === 'all' ? 'Все категории' : categoryLabel(c)}</option>)}
+          </select>
+          <select value={selectedWh} onChange={e => setSelectedWh(e.target.value)} style={{
+            height: 40, padding: '0 12px', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
+          }}>
+            <option value="all">Все склады</option>
+            {whList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
         </div>
 

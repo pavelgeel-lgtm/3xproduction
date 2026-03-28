@@ -4,7 +4,7 @@ import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
-import { categoryLabel } from '../../constants/categories'
+import { categoryLabel, ALL_CATEGORIES } from '../../constants/categories'
 import { units as unitsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -18,8 +18,12 @@ export default function UnitPage() {
   const [loading, setLoading] = useState(true)
   const [showWriteoff, setShowWriteoff] = useState(false)
   const [writeoffReason, setWriteoffReason] = useState('')
+  const [showEdit, setShowEdit] = useState(false)
+  const [editForm, setEditForm] = useState({})
+  const [editSaving, setEditSaving] = useState(false)
 
   const isDirectorOrDeputy = ['warehouse_director', 'warehouse_deputy'].includes(user?.role)
+  const isDirector = user?.role === 'warehouse_director'
   const canSeeValuation = ['warehouse_director', 'warehouse_deputy', 'producer'].includes(user?.role)
 
   useEffect(() => {
@@ -158,15 +162,88 @@ export default function UnitPage() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Button onClick={() => navigate(`/issue/${unit.id}`)}>Выдать</Button>
               {isDirectorOrDeputy && (
+                <Button variant="secondary"
+                  onClick={() => {
+                    setEditForm({
+                      name: unit.name || '', category: unit.category || '', serial: unit.serial || '',
+                      description: unit.description || '', qty: unit.qty || 1, condition: unit.condition || '',
+                      valuation: unit.valuation || '', dimensions: unit.dimensions || '',
+                    })
+                    setShowEdit(true)
+                  }}>
+                  Редактировать
+                </Button>
+              )}
+              {isDirectorOrDeputy && (
                 <Button variant="secondary" style={{ color: 'var(--muted)' }}
                   onClick={() => { setWriteoffReason(''); setShowWriteoff(true) }}>
                   Списать
+                </Button>
+              )}
+              {isDirector && (
+                <Button variant="secondary" style={{ color: 'var(--red)' }}
+                  onClick={() => {
+                    if (window.confirm(`Удалить «${unit.name}»? Это действие необратимо.`)) {
+                      unitsApi.delete(unit.id).then(() => navigate('/units'))
+                    }
+                  }}>
+                  Удалить
                 </Button>
               )}
             </div>
           </div>
         </div>
       </div>
+      {showEdit && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowEdit(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 480, width: '100%', maxHeight: '92vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 20 }}>Редактировать: {unit.name}</div>
+            <EFL>Название *</EFL>
+            <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+              style={inputStyle} />
+            <EFL>Категория</EFL>
+            <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}
+              style={{ ...inputStyle, cursor: 'pointer' }}>
+              {ALL_CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+            </select>
+            <EFL>Серийный номер</EFL>
+            <input value={editForm.serial} onChange={e => setEditForm(f => ({ ...f, serial: e.target.value }))}
+              style={inputStyle} />
+            <EFL>Количество</EFL>
+            <input type="number" value={editForm.qty} onChange={e => setEditForm(f => ({ ...f, qty: e.target.value }))}
+              style={inputStyle} />
+            <EFL>Размеры</EFL>
+            <input value={editForm.dimensions} onChange={e => setEditForm(f => ({ ...f, dimensions: e.target.value }))}
+              style={inputStyle} />
+            <EFL>Состояние</EFL>
+            <input value={editForm.condition} onChange={e => setEditForm(f => ({ ...f, condition: e.target.value }))}
+              style={inputStyle} />
+            <EFL>Оценочная стоимость</EFL>
+            <input type="number" value={editForm.valuation} onChange={e => setEditForm(f => ({ ...f, valuation: e.target.value }))}
+              style={inputStyle} />
+            <EFL>Описание</EFL>
+            <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+              style={{ ...inputStyle, height: 72, resize: 'vertical', padding: '8px 10px' }} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowEdit(false)}>Отмена</Button>
+              <Button fullWidth disabled={!editForm.name?.trim() || editSaving}
+                onClick={async () => {
+                  setEditSaving(true)
+                  try {
+                    const res = await unitsApi.update(unit.id, editForm)
+                    if (res.unit) setUnit(res.unit)
+                    setShowEdit(false)
+                  } catch {}
+                  setEditSaving(false)
+                }}>
+                {editSaving ? 'Сохранение...' : 'Сохранить'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {showWriteoff && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setShowWriteoff(false)}>
@@ -189,6 +266,11 @@ export default function UnitPage() {
       )}
     </WarehouseLayout>
   )
+}
+
+const inputStyle = { width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, marginBottom: 12, background: 'var(--white)', outline: 'none', boxSizing: 'border-box' }
+function EFL({ children }) {
+  return <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4, color: 'var(--muted)' }}>{children}</div>
 }
 
 function InfoRow({ label, value, last }) {

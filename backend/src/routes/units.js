@@ -264,6 +264,26 @@ router.post('/:id/photos', verifyJWT, upload.array('photos', 10), async (req, re
   }
 })
 
+// DELETE /units/:id — delete unit (director only)
+router.delete('/:id', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT * FROM units WHERE id = $1`, [req.params.id])
+    if (!rows.length) return res.status(404).json({ error: 'Unit not found' })
+
+    // Delete photos from R2
+    const { rows: photos } = await db.query(`SELECT url FROM unit_photos WHERE unit_id = $1`, [req.params.id])
+    for (const p of photos) {
+      await deleteFile(p.url).catch(() => {})
+    }
+
+    await db.query(`DELETE FROM units WHERE id = $1`, [req.params.id])
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // DELETE /units/:id/photos/:photoId
 router.delete('/:id/photos/:photoId', verifyJWT, async (req, res) => {
   try {
