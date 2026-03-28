@@ -15,6 +15,21 @@ router.get('/', verifyJWT, async (req, res) => {
   }
 })
 
+// POST /warehouses — create warehouse
+router.post('/', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, res) => {
+  const { name } = req.body
+  if (!name) return res.status(400).json({ error: 'Name required' })
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO warehouses (name) VALUES ($1) RETURNING *`, [name]
+    )
+    res.status(201).json({ warehouse: rows[0] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // GET /warehouses/:id/cells — sections with cells
 router.get('/:id/cells', verifyJWT, async (req, res) => {
   try {

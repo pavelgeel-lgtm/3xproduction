@@ -53,12 +53,14 @@ export default function CellsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
             <h1 style={{ fontSize: 20, fontWeight: 600 }}>Карта ячеек</h1>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <select value={selWh} onChange={e => setSelWh(e.target.value)} style={{
-                height: 36, padding: '0 10px', border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
-              }}>
-                {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
+              {warehouseList.length > 0 && (
+                <select value={selWh} onChange={e => setSelWh(e.target.value)} style={{
+                  height: 36, padding: '0 10px', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
+                }}>
+                  {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              )}
               <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
                 onClick={() => navigate('/cells/constructor')}>
                 + Секция

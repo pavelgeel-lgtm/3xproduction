@@ -35,6 +35,9 @@ export default function CellConstructorPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [created, setCreated] = useState(null)
+  const [showNewWh, setShowNewWh] = useState(false)
+  const [newWhName, setNewWhName] = useState('')
+  const [newWhSaving, setNewWhSaving] = useState(false)
 
   useEffect(() => {
     warehousesApi.list().then(d => {
@@ -84,7 +87,7 @@ export default function CellConstructorPage() {
   }
 
   const canProceedStep0 = name && selectedCats.length > 0 && warehouseId &&
-    (!selectedCats.includes('Своя категория') || customCat.trim())
+    (!selectedCats.includes('custom') || customCat.trim())
 
   return (
     <WarehouseLayout>
@@ -127,15 +130,20 @@ export default function CellConstructorPage() {
         {/* Step 0 — name + categories + warehouse */}
         {step === 0 && (
           <div>
-            {warehouseList.length > 1 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Склад</div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Склад</div>
+              <div style={{ display: 'flex', gap: 8 }}>
                 <select value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
-                  style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)' }}>
+                  style={{ flex: 1, height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)' }}>
                   {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
+                <button onClick={() => setShowNewWh(true)} style={{
+                  height: 38, padding: '0 14px', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)',
+                  cursor: 'pointer', color: 'var(--blue)', fontWeight: 500, whiteSpace: 'nowrap',
+                }}>+ Новый</button>
               </div>
-            )}
+            </div>
             <Input label="Название секции" placeholder="А · Реквизит" value={name} onChange={e => setName(e.target.value)} />
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Категории <span style={{ color: 'var(--muted)', fontSize: 11 }}>(выберите одну или несколько)</span></div>
@@ -303,6 +311,35 @@ export default function CellConstructorPage() {
           </div>
         )}
       </div>
+
+      {showNewWh && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => setShowNewWh(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 400, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Новый склад</div>
+            <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Название</div>
+            <input value={newWhName} onChange={e => setNewWhName(e.target.value)}
+              placeholder="Например: Вирки 22"
+              style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, marginBottom: 16, outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowNewWh(false)}>Отмена</Button>
+              <Button fullWidth disabled={!newWhName.trim() || newWhSaving} onClick={async () => {
+                setNewWhSaving(true)
+                try {
+                  const data = await warehousesApi.create({ name: newWhName.trim() })
+                  const wh = data.warehouse
+                  setWarehouseList(prev => [...prev, wh])
+                  setWarehouseId(String(wh.id))
+                  setShowNewWh(false)
+                  setNewWhName('')
+                } catch (e) { alert(e.message || 'Ошибка') }
+                setNewWhSaving(false)
+              }}>{newWhSaving ? 'Создание...' : 'Создать'}</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </WarehouseLayout>
   )
 }
