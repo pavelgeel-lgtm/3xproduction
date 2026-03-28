@@ -85,14 +85,20 @@ export default function UnitsPage() {
         cell_id: form.cell_id || null,
       })
       const unitId = data.unit?.id
+      let photoErrors = 0
       if (unitId && photos.length > 0) {
         for (const file of photos) {
           const fd = new FormData()
           fd.append('photos', file)
-          await unitsApi.uploadPhoto(unitId, fd).catch(() => {})
+          try { await unitsApi.uploadPhoto(unitId, fd) }
+          catch { photoErrors++ }
         }
       }
-      setShowAdd(false)
+      if (photoErrors > 0) {
+        setAddError(`Единица создана, но ${photoErrors} фото не загрузилось`)
+      } else {
+        setShowAdd(false)
+      }
       setForm(EMPTY_FORM)
       setPhotos([])
       if (unitId) navigate(`/units/${unitId}`)
