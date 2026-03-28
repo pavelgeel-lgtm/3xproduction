@@ -37,6 +37,7 @@ export default function CellConstructorPage() {
   const [created, setCreated] = useState(null)
   const [showNewWh, setShowNewWh] = useState(false)
   const [newWhName, setNewWhName] = useState('')
+  const [newWhAddress, setNewWhAddress] = useState('')
   const [newWhSaving, setNewWhSaving] = useState(false)
 
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function CellConstructorPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <select value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
                   style={{ flex: 1, height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)' }}>
-                  {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}{w.address ? ` — ${w.address}` : ''}</option>)}
                 </select>
                 <button onClick={() => setShowNewWh(true)} style={{
                   height: 38, padding: '0 14px', border: '1px solid var(--border)',
@@ -321,18 +322,23 @@ export default function CellConstructorPage() {
             <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Название</div>
             <input value={newWhName} onChange={e => setNewWhName(e.target.value)}
               placeholder="Например: Вирки 22"
+              style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, marginBottom: 12, outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Адрес</div>
+            <input value={newWhAddress} onChange={e => setNewWhAddress(e.target.value)}
+              placeholder="ул. Вирки 22, г. Москва"
               style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, marginBottom: 16, outline: 'none', boxSizing: 'border-box' }} />
             <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="secondary" fullWidth onClick={() => setShowNewWh(false)}>Отмена</Button>
               <Button fullWidth disabled={!newWhName.trim() || newWhSaving} onClick={async () => {
                 setNewWhSaving(true)
                 try {
-                  const data = await warehousesApi.create({ name: newWhName.trim() })
+                  const data = await warehousesApi.create({ name: newWhName.trim(), address: newWhAddress.trim() || undefined })
                   const wh = data.warehouse
                   setWarehouseList(prev => [...prev, wh])
                   setWarehouseId(String(wh.id))
                   setShowNewWh(false)
                   setNewWhName('')
+                  setNewWhAddress('')
                 } catch (e) { alert(e.message || 'Ошибка') }
                 setNewWhSaving(false)
               }}>{newWhSaving ? 'Создание...' : 'Создать'}</Button>

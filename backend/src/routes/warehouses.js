@@ -17,16 +17,16 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // POST /warehouses — create warehouse
 router.post('/', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, res) => {
-  const { name } = req.body
+  const { name, address } = req.body
   if (!name) return res.status(400).json({ error: 'Name required' })
   try {
     const { rows } = await db.query(
-      `INSERT INTO warehouses (name) VALUES ($1) RETURNING *`, [name]
+      `INSERT INTO warehouses (name, address) VALUES ($1, $2) RETURNING *`, [name, address || null]
     )
     res.status(201).json({ warehouse: rows[0] })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'Server error' })
+    res.status(500).json({ error: err.message || 'Server error' })
   }
 })
 
@@ -85,8 +85,8 @@ router.post('/sections', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, re
     res.status(201).json({ section })
   } catch (err) {
     await client.query('ROLLBACK')
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
+    console.error('Create section error:', err.message, err.detail || '')
+    res.status(500).json({ error: err.message || 'Server error' })
   } finally {
     client.release()
   }
