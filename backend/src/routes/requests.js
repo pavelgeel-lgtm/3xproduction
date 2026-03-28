@@ -59,6 +59,16 @@ router.put('/:id/status', verifyJWT, checkRole('warehouse_director', 'warehouse_
 router.get('/', verifyJWT, async (req, res) => {
   const { status, warehouse_id, project_id, requester_id } = req.query
   try {
+    // Check visibility setting for warehouse staff/deputy
+    if (['warehouse_staff', 'warehouse_deputy'].includes(req.user.role)) {
+      const { rows: vis } = await db.query(
+        `SELECT can_see_requests FROM request_visibility WHERE user_id = $1`,
+        [req.user.id]
+      )
+      if (vis.length && !vis[0].can_see_requests) {
+        return res.json({ requests: [] })
+      }
+    }
     let q = `
       SELECT r.*, u.name AS requester_name, u.role AS requester_role
       FROM requests r

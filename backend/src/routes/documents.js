@@ -10,12 +10,13 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 
 // Roles that can upload
 const UPLOAD_KPP_ROLES = [
-  'project_deputy_upload', 'production_designer', 'art_director_assistant',
+  'project_director', 'project_deputy_upload', 'director', 'assistant_director',
+  'production_designer', 'art_director_assistant',
   'props_master', 'props_assistant', 'decorator', 'costumer', 'costume_assistant',
   'makeup_artist', 'stunt_coordinator', 'pyrotechnician',
 ]
 const UPLOAD_CALLSHEET_ROLES = [
-  ...UPLOAD_KPP_ROLES, 'set_admin', 'assistant_director',
+  ...UPLOAD_KPP_ROLES, 'set_admin',
 ]
 
 // Roles that get notified on new version (everyone except drivers, camera mechanics, playback)

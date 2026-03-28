@@ -4,7 +4,8 @@ import { ClipboardList } from 'lucide-react'
 import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
-import { requests as requestsApi } from '../../services/api'
+import { requests as requestsApi, warehouses as warehousesApi } from '../../services/api'
+import { useAuth } from '../../hooks/useAuth'
 
 const css = `
 .req-page { padding: 28px 32px; max-width: 900px; }
@@ -68,10 +69,15 @@ function formatDate(str) {
 
 export default function RequestsPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isDirector = user?.role === 'warehouse_director'
   const [filter, setFilter] = useState('')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
+  const [showVisibility, setShowVisibility] = useState(false)
+  const [visSettings, setVisSettings] = useState([])
+  const [visLoading, setVisLoading] = useState(false)
 
   function load(status) {
     setLoading(true)
@@ -105,6 +111,18 @@ export default function RequestsPage() {
             <h1 className="req-title">Запросы</h1>
             <p className="req-sub">Запросы на выдачу оборудования со склада</p>
           </div>
+          {isDirector && (
+            <Button variant="secondary" onClick={() => {
+              setShowVisibility(true)
+              setVisLoading(true)
+              warehousesApi.requestVisibility()
+                .then(data => setVisSettings(data.settings || []))
+                .catch(() => {})
+                .finally(() => setVisLoading(false))
+            }}>
+              Видимость
+            </Button>
+          )}
         </div>
 
         <div className="req-filters">
@@ -172,6 +190,49 @@ export default function RequestsPage() {
           </div>
         )}
       </div>
+
+      {showVisibility && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => setShowVisibility(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 440, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Видимость заявок</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
+              Выберите, кто из сотрудников видит заявки
+            </div>
+            {visLoading ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>
+            ) : visSettings.length === 0 ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13 }}>Нет сотрудников</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {visSettings.map(s => (
+                  <label key={s.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', background: 'var(--bg)',
+                    borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer',
+                  }}>
+                    <input type="checkbox" checked={s.can_see_requests}
+                      onChange={async () => {
+                        const newVal = !s.can_see_requests
+                        setVisSettings(prev => prev.map(p => p.id === s.id ? { ...p, can_see_requests: newVal } : p))
+                        await warehousesApi.setRequestVisibility(s.id, newVal).catch(() => {})
+                      }}
+                      style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{s.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.role === 'warehouse_deputy' ? 'Зам директора' : 'Сотрудник склада'}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: 16 }}>
+              <Button fullWidth onClick={() => setShowVisibility(false)}>Готово</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </WarehouseLayout>
   )
 }

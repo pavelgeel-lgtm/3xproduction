@@ -167,10 +167,8 @@ function buildNav(role) {
   const def = ROLES[role] || {}
   const nav = []
 
-  // Documents — everyone except producer
-  if (role !== 'producer') {
-    nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
-  }
+  // Documents — everyone
+  nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
 
   // Own lists
   if (def.ownLists?.length || def.seeAllLists) {
@@ -182,6 +180,11 @@ function buildNav(role) {
     nav.push({ to: '/production/lists', icon: List, label: 'Наполнение' })
   }
 
+  // Сверка ИИ — all production roles that don't already have lists link
+  if (!def.ownLists?.length && !def.seeAllLists && role !== 'project_director' && role !== 'producer' && def.world === 'production') {
+    nav.push({ to: '/production/lists', icon: List, label: 'Сверка ИИ' })
+  }
+
   // Warehouse view
   if (def.ownLists?.length || def.seeAllLists || role === 'project_director') {
     nav.push({ to: '/production/warehouse', icon: Package, label: 'Склад' })
@@ -190,6 +193,7 @@ function buildNav(role) {
 
   // Producer sections
   if (role === 'producer') {
+    nav.push({ to: '/production/lists',     icon: List,      label: 'Сверка ИИ' })
     nav.push({ to: '/production/warehouse', icon: Package,   label: 'Склад' })
     nav.push({ to: '/production/requests',  icon: Inbox,     label: 'Заявки' })
     nav.push({ to: '/analytics/producer',   icon: BarChart2, label: 'Аналитика' })

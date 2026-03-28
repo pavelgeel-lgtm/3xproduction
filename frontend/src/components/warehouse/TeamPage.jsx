@@ -134,6 +134,7 @@ export default function TeamPage() {
   const [inviteError, setInviteError] = useState('')
 
   const canInvite = ROLES[user?.role]?.canInvite?.length > 0
+  const canRemove = ['warehouse_director', 'project_director'].includes(user?.role)
   const roleOptions = getRoleOptions(user?.role)
 
   useEffect(() => {
@@ -258,6 +259,17 @@ export default function TeamPage() {
                   <div className="team-role-badge">{ROLES[m.role]?.label || m.role}</div>
                   {m.warehouse_zone && <div className="team-zone">Зона: {m.warehouse_zone}</div>}
                   <div className="team-date">с {formatDate(m.created_at)}</div>
+                  {canRemove && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Удалить ${m.name} из команды?`)) {
+                          teamApi.remove(m.id).then(() => setMembers(prev => prev.filter(p => p.id !== m.id)))
+                        }
+                      }}
+                      style={{ marginTop: 6, padding: '3px 10px', fontSize: 11, color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 6, cursor: 'pointer' }}>
+                      Удалить
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

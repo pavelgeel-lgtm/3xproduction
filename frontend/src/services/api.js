@@ -67,6 +67,7 @@ export const units = {
   approve:  (id, approval_id) => request('POST', `/units/${id}/approve`, { approval_id }),
   reject:   (id, approval_id, reason) => request('POST', `/units/${id}/reject`, { approval_id, reason }),
   writeoff: (id, reason) => request('POST', `/units/${id}/writeoff`, { reason }),
+  requestWriteoff: (id, reason) => request('POST', `/units/${id}/request-writeoff`, { reason }),
   uploadPhoto: (id, formData) => request('POST', `/units/${id}/photos`, formData),
   deletePhoto: (id, photoId) => request('DELETE', `/units/${id}/photos/${photoId}`),
   history:  (id)   => request('GET', `/units/${id}/history`),
@@ -78,6 +79,9 @@ export const warehouses = {
   cells:         (warehouseId) => request('GET',  `/warehouses/${warehouseId}/cells`),
   createSection: (body) => request('POST', '/warehouses/sections', body),
   renameCell:    (cellId, name) => request('PUT', `/warehouses/cells/${cellId}`, { custom_name: name }),
+  requestVisibility: ()         => request('GET', '/warehouses/request-visibility'),
+  setRequestVisibility: (user_id, can_see_requests) =>
+    request('PUT', '/warehouses/request-visibility', { user_id, can_see_requests }),
 }
 
 // ─── Requests ────────────────────────────────────────────────────────────────
@@ -150,6 +154,7 @@ export const push = {
 // ─── Team ────────────────────────────────────────────────────────────────────
 export const team = {
   list: () => request('GET', '/team'),
+  remove: (userId) => request('DELETE', `/team/${userId}`),
 }
 
 // ─── Production Lists ─────────────────────────────────────────────────────────

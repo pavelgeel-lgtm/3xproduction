@@ -174,10 +174,16 @@ export default function UnitPage() {
                   Редактировать
                 </Button>
               )}
-              {isDirectorOrDeputy && (
+              {isDirector && (
                 <Button variant="secondary" style={{ color: 'var(--muted)' }}
                   onClick={() => { setWriteoffReason(''); setShowWriteoff(true) }}>
                   Списать
+                </Button>
+              )}
+              {user?.role === 'warehouse_deputy' && (
+                <Button variant="secondary" style={{ color: 'var(--muted)' }}
+                  onClick={() => { setWriteoffReason(''); setShowWriteoff(true) }}>
+                  Заявка на списание
                 </Button>
               )}
               {isDirector && (
@@ -257,8 +263,13 @@ export default function UnitPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="secondary" fullWidth onClick={() => setShowWriteoff(false)}>Отмена</Button>
               <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }}
-                onClick={() => unitsApi.writeoff(unit.id, writeoffReason).then(() => navigate('/units'))}>
-                Списать
+                onClick={() => {
+                  const action = user?.role === 'warehouse_deputy'
+                    ? unitsApi.requestWriteoff(unit.id, writeoffReason)
+                    : unitsApi.writeoff(unit.id, writeoffReason)
+                  action.then(() => navigate('/units'))
+                }}>
+                {user?.role === 'warehouse_deputy' ? 'Отправить заявку' : 'Списать'}
               </Button>
             </div>
           </div>

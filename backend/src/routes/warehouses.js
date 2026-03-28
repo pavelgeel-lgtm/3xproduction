@@ -93,4 +93,46 @@ router.put('/cells/:id', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, re
   }
 })
 
+// ─── Request Visibility Settings ─────────────────────────────────────────────
+
+// GET /warehouses/request-visibility — get visibility settings
+router.get('/request-visibility', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
+  try {
+    // Get all warehouse staff/deputy with their visibility setting
+    const { rows } = await db.query(
+      `SELECT u.id, u.name, u.role,
+              COALESCE(rv.can_see_requests, true) AS can_see_requests
+       FROM users u
+       LEFT JOIN request_visibility rv ON rv.user_id = u.id
+       WHERE u.role IN ('warehouse_deputy', 'warehouse_staff')
+         AND u.project_id IS NULL
+       ORDER BY u.name`
+    )
+    res.json({ settings: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// PUT /warehouses/request-visibility — update visibility for a user
+router.put('/request-visibility', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
+  const { user_id, can_see_requests } = req.body
+  if (!user_id || typeof can_see_requests !== 'boolean') {
+    return res.status(400).json({ error: 'Missing user_id or can_see_requests' })
+  }
+  try {
+    await db.query(
+      `INSERT INTO request_visibility (user_id, can_see_requests)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET can_see_requests = $2`,
+      [user_id, can_see_requests]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 module.exports = router

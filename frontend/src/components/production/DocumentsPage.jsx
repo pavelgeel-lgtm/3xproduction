@@ -14,11 +14,12 @@ const DOC_TYPES = {
 }
 
 const UPLOAD_KPP_ROLES = [
-  'project_deputy_upload', 'production_designer', 'art_director_assistant',
+  'project_director', 'project_deputy_upload', 'director', 'assistant_director',
+  'production_designer', 'art_director_assistant',
   'props_master', 'props_assistant', 'decorator', 'costumer', 'costume_assistant',
   'makeup_artist', 'stunt_coordinator', 'pyrotechnician',
 ]
-const UPLOAD_CALLSHEET_ROLES = [...UPLOAD_KPP_ROLES, 'set_admin', 'assistant_director']
+const UPLOAD_CALLSHEET_ROLES = [...UPLOAD_KPP_ROLES, 'set_admin']
 
 // Use a fixed project_id from user or first available
 const PROJECT_ID = 1

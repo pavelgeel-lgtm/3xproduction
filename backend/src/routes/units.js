@@ -176,7 +176,7 @@ router.put('/:id', verifyJWT, async (req, res) => {
 })
 
 // POST /units/:id/approve
-router.post('/:id/approve', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
+router.post('/:id/approve', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy'), async (req, res) => {
   const { approval_id } = req.body
   try {
     const { rows } = await db.query(
@@ -191,6 +191,13 @@ router.post('/:id/approve', verifyJWT, checkRole('warehouse_director'), async (r
       await db.query(
         `INSERT INTO unit_history (unit_id, action, user_id) VALUES ($1,'Принято на склад',$2)`,
         [req.params.id, req.user.id]
+      )
+    } else if (approval.action === 'writeoff') {
+      const data = approval.new_data
+      await db.query(`UPDATE units SET status='written_off' WHERE id=$1`, [req.params.id])
+      await db.query(
+        `INSERT INTO unit_history (unit_id, action, user_id, notes) VALUES ($1,'Списано (по заявке зама)',$2,$3)`,
+        [req.params.id, req.user.id, data.reason || null]
       )
     } else if (approval.action === 'edit') {
       const data = approval.new_data
@@ -213,7 +220,7 @@ router.post('/:id/approve', verifyJWT, checkRole('warehouse_director'), async (r
 })
 
 // POST /units/:id/reject
-router.post('/:id/reject', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
+router.post('/:id/reject', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy'), async (req, res) => {
   const { approval_id } = req.body
   try {
     await db.query(`UPDATE approvals SET status='rejected' WHERE id=$1`, [approval_id])
@@ -258,6 +265,43 @@ router.post('/:id/photos', verifyJWT, upload.array('photos', 10), async (req, re
       urls.push(rows[0])
     }
     res.json({ photos: urls })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// POST /units/:id/request-writeoff — deputy requests writeoff from director
+router.post('/:id/request-writeoff', verifyJWT, checkRole('warehouse_deputy'), async (req, res) => {
+  const { reason } = req.body
+  try {
+    const { rows } = await db.query(`SELECT * FROM units WHERE id = $1`, [req.params.id])
+    if (!rows.length) return res.status(404).json({ error: 'Unit not found' })
+
+    await db.query(
+      `INSERT INTO approvals (unit_id, proposed_by, action, new_data)
+       VALUES ($1, $2, 'writeoff', $3)`,
+      [req.params.id, req.user.id, JSON.stringify({ reason: reason || '' })]
+    )
+
+    await db.query(
+      `INSERT INTO unit_history (unit_id, action, user_id, notes) VALUES ($1, 'Запрос на списание', $2, $3)`,
+      [req.params.id, req.user.id, reason || null]
+    )
+
+    // Notify director
+    const { rows: directors } = await db.query(
+      `SELECT id FROM users WHERE role = 'warehouse_director'`
+    )
+    for (const d of directors) {
+      await db.query(
+        `INSERT INTO notifications (user_id, type, text, entity_id, entity_type)
+         VALUES ($1, 'writeoff_request', $2, $3, 'unit')`,
+        [d.id, `Запрос на списание: ${rows[0].name}`, req.params.id]
+      )
+    }
+
+    res.json({ ok: true })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })

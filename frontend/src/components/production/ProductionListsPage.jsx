@@ -25,7 +25,9 @@ const SOURCE_BADGE = {
   manual:   { label: 'Вручную',  bg: 'var(--bg)',        color: 'var(--muted)' },
 }
 
-const SEE_ALL_ROLES = ['production_designer', 'art_director_assistant', 'director', 'project_director', 'producer']
+const SEE_ALL_ROLES = ['production_designer', 'art_director_assistant', 'director', 'project_director', 'producer',
+  'project_deputy_upload', 'project_deputy', 'set_admin', 'assistant_director',
+  'gaffer', 'dop', 'camera_mechanic', 'casting_director', 'casting_assistant', 'playback', 'driver']
 const TABS = ['Мой список', 'Сверка ИИ']
 
 export default function ProductionListsPage() {
