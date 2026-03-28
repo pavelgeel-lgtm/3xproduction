@@ -74,7 +74,7 @@ export default function UnitsPage() {
       if (unitId && photos.length > 0) {
         for (const file of photos) {
           const fd = new FormData()
-          fd.append('photo', file)
+          fd.append('photos', file)
           await unitsApi.uploadPhoto(unitId, fd).catch(() => {})
         }
       }

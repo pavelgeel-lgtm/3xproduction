@@ -76,7 +76,7 @@ export const warehouses = {
   list:          ()             => request('GET',  '/warehouses'),
   cells:         (warehouseId) => request('GET',  `/warehouses/${warehouseId}/cells`),
   createSection: (body) => request('POST', '/warehouses/sections', body),
-  renameCell:    (cellId, name) => request('PUT', `/warehouses/cells/${cellId}`, { name }),
+  renameCell:    (cellId, name) => request('PUT', `/warehouses/cells/${cellId}`, { custom_name: name }),
 }
 
 // ─── Requests ────────────────────────────────────────────────────────────────

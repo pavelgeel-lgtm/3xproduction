@@ -2,7 +2,7 @@ const router = require('express').Router()
 const multer = require('multer')
 const db     = require('../db')
 const { verifyJWT, checkRole } = require('../middleware/auth')
-const { uploadFile } = require('../services/r2')
+const { uploadFile, deleteFile } = require('../services/r2')
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } })
 
@@ -258,6 +258,26 @@ router.post('/:id/photos', verifyJWT, upload.array('photos', 10), async (req, re
       urls.push(rows[0])
     }
     res.json({ photos: urls })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// DELETE /units/:id/photos/:photoId
+router.delete('/:id/photos/:photoId', verifyJWT, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT * FROM unit_photos WHERE id = $1 AND unit_id = $2`,
+      [req.params.photoId, req.params.id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Photo not found' })
+
+    const photo = rows[0]
+    await deleteFile(photo.url)
+    await db.query(`DELETE FROM unit_photos WHERE id = $1`, [photo.id])
+
+    res.json({ ok: true })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })

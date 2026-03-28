@@ -30,7 +30,7 @@ async function createNotification({ user_id, type, text, entity_id, entity_type 
 // Notify all warehouse directors/deputies
 async function notifyWarehouse({ type, text, entity_id, entity_type }) {
   const { rows } = await db.query(
-    `SELECT id FROM users WHERE role IN ('warehouse_director','warehouse_deputy')`
+    `SELECT id FROM users WHERE role IN ('warehouse_director','warehouse_deputy','warehouse_staff')`
   )
   for (const u of rows) {
     await createNotification({ user_id: u.id, type, text, entity_id, entity_type })
@@ -41,11 +41,12 @@ async function notifyWarehouse({ type, text, entity_id, entity_type }) {
 async function checkOverdue() {
   const { rows } = await db.query(`
     SELECT i.*, u2.id AS receiver_id, u2.name AS receiver_name,
-           array_agg(un.name) AS unit_names
+           array_agg(un.name) AS unit_names,
+           array_agg(un.id) AS unit_ids
     FROM issuances i
     JOIN users u2 ON u2.id = i.received_by
-    JOIN requests r ON r.id = i.request_id
-    JOIN units un ON un.id = ANY(r.unit_ids)
+    LEFT JOIN requests r ON r.id = i.request_id
+    LEFT JOIN units un ON un.id = ANY(r.unit_ids)
     WHERE i.deadline < NOW()
       AND NOT EXISTS (
         SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id
@@ -60,6 +61,15 @@ async function checkOverdue() {
       entity_id: issuance.id,
       entity_type: 'request',
     })
+
+    // Mark units as overdue
+    const unitIds = (issuance.unit_ids || []).filter(Boolean)
+    if (unitIds.length) {
+      await db.query(
+        `UPDATE units SET status = 'overdue' WHERE id = ANY($1) AND status = 'issued'`,
+        [unitIds]
+      )
+    }
   }
 }
 

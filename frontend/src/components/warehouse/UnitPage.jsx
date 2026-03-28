@@ -23,12 +23,9 @@ export default function UnitPage() {
   const canSeeValuation = ['warehouse_director', 'warehouse_deputy', 'producer'].includes(user?.role)
 
   useEffect(() => {
-    Promise.all([
-      unitsApi.get(id),
-      isDirectorOrDeputy ? unitsApi.history(id) : Promise.resolve({ history: [] }),
-    ]).then(([uData, hData]) => {
+    unitsApi.get(id).then(uData => {
       setUnit(uData.unit)
-      setHistory(hData.history || [])
+      setHistory(uData.unit?.history || [])
     }).catch(() => {}).finally(() => setLoading(false))
   }, [id])
 

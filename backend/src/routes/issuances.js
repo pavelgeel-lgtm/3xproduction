@@ -280,7 +280,7 @@ router.get('/acts', verifyJWT, async (req, res) => {
 })
 
 // GET /issuances/active
-router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy'), async (req, res) => {
+router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy', 'warehouse_staff'), async (req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT i.*, u.name AS receiver_name, r.unit_ids,
