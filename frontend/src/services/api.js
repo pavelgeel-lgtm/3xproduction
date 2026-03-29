@@ -46,6 +46,7 @@ export const auth = {
   recoverVerify:  (email, code)     => request('POST', '/auth/recover/verify',  { email, code }),
   recoverReset:   (email, code, password) =>
     request('POST', '/auth/recover/reset', { email, code, password }),
+  changeName:     (name)           => request('PATCH', '/auth/name',     { name }),
   changePassword: (current, next) => request('PATCH', '/auth/password', { current, next }),
 }
 

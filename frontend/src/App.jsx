@@ -65,12 +65,9 @@ function ImpersonateBanner() {
   const { user, login } = useAuth()
   const producerToken = sessionStorage.getItem('producer_token')
 
-  // Set CSS var for layout offset
-  document.documentElement.style.setProperty('--impersonate-offset', producerToken ? '36px' : '0px')
+  document.documentElement.style.setProperty('--impersonate-offset', '0px')
 
   if (!producerToken) return null
-
-  const roleDef = ROLES[user?.role] || {}
 
   function handleReturn() {
     const token = sessionStorage.getItem('producer_token')
@@ -84,20 +81,14 @@ function ImpersonateBanner() {
   }
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, height: 36,
-      background: '#f59e0b', color: '#000', padding: '0 16px',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-      fontSize: 13, fontWeight: 500,
+    <button onClick={handleReturn} style={{
+      position: 'fixed', top: 16, right: 16, zIndex: 9999,
+      background: '#f59e0b', color: '#000', border: 'none', borderRadius: 8,
+      padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
     }}>
-      <span>Вы просматриваете как {user?.name} ({roleDef.label || user?.role})</span>
-      <button onClick={handleReturn} style={{
-        background: '#000', color: '#fff', border: 'none', borderRadius: 6,
-        padding: '4px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-      }}>
-        Вернуться
-      </button>
-    </div>
+      ← Вернуться
+    </button>
   )
 }
 

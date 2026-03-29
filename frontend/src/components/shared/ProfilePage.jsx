@@ -8,7 +8,11 @@ import { ROLES } from '../../constants/roles'
 import { auth } from '../../services/api'
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, login } = useAuth()
+  const isProducer = user?.role === 'producer'
+  const [nameVal, setNameVal] = useState(user?.name || '')
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameSaved, setNameSaved] = useState(false)
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [pwErrors, setPwErrors] = useState({})
   const [pwSaved, setPwSaved] = useState(false)
@@ -73,6 +77,36 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {isProducer && (
+          <div style={{
+            background: 'var(--white)', borderRadius: 'var(--radius-card)',
+            border: '1px solid var(--border)', padding: '24px', marginBottom: 20,
+          }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14 }}>Имя и фамилия</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <Input label="ФИО" value={nameVal} onChange={e => setNameVal(e.target.value)} />
+              </div>
+              <Button disabled={nameSaving || !nameVal.trim() || nameVal === user?.name}
+                style={{ height: 40, flexShrink: 0 }}
+                onClick={async () => {
+                  setNameSaving(true)
+                  try {
+                    await auth.changeName(nameVal.trim())
+                    const updated = { ...user, name: nameVal.trim() }
+                    login(localStorage.getItem('token'), updated)
+                    setNameSaved(true)
+                    setTimeout(() => setNameSaved(false), 2500)
+                  } catch {}
+                  setNameSaving(false)
+                }}>
+                {nameSaving ? '...' : 'Сохранить'}
+              </Button>
+            </div>
+            {nameSaved && <div style={{ color: 'var(--green)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>Сохранено</div>}
+          </div>
+        )}
 
         <div style={{
           background: 'var(--white)', borderRadius: 'var(--radius-card)',

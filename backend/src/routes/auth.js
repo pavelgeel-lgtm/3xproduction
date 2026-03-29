@@ -366,6 +366,19 @@ router.patch('/password', verifyJWT, async (req, res) => {
   }
 })
 
+// PATCH /auth/name — update own name (producer only)
+router.patch('/name', verifyJWT, checkRole('producer'), async (req, res) => {
+  const { name } = req.body
+  if (!name?.trim()) return res.status(400).json({ error: 'Missing name' })
+  try {
+    await db.query(`UPDATE users SET name=$1 WHERE id=$2`, [name.trim(), req.user.id])
+    res.json({ ok: true, name: name.trim() })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // GET /auth/users — list all users (producer only)
 router.get('/users', verifyJWT, checkRole('producer'), async (req, res) => {
   try {
