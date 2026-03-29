@@ -103,7 +103,8 @@ export const issuances = {
   acts:    ()           => request('GET',  '/issuances/acts'),
   issue:   (formData)   => request('POST', '/issuances', formData),
   return:  (formData)   => request('POST', '/issuances/returns', formData),
-  extend:  (body)       => request('POST', '/issuances/extensions', body),
+  extend:        (body)   => request('POST', '/issuances/extensions', body),
+  requestReturn: (id)     => request('POST', `/issuances/${id}/request-return`),
 }
 
 // ─── Documents ───────────────────────────────────────────────────────────────

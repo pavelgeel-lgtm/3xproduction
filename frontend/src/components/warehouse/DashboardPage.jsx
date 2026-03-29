@@ -214,12 +214,15 @@ export default function DashboardPage() {
             {activeIssuances.length === 0
               ? <div className="dash-card-empty">Нет активных выдач</div>
               : activeIssuances.map(iss => (
-                <div key={iss.id} className="dash-req-item">
+                <div key={iss.id} className="dash-req-item" style={iss.return_requested_at ? { background: 'var(--amber-dim)', borderRadius: 8, padding: '11px 10px', margin: '-11px -10px', marginBottom: 0 } : {}}>
                   <div>
-                    <div className="dash-req-title">{iss.receiver_name || `Выдача #${String(iss.id).slice(0, 8)}`}</div>
+                    <div className="dash-req-title">
+                      {iss.receiver_name || `Выдача #${String(iss.id).slice(0, 8)}`}
+                      {iss.return_requested_at && <span style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 500, marginLeft: 8 }}>Запрос на возврат</span>}
+                    </div>
                     <div className="dash-req-sub">{(iss.unit_ids || []).length} ед. · {iss.deadline ? formatDate(iss.deadline) : ''}</div>
                   </div>
-                  <Button variant="secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }}
+                  <Button variant={iss.return_requested_at ? 'primary' : 'secondary'} style={{ height: 32, fontSize: 12, padding: '0 12px' }}
                     onClick={() => navigate(`/return/${iss.id}`)}>
                     Возврат
                   </Button>

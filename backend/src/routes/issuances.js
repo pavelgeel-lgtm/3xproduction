@@ -284,7 +284,8 @@ router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_depu
   try {
     const { rows } = await db.query(`
       SELECT i.*, u.name AS receiver_name, r.unit_ids,
-             CASE WHEN i.deadline < NOW() THEN true ELSE false END AS is_overdue
+             CASE WHEN i.deadline < NOW() THEN true ELSE false END AS is_overdue,
+             i.return_requested_at
       FROM issuances i
       JOIN users u ON u.id = i.received_by
       LEFT JOIN requests r ON r.id = i.request_id
@@ -292,6 +293,41 @@ router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_depu
       ORDER BY i.deadline ASC
     `)
     res.json({ issuances: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// POST /issuances/:id/request-return — project director requests return
+router.post('/:id/request-return', verifyJWT, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT i.id, i.received_by, u.name AS receiver_name, r.unit_ids
+       FROM issuances i
+       JOIN users u ON u.id = i.received_by
+       LEFT JOIN requests r ON r.id = i.request_id
+       WHERE i.id = $1
+         AND i.received_by = $2
+         AND NOT EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id)`,
+      [req.params.id, req.user.id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Issuance not found' })
+
+    await db.query(
+      `UPDATE issuances SET return_requested_at = NOW() WHERE id = $1`,
+      [req.params.id]
+    )
+
+    const unitCount = (rows[0].unit_ids || []).length
+    await notifyWarehouse({
+      type: 'return_request',
+      text: `${rows[0].receiver_name} запросил возврат (${unitCount} ед.)`,
+      entity_id: rows[0].id,
+      entity_type: 'issuance',
+    })
+
+    res.json({ ok: true })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })

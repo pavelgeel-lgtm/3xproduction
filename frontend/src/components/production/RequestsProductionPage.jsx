@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import ProductionLayout from './ProductionLayout'
-import { requests as requestsApi, units as unitsApi } from '../../services/api'
+import { requests as requestsApi, units as unitsApi, issuances as issuancesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const TABS = ['На рассмотрении', 'Выдано', 'Архив']
@@ -166,6 +166,38 @@ export default function RequestsProductionPage() {
                         <div style={{ fontSize: 13, color: 'var(--muted)' }}>Загрузка единиц...</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {r.status === 'issued' && r.issuance_id && (
+                            <div style={{ marginBottom: 8 }}>
+                              {r.return_requested_at ? (
+                                <div style={{
+                                  padding: '10px 14px', borderRadius: 'var(--radius-btn)',
+                                  background: 'var(--amber-dim)', color: 'var(--amber)',
+                                  fontSize: 13, fontWeight: 500, textAlign: 'center',
+                                }}>
+                                  Возврат запрошен — ожидайте подтверждения склада
+                                </div>
+                              ) : (
+                                <button onClick={async (e) => {
+                                  e.stopPropagation()
+                                  if (!confirm('Запросить возврат имущества?')) return
+                                  try {
+                                    await issuancesApi.requestReturn(r.issuance_id)
+                                    setAllRequests(prev => prev.map(req =>
+                                      req.id === r.id ? { ...req, return_requested_at: new Date().toISOString() } : req
+                                    ))
+                                  } catch (err) {
+                                    alert(err.message || 'Ошибка')
+                                  }
+                                }} style={{
+                                  width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-btn)',
+                                  background: 'var(--accent)', color: '#fff', border: 'none',
+                                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                                }}>
+                                  Запросить возврат
+                                </button>
+                              )}
+                            </div>
+                          )}
                           {ids.map(uid => {
                             const u = unitDetails[uid]
                             if (!u) return (

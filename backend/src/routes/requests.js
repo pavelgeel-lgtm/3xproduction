@@ -70,9 +70,11 @@ router.get('/', verifyJWT, async (req, res) => {
       }
     }
     let q = `
-      SELECT r.*, u.name AS requester_name, u.role AS requester_role
+      SELECT r.*, u.name AS requester_name, u.role AS requester_role,
+             i.id AS issuance_id, i.return_requested_at
       FROM requests r
       JOIN users u ON u.id = r.requester_id
+      LEFT JOIN issuances i ON i.request_id = r.id
       WHERE 1=1
     `
     const params = []
