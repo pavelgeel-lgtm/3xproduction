@@ -4,7 +4,7 @@ import { ClipboardList } from 'lucide-react'
 import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
-import { requests as requestsApi, warehouses as warehousesApi } from '../../services/api'
+import { requests as requestsApi, warehouses as warehousesApi, units as unitsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const css = `
@@ -47,7 +47,7 @@ const css = `
 
 const STATUS_LABELS = {
   new:        { label: 'Новый',       color: 'blue' },
-  collecting: { label: 'Собирается',  color: 'amber' },
+  collecting: { label: 'В работе',     color: 'amber' },
   ready:      { label: 'Готов',       color: 'green' },
   issued:     { label: 'Выдан',       color: 'green' },
   cancelled:  { label: 'Отменён',     color: 'red' },
@@ -56,7 +56,7 @@ const STATUS_LABELS = {
 const FILTERS = [
   { value: '',           label: 'Все' },
   { value: 'new',        label: 'Новые' },
-  { value: 'collecting', label: 'Собираются' },
+  { value: 'collecting', label: 'В работе' },
   { value: 'ready',      label: 'Готовы' },
   { value: 'issued',     label: 'Выданы' },
   { value: 'cancelled',  label: 'Отменены' },
@@ -78,6 +78,9 @@ export default function RequestsPage() {
   const [showVisibility, setShowVisibility] = useState(false)
   const [visSettings, setVisSettings] = useState([])
   const [visLoading, setVisLoading] = useState(false)
+  const [expanded, setExpanded] = useState(null)
+  const [unitCache, setUnitCache] = useState({})
+  const [loadingUnits, setLoadingUnits] = useState(null)
 
   function load(status) {
     setLoading(true)
@@ -102,14 +105,29 @@ export default function RequestsPage() {
     }
   }
 
+  async function toggleExpand(reqId, unitIds) {
+    if (expanded === reqId) { setExpanded(null); return }
+    setExpanded(reqId)
+    const missing = (unitIds || []).filter(id => !unitCache[id])
+    if (!missing.length) return
+    setLoadingUnits(reqId)
+    try {
+      const results = await Promise.all(missing.map(id => unitsApi.get(id).catch(() => null)))
+      const next = { ...unitCache }
+      for (const r of results) { if (r?.unit) next[r.unit.id] = r.unit }
+      setUnitCache(next)
+    } catch {}
+    setLoadingUnits(null)
+  }
+
   return (
     <WarehouseLayout>
       <style>{css}</style>
       <div className="req-page">
         <div className="req-header">
           <div>
-            <h1 className="req-title">Запросы</h1>
-            <p className="req-sub">Запросы на выдачу оборудования со склада</p>
+            <h1 className="req-title">Заявки</h1>
+            <p className="req-sub">Заявки на выдачу оборудования со склада</p>
           </div>
           {isDirector && (
             <Button variant="secondary" onClick={() => {
@@ -137,53 +155,96 @@ export default function RequestsPage() {
         {loading ? (
           <div className="req-loading">Загрузка...</div>
         ) : items.length === 0 ? (
-          <div className="req-empty">Нет запросов</div>
+          <div className="req-empty">Нет заявок</div>
         ) : (
           <div className="req-list">
             {items.map(r => {
               const st = STATUS_LABELS[r.status] || { label: r.status, color: 'blue' }
+              const ids = r.unit_ids || []
+              const isOpen = expanded === r.id
               return (
-                <div key={r.id} className="req-item">
-                  <div className="req-item-body">
-                    <div className="req-item-title">
-                      Запрос #{r.id.slice(0, 8)}
-                      <Badge color={st.color}>{st.label}</Badge>
+                <div key={r.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div className="req-item" style={{ cursor: 'pointer' }} onClick={() => toggleExpand(r.id, ids)}>
+                    <div className="req-item-body">
+                      <div className="req-item-title">
+                        Заявка #{r.id.slice(0, 8)}
+                        <Badge color={st.color}>{st.label}</Badge>
+                      </div>
+                      <div className="req-item-meta">
+                        <span>{r.requester_name}</span>
+                        <span>{ids.length} ед.</span>
+                        {r.deadline && <span>до {formatDate(r.deadline)}</span>}
+                        <span>{formatDate(r.created_at)}</span>
+                      </div>
+                      {r.notes && <div style={{ fontSize: 12, color: 'var(--text)', marginTop: 4 }}>{r.notes}</div>}
                     </div>
-                    <div className="req-item-meta">
-                      <span>{r.requester_name}</span>
-                      <span>{(r.unit_ids || []).length} ед.</span>
-                      {r.deadline && <span>до {formatDate(r.deadline)}</span>}
-                      <span>{formatDate(r.created_at)}</span>
+                    <div className="req-item-actions" onClick={e => e.stopPropagation()}>
+                      {r.status === 'new' && (<>
+                        <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
+                          disabled={updating === r.id} onClick={() => changeStatus(r.id, 'collecting')}>
+                          В работу
+                        </Button>
+                        <Button variant="danger" style={{ height: 34, fontSize: 13 }}
+                          disabled={updating === r.id} onClick={() => changeStatus(r.id, 'cancelled')}>
+                          Отменить
+                        </Button>
+                      </>)}
+                      {r.status === 'collecting' && (<>
+                        <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
+                          disabled={updating === r.id} onClick={() => changeStatus(r.id, 'ready')}>
+                          Готово
+                        </Button>
+                        <Button variant="danger" style={{ height: 34, fontSize: 13 }}
+                          disabled={updating === r.id} onClick={() => changeStatus(r.id, 'cancelled')}>
+                          Отменить
+                        </Button>
+                      </>)}
+                      {r.status === 'ready' && (
+                        <Button variant="primary" style={{ height: 34, fontSize: 13 }}
+                          onClick={() => navigate(`/issue/${r.id}`)}>
+                          Выдать →
+                        </Button>
+                      )}
                     </div>
+                    <span style={{ color: 'var(--muted)', fontSize: 14, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
                   </div>
-                  <div className="req-item-actions">
-                    {r.status === 'new' && (<>
-                      <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
-                        disabled={updating === r.id} onClick={() => changeStatus(r.id, 'collecting')}>
-                        Собирать
-                      </Button>
-                      <Button variant="danger" style={{ height: 34, fontSize: 13 }}
-                        disabled={updating === r.id} onClick={() => changeStatus(r.id, 'cancelled')}>
-                        Отменить
-                      </Button>
-                    </>)}
-                    {r.status === 'collecting' && (<>
-                      <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
-                        disabled={updating === r.id} onClick={() => changeStatus(r.id, 'ready')}>
-                        Готово
-                      </Button>
-                      <Button variant="danger" style={{ height: 34, fontSize: 13 }}
-                        disabled={updating === r.id} onClick={() => changeStatus(r.id, 'cancelled')}>
-                        Отменить
-                      </Button>
-                    </>)}
-                    {r.status === 'ready' && (
-                      <Button variant="primary" style={{ height: 34, fontSize: 13 }}
-                        onClick={() => navigate(`/issue/${r.id}`)}>
-                        Выдать →
-                      </Button>
-                    )}
-                  </div>
+                  {isOpen && (
+                    <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px' }}>
+                      {loadingUnits === r.id ? (
+                        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Загрузка единиц...</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {ids.map(uid => {
+                            const u = unitCache[uid]
+                            if (!u) return <div key={uid} style={{ fontSize: 12, color: 'var(--muted)' }}>Единица не найдена</div>
+                            const photos = u.photos || []
+                            return (
+                              <div key={uid} style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                                borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)',
+                                cursor: 'pointer',
+                              }} onClick={() => navigate(`/units/${uid}`)}>
+                                {photos[0]?.url ? (
+                                  <img src={photos[0].url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                                ) : (
+                                  <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📦</div>
+                                )}
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
+                                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                                    {u.serial && `${u.serial} · `}{u.category || ''}
+                                  </div>
+                                </div>
+                                <Badge color={u.status === 'on_stock' ? 'green' : u.status === 'issued' ? 'amber' : 'muted'}>
+                                  {u.status === 'on_stock' ? 'На складе' : u.status === 'issued' ? 'Выдано' : u.status}
+                                </Badge>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}

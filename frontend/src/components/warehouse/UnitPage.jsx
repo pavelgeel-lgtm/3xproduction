@@ -160,7 +160,6 @@ export default function UnitPage() {
             )}
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Button onClick={() => navigate(`/issue/${unit.id}`)}>Выдать</Button>
               {isDirectorOrDeputy && (
                 <Button variant="secondary"
                   onClick={() => {

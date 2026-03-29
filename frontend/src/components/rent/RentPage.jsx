@@ -6,6 +6,7 @@ import Button from '../shared/Button'
 import Input from '../shared/Input'
 import SignatureCanvas from '../shared/SignatureCanvas'
 import PhotoUpload from '../shared/PhotoUpload'
+import { categoryLabel, CATEGORIES_FILTER } from '../../constants/categories'
 import { rent as rentApi, units as unitsApi, warehouses as warehousesApi } from '../../services/api'
 
 const DEAL_FILTERS = ['Все', 'Сдаём', 'Берём', 'Активные', 'Завершённые']
@@ -153,7 +154,9 @@ function NewDeal({ onDone }) {
   const [copied, setCopied] = useState(false)
   const [warehouseList, setWarehouseList] = useState([])
   const [whFilter, setWhFilter] = useState('')
-  const [dealPhotos, setDealPhotos] = useState([null, null, null])
+  const [unitSearch, setUnitSearch] = useState('')
+  const [unitCat, setUnitCat] = useState('all')
+  const [dealPhotos, setDealPhotos] = useState([null, null])
 
   useEffect(() => {
     unitsApi.list({ status: 'on_stock' }).then(data => setAvailableUnits(data.units || []))
@@ -164,7 +167,12 @@ function NewDeal({ onDone }) {
     setDealPhotos(p => { const a = [...p]; a[i] = file; return a })
   }
 
-  const filteredUnits = availableUnits.filter(u => !whFilter || String(u.warehouse_id) === whFilter)
+  const filteredUnits = availableUnits.filter(u => {
+    const matchWh = !whFilter || String(u.warehouse_id) === whFilter
+    const matchSearch = !unitSearch || u.name.toLowerCase().includes(unitSearch.toLowerCase()) || (u.serial || '').toLowerCase().includes(unitSearch.toLowerCase())
+    const matchCat = unitCat === 'all' || u.category === unitCat
+    return matchWh && matchSearch && matchCat
+  })
 
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
 
@@ -228,17 +236,6 @@ function NewDeal({ onDone }) {
 
   return (
     <div style={{ maxWidth: 560 }}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {[['out', '↗ Сдаём'], ['in', '↙ Берём']].map(([key, label]) => (
-          <button key={key} onClick={() => setDealType(key)} style={{
-            flex: 1, height: 44, borderRadius: 'var(--radius-btn-lg)',
-            border: `2px solid ${dealType === key ? 'var(--blue)' : 'var(--border)'}`,
-            background: dealType === key ? 'var(--blue-dim)' : 'var(--white)',
-            color: dealType === key ? 'var(--blue)' : 'var(--muted)',
-            fontWeight: 600, fontSize: 14, cursor: 'pointer',
-          }}>{label}</button>
-        ))}
-      </div>
 
       {step === 1 && (
         <div>
@@ -266,72 +263,105 @@ function NewDeal({ onDone }) {
       {step === 2 && (
         <div>
           <div style={{ fontWeight: 600, marginBottom: 14 }}>Единицы и период</div>
-          {warehouseList.length > 1 && (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-              <button onClick={() => setWhFilter('')} style={{
-                height: 30, padding: '0 12px', borderRadius: 'var(--radius-badge)',
-                border: `1px solid ${!whFilter ? 'var(--blue)' : 'var(--border)'}`,
-                background: !whFilter ? 'var(--blue-dim)' : 'var(--white)',
-                color: !whFilter ? 'var(--blue)' : 'var(--muted)', fontSize: 12, cursor: 'pointer',
-              }}>Все склады</button>
-              {warehouseList.map(w => (
-                <button key={w.id} onClick={() => setWhFilter(String(w.id))} style={{
-                  height: 30, padding: '0 12px', borderRadius: 'var(--radius-badge)',
-                  border: `1px solid ${whFilter === String(w.id) ? 'var(--blue)' : 'var(--border)'}`,
-                  background: whFilter === String(w.id) ? 'var(--blue-dim)' : 'var(--white)',
-                  color: whFilter === String(w.id) ? 'var(--blue)' : 'var(--muted)', fontSize: 12, cursor: 'pointer',
-                }}>{w.name}</button>
-              ))}
+
+          {/* Search + filters */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
+              <input value={unitSearch} onChange={e => setUnitSearch(e.target.value)}
+                placeholder="Поиск по названию или серийному №..."
+                style={{ width: '100%', height: 38, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <select value={unitCat} onChange={e => setUnitCat(e.target.value)} style={{
+              height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 12, background: 'var(--white)', cursor: 'pointer',
+            }}>
+              {CATEGORIES_FILTER.map(c => <option key={c} value={c}>{c === 'all' ? 'Все категории' : categoryLabel(c)}</option>)}
+            </select>
+            {warehouseList.length > 1 && (
+              <select value={whFilter} onChange={e => setWhFilter(e.target.value)} style={{
+                height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 12, background: 'var(--white)', cursor: 'pointer',
+              }}>
+                <option value="">Все склады</option>
+                {warehouseList.map(w => <option key={w.id} value={String(w.id)}>{w.name}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* Selected units bar */}
+          {selectedUnits.length > 0 && (
+            <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 8, background: 'var(--blue-dim)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--blue)' }}>Выбрано: {selectedUnits.length} ед.</span>
+              <button onClick={() => setSelectedUnits([])} style={{ fontSize: 12, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>Очистить</button>
             </div>
           )}
-          {filteredUnits.map(u => (
-            <div key={u.id} style={{ marginBottom: 12 }}>
-              <div onClick={() => toggleUnit(u.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '12px 14px', borderRadius: 'var(--radius-card)',
-                border: `2px solid ${selectedUnits.includes(u.id) ? 'var(--blue)' : 'var(--border)'}`,
-                background: selectedUnits.includes(u.id) ? 'var(--blue-dim)' : 'var(--white)',
-                cursor: 'pointer', transition: 'all 0.15s',
-              }}>
-                <div style={{
-                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                  border: `2px solid ${selectedUnits.includes(u.id) ? 'var(--blue)' : 'var(--border)'}`,
-                  background: selectedUnits.includes(u.id) ? 'var(--blue)' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11,
-                }}>{selectedUnits.includes(u.id) ? '✓' : ''}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{u.serial}</div>
-                </div>
-              </div>
-              {selectedUnits.includes(u.id) && (
-                <div style={{ padding: '8px 14px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="number" placeholder="Цена/сутки ₽" min="0"
-                    value={prices[u.id] || ''}
-                    onChange={e => setPrices(p => ({ ...p, [u.id]: e.target.value }))}
-                    style={{ width: 160, height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }}
-                  />
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>₽ / сутки</span>
-                </div>
-              )}
-            </div>
-          ))}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
+          {/* Units list — warehouse style */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto', marginBottom: 14 }}>
+            {filteredUnits.map(u => {
+              const isSel = selectedUnits.includes(u.id)
+              return (
+                <div key={u.id} style={{
+                  background: 'var(--white)', borderRadius: 'var(--radius-card)',
+                  border: `1px solid ${isSel ? 'var(--blue)' : 'var(--border)'}`, overflow: 'hidden',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', cursor: 'pointer' }}
+                    onClick={() => toggleUnit(u.id)}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 6, flexShrink: 0,
+                      background: 'var(--bg)', border: '1px solid var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, overflow: 'hidden',
+                    }}>
+                      {u.photo_url
+                        ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : '📦'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                        {u.serial && `${u.serial} · `}{categoryLabel(u.category)}
+                      </div>
+                    </div>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 4, flexShrink: 0,
+                      border: `2px solid ${isSel ? 'var(--blue)' : 'var(--border)'}`,
+                      background: isSel ? 'var(--blue)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12,
+                    }}>{isSel ? '✓' : ''}</div>
+                  </div>
+                  {isSel && (
+                    <div style={{ padding: '6px 14px 10px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+                      <input type="number" placeholder="Цена/сутки ₽" min="0"
+                        value={prices[u.id] || ''}
+                        onChange={e => setPrices(p => ({ ...p, [u.id]: e.target.value }))}
+                        onClick={e => e.stopPropagation()}
+                        style={{ width: 140, height: 32, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 12, outline: 'none' }}
+                      />
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>₽ / сутки</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {filteredUnits.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--muted)', fontSize: 13 }}>Ничего не найдено</div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Дата выдачи</div>
               <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)}
-                style={{ width: '100%', height: 40, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
+                style={{ width: '100%', height: 40, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Плановый возврат</div>
               <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)}
-                style={{ width: '100%', height: 40, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
+                style={{ width: '100%', height: 40, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
 
           {days > 0 && selectedUnits.length > 0 && (
-            <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 8, background: 'var(--green-dim)', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ marginTop: 12, padding: '14px 16px', borderRadius: 8, background: 'var(--green-dim)', display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 13, color: 'var(--muted)' }}>{days} дн. · {selectedUnits.length} ед.</span>
               <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: 16 }}>{calcTotal().toLocaleString('ru-RU')} ₽</span>
             </div>
@@ -349,9 +379,9 @@ function NewDeal({ onDone }) {
       {step === 3 && (
         <div>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Фото к сделке</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>До 3 фото — состояние имущества при передаче</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-            {[0, 1, 2].map(i => (
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Минимум 2 фото — состояние имущества при передаче</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+            {[0, 1].map(i => (
               <PhotoUpload key={i} label={`Фото ${i + 1}`} onChange={f => setDealPhoto(i, f)} />
             ))}
           </div>

@@ -178,15 +178,15 @@ export default function DashboardPage() {
         <div className="dash-cards">
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-title">Запросы от проектов</span>
+              <span className="dash-card-title">Заявки от проектов</span>
               <button className="dash-card-link" onClick={() => navigate('/requests')}>Все →</button>
             </div>
             {reqs.length === 0
-              ? <div className="dash-card-empty">Нет новых запросов</div>
+              ? <div className="dash-card-empty">Нет новых заявок</div>
               : reqs.map(r => (
                 <div key={r.id} className="dash-req-item">
                   <div>
-                    <div className="dash-req-title">Запрос #{r.id.slice(0, 8)}</div>
+                    <div className="dash-req-title">Заявка #{r.id.slice(0, 8)}</div>
                     <div className="dash-req-sub">{(r.unit_ids || []).length} ед. · {r.notes || ''}</div>
                   </div>
                   <Button variant="secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }}

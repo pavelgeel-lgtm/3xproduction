@@ -9,9 +9,9 @@ import { units as unitsApi, requests as requestsApi, warehouses as warehousesApi
 import { useAuth } from '../../hooks/useAuth'
 
 const REQUEST_STATUSES = {
-  pending:    { label: 'Запрос отправлен',  color: 'amber' },
-  new:        { label: 'Запрос отправлен',  color: 'amber' },
-  collecting: { label: 'Собирается',        color: 'amber' },
+  pending:    { label: 'Заявка отправлена',  color: 'amber' },
+  new:        { label: 'Заявка отправлена',  color: 'amber' },
+  collecting: { label: 'В работе',           color: 'amber' },
   ready:      { label: 'Готово к выдаче',   color: 'green' },
   approved:   { label: 'Одобрено',          color: 'green' },
   issued:     { label: 'Выдано',            color: 'green' },
@@ -28,12 +28,14 @@ export default function WarehouseViewPage() {
   const [cardId, setCardId] = useState(null)
   const [whList, setWhList] = useState([])
   const [selectedWh, setSelectedWh] = useState('all')
+  const [cart, setCart] = useState([])
+  const [showCart, setShowCart] = useState(false)
+  const [cartSending, setCartSending] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
     warehousesApi.list().then(d => setWhList(d.warehouses || [])).catch(() => {})
     unitsApi.list().then(d => setUnits(d.units || [])).catch(() => {}).finally(() => setLoading(false))
-    // Load existing requests to restore state
     if (user?.id) {
       const params = user.project_id ? { project_id: user.project_id } : { requester_id: user.id }
       requestsApi.list(params).then(d => {
@@ -49,24 +51,34 @@ export default function WarehouseViewPage() {
     }
   }, [user?.id])
 
+  function addToCart(id) {
+    if (!cart.includes(id)) setCart(c => [...c, id])
+  }
+
+  function removeFromCart(id) {
+    setCart(c => c.filter(x => x !== id))
+  }
+
+  async function submitCart() {
+    if (!cart.length) return
+    setCartSending(true)
+    try {
+      await requestsApi.create({ unit_ids: cart, project_id: user?.project_id || null })
+      const map = { ...requestedUnits }
+      for (const id of cart) map[id] = 'pending'
+      setRequestedUnits(map)
+      setCart([])
+      setShowCart(false)
+    } catch { alert('Ошибка отправки заявки') }
+    setCartSending(false)
+  }
+
   const filtered = units.filter(u => {
     const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || (u.serial || '').toLowerCase().includes(search.toLowerCase())
     const matchCat = category === 'all' || u.category === category
     const matchWh = selectedWh === 'all' || u.warehouse_id === selectedWh
     return matchSearch && matchCat && matchWh
   })
-
-  async function requestUnit(id) {
-    setRequestedUnits(r => ({ ...r, [id]: 'pending' }))
-    try {
-      await requestsApi.create({
-        unit_ids: [id],
-        project_id: user?.project_id || null,
-      })
-    } catch {
-      setRequestedUnits(r => ({ ...r, [id]: null }))
-    }
-  }
 
   return (
     <ProductionLayout>
@@ -138,13 +150,20 @@ export default function WarehouseViewPage() {
 
                   <Badge color={STATUS_COLOR[u.status]}>{STATUS_LABEL[u.status]}</Badge>
 
-                  {/* Request button / status */}
+                  {/* Cart / status */}
                   <div onClick={e => e.stopPropagation()}>
                     {!reqStatus && u.status === 'on_stock' ? (
-                      <Button style={{ height: 34, fontSize: 13, padding: '0 14px' }}
-                        onClick={() => requestUnit(u.id)}>
-                        Запросить
-                      </Button>
+                      cart.includes(u.id) ? (
+                        <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 14px', color: 'var(--red)' }}
+                          onClick={() => removeFromCart(u.id)}>
+                          Убрать
+                        </Button>
+                      ) : (
+                        <Button style={{ height: 34, fontSize: 13, padding: '0 14px' }}
+                          onClick={() => addToCart(u.id)}>
+                          В корзину
+                        </Button>
+                      )
                     ) : reqStatus && REQUEST_STATUSES[reqStatus] ? (
                       <Badge color={REQUEST_STATUSES[reqStatus].color}>
                         {REQUEST_STATUSES[reqStatus].label}
@@ -171,6 +190,70 @@ export default function WarehouseViewPage() {
         {loading && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>Загрузка...</div>}
       </div>
       {cardId && <UnitCardModal unitId={cardId} onClose={() => setCardId(null)} />}
+
+      {/* Floating cart button */}
+      {cart.length > 0 && !showCart && (
+        <button onClick={() => setShowCart(true)} style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 300,
+          height: 52, padding: '0 24px', borderRadius: 26,
+          background: 'var(--blue)', color: '#fff', border: 'none',
+          fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          🛒 Корзина ({cart.length})
+        </button>
+      )}
+
+      {/* Cart modal */}
+      {showCart && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowCart(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 500, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Корзина ({cart.length})</div>
+            {cart.length === 0 ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Корзина пуста</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {cart.map(uid => {
+                  const u = units.find(x => x.id === uid)
+                  if (!u) return null
+                  return (
+                    <div key={uid} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                      borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)',
+                    }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 6, flexShrink: 0,
+                        background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 16, overflow: 'hidden',
+                      }}>
+                        {u.photo_url
+                          ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : '📦'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{u.serial || ''}</div>
+                      </div>
+                      <button onClick={() => removeFromCart(uid)} style={{
+                        fontSize: 18, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px',
+                      }}>×</button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowCart(false)}>Закрыть</Button>
+              <Button fullWidth disabled={cart.length === 0 || cartSending} onClick={submitCart}>
+                {cartSending ? 'Отправка...' : `Оформить заявку (${cart.length})`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProductionLayout>
   )
 }
