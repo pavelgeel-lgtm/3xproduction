@@ -1,10 +1,22 @@
-const { PDFDocument, rgb, StandardFonts } = require('pdf-lib')
+const { PDFDocument, rgb } = require('pdf-lib')
+const fontkit = require('@pdf-lib/fontkit')
+const fs = require('fs')
+const path = require('path')
+
+const ROBOTO_REG  = fs.readFileSync(path.join(__dirname, '../assets/Roboto-Regular.ttf'))
+const ROBOTO_BOLD = fs.readFileSync(path.join(__dirname, '../assets/Roboto-Bold.ttf'))
+
+async function embedFonts(doc) {
+  doc.registerFontkit(fontkit)
+  const font = await doc.embedFont(ROBOTO_REG)
+  const bold = await doc.embedFont(ROBOTO_BOLD)
+  return { font, bold }
+}
 
 async function createIssuancePDF({ unit, issuedTo, issuedBy, deadline, signatureDataUrl, items }) {
   const doc  = await PDFDocument.create()
   const page = doc.addPage([595, 842]) // A4
-  const font = await doc.embedFont(StandardFonts.Helvetica)
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const { font, bold } = await embedFonts(doc)
   const { height } = page.getSize()
 
   let y = height - 60
@@ -80,8 +92,7 @@ async function createIssuancePDF({ unit, issuedTo, issuedBy, deadline, signature
 async function createReturnPDF({ items, returnedBy, acceptedBy, conditionNotes, signatureDataUrl }) {
   const doc  = await PDFDocument.create()
   const page = doc.addPage([595, 842])
-  const font = await doc.embedFont(StandardFonts.Helvetica)
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const { font, bold } = await embedFonts(doc)
   const { height } = page.getSize()
 
   let y = height - 60
@@ -143,8 +154,7 @@ async function createReturnPDF({ items, returnedBy, acceptedBy, conditionNotes, 
 async function createExtensionPDF({ items, newDeadline, initiatorName, acceptorName, initiatorSig, acceptorSig }) {
   const doc  = await PDFDocument.create()
   const page = doc.addPage([595, 842])
-  const font = await doc.embedFont(StandardFonts.Helvetica)
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const { font, bold } = await embedFonts(doc)
   const { height } = page.getSize()
   let y = height - 60
 
