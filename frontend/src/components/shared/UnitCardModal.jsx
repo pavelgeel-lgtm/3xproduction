@@ -27,6 +27,8 @@ export default function UnitCardModal({ unitId, onClose }) {
   // Writeoff
   const [showWriteoff, setShowWriteoff]     = useState(false)
   const [writeoffReason, setWriteoffReason] = useState('')
+  // Delete
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const isWarehouse = WAREHOUSE_ROLES.includes(user?.role)
   const isDirector  = DIRECTOR_ROLES.includes(user?.role)
@@ -76,8 +78,15 @@ export default function UnitCardModal({ unitId, onClose }) {
 
   async function handleWriteoff() {
     if (!writeoffReason.trim()) return
-    await unitsApi.writeoff(unitId, writeoffReason)
-    onClose()
+    try {
+      const action = user?.role === 'warehouse_deputy'
+        ? unitsApi.requestWriteoff(unitId, writeoffReason)
+        : unitsApi.writeoff(unitId, writeoffReason)
+      await action
+      onClose()
+    } catch (e) {
+      alert(e.message || 'Ошибка при списании')
+    }
   }
 
   if (loading) return (
@@ -171,8 +180,14 @@ export default function UnitCardModal({ unitId, onClose }) {
               )}
               {isDirector && (
                 <Button variant="secondary" style={{ color: 'var(--red)' }}
-                  onClick={() => { setShowWriteoff(v => !v); setShowCell(false) }}>
+                  onClick={() => { setShowWriteoff(v => !v); setShowCell(false); setShowDeleteConfirm(false) }}>
                   Списать
+                </Button>
+              )}
+              {user?.role === 'warehouse_director' && (
+                <Button variant="secondary" style={{ color: 'var(--red)' }}
+                  onClick={() => { setShowDeleteConfirm(v => !v); setShowWriteoff(false); setShowCell(false) }}>
+                  Удалить
                 </Button>
               )}
             </div>
@@ -204,6 +219,19 @@ export default function UnitCardModal({ unitId, onClose }) {
               >
                 {cellSaving ? 'Сохранение...' : 'Сохранить'}
               </Button>
+            </div>
+          )}
+
+          {/* Delete confirmation panel */}
+          {showDeleteConfirm && (
+            <div style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, marginBottom: 8, border: '1px solid var(--red)' }}>
+              <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Вы уверены, что хотите удалить позицию? Это действие необратимо.</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button variant="secondary" fullWidth onClick={() => setShowDeleteConfirm(false)}>Отмена</Button>
+                <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => {
+                  try { await unitsApi.delete(unitId); onClose() } catch (e) { alert(e.message || 'Ошибка') }
+                }}>Удалить</Button>
+              </div>
             </div>
           )}
 

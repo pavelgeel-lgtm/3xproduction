@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   FileText, List, Package, BarChart2,
@@ -6,6 +6,9 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
+import { projects as projectsApi, invites as invitesApi } from '../../services/api'
+import Button from '../shared/Button'
+import Input from '../shared/Input'
 
 const css = `
 .pl-root { display: flex; min-height: 100vh; background: var(--bg); }
@@ -208,19 +211,60 @@ function buildNav(role) {
   return nav
 }
 
-const PROJECTS = ['Наш спецназ', 'Великолепная пятерка', 'Спецы', 'Небо']
-
 export default function ProductionLayout({ children }) {
   const [burger, setBurger] = useState(false)
   const [projectOpen, setProjectOpen] = useState(false)
-  const [selectedProject, setSelectedProject] = useState(() => localStorage.getItem('project') || 'Наш спецназ')
+  const [projectsList, setProjectsList] = useState([])
+  const [selectedProject, setSelectedProject] = useState(() => localStorage.getItem('project') || '')
+  const [showNewProject, setShowNewProject] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [creatingProject, setCreatingProject] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteRole, setInviteRole] = useState('project_director')
+  const [inviteLink, setInviteLink] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
+  const isProducer = user?.role === 'producer'
+
+  useEffect(() => {
+    projectsApi.list().then(d => {
+      const list = (d.projects || []).map(p => p.name)
+      setProjectsList(list)
+      if (!selectedProject && list.length) {
+        setSelectedProject(list[0])
+        localStorage.setItem('project', list[0])
+      }
+    }).catch(() => {})
+  }, [])
 
   function selectProject(p) {
     localStorage.setItem('project', p)
     setSelectedProject(p)
     setProjectOpen(false)
+  }
+
+  async function handleCreateProject() {
+    if (!newProjectName.trim()) return
+    setCreatingProject(true)
+    try {
+      await projectsApi.create(newProjectName.trim())
+      setProjectsList(prev => [...prev, newProjectName.trim()])
+      selectProject(newProjectName.trim())
+      setNewProjectName('')
+      setShowNewProject(false)
+    } catch (e) { alert(e.message || 'Ошибка') }
+    setCreatingProject(false)
+  }
+
+  async function handleGenerateInvite() {
+    setInviteLoading(true)
+    try {
+      const proj = projectsList.find(p => p === selectedProject)
+      const d = await invitesApi.generate({ role: inviteRole, project_id: user?.project_id })
+      setInviteLink(`${window.location.origin}/invite/${d.token}`)
+    } catch (e) { alert(e.message || 'Ошибка') }
+    setInviteLoading(false)
   }
 
   const role = user?.role || ''
@@ -254,9 +298,15 @@ export default function ProductionLayout({ children }) {
             </button>
             {projectOpen && (
               <div className="pl-project-dd">
-                {PROJECTS.map(p => (
+                {projectsList.map(p => (
                   <button key={p} className={`pl-project-opt${selectedProject === p ? ' sel' : ''}`} onClick={() => selectProject(p)}>{p}</button>
                 ))}
+                {isProducer && (
+                  <button className="pl-project-opt" style={{ color: 'var(--accent)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                    onClick={() => { setProjectOpen(false); setShowNewProject(true) }}>
+                    + Добавить новый
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -357,6 +407,64 @@ export default function ProductionLayout({ children }) {
           </div>
         )}
       </div>
+
+      {/* New project modal */}
+      {showNewProject && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowNewProject(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 400, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Новый проект</div>
+            <Input label="Название проекта" placeholder="Название..." value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowNewProject(false)}>Отмена</Button>
+              <Button fullWidth disabled={!newProjectName.trim() || creatingProject} onClick={handleCreateProject}>
+                {creatingProject ? 'Создание...' : 'Создать'}
+              </Button>
+            </div>
+            {isProducer && (
+              <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <Button variant="secondary" fullWidth onClick={() => { setShowNewProject(false); setShowInvite(true) }}>
+                  Пригласить участника
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Invite modal */}
+      {showInvite && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => { setShowInvite(false); setInviteLink('') }}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 420, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Пригласить участника</div>
+            <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4, color: 'var(--muted)' }}>Роль</div>
+            <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
+              style={{ width: '100%', height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', marginBottom: 12 }}>
+              {Object.entries(ROLES).filter(([, v]) => v.world).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+            {!inviteLink ? (
+              <Button fullWidth disabled={inviteLoading} onClick={handleGenerateInvite}>
+                {inviteLoading ? 'Генерация...' : 'Сгенерировать ссылку'}
+              </Button>
+            ) : (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4, color: 'var(--muted)' }}>Ссылка приглашения</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input readOnly value={inviteLink}
+                    style={{ flex: 1, height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 12, background: 'var(--bg)' }} />
+                  <Button onClick={() => { navigator.clipboard.writeText(inviteLink); }}>Копировать</Button>
+                </div>
+              </div>
+            )}
+            <Button variant="secondary" fullWidth style={{ marginTop: 12 }} onClick={() => { setShowInvite(false); setInviteLink('') }}>Закрыть</Button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -1,27 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
 import Input from '../shared/Input'
 
-const MOCK_UNITS = [
-  { id: '1', name: 'Кресло Честерфилд', category: 'Мебель', description: 'Кожаное, коричневое, 2 шт.', status: 'on_stock' },
-  { id: '2', name: 'Стол обеденный', category: 'Мебель', description: 'Дерево, раздвижной, 6 персон.', status: 'on_stock' },
-  { id: '3', name: 'Зеркало настенное', category: 'Декор', description: 'Рама золочёная, 120×80 см.', status: 'on_stock' },
-  { id: '4', name: 'Торшер бронзовый', category: 'Декор', description: 'Высота 160 см, абажур кремовый.', status: 'on_stock' },
-  { id: '5', name: 'Диван угловой', category: 'Мебель', description: 'Серая рогожка, модульный.', status: 'issued' },
-  { id: '6', name: 'Сервиз чайный', category: 'Реквизит', description: 'Фарфор, 12 предметов.', status: 'on_stock' },
-]
+const BASE = import.meta.env.VITE_API_URL || ''
 
 export default function PublicWarehousePage() {
+  const { token } = useParams()
   const [step, setStep] = useState('auth') // auth | browse | request | done
   const [form, setForm] = useState({ name: '', phone: '' })
+  const [units, setUnits] = useState([])
+  const [loadError, setLoadError] = useState(null)
   const [requestUnit, setRequestUnit] = useState(null)
   const [requestForm, setRequestForm] = useState({ message: '', dates: '' })
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Все')
 
-  const categories = ['Все', ...new Set(MOCK_UNITS.map(u => u.category))]
-  const filtered = MOCK_UNITS.filter(u => {
+  useEffect(() => {
+    fetch(`${BASE}/public/warehouse/${token}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setLoadError(d.error); return }
+        setUnits(d.units || [])
+      })
+      .catch(() => setLoadError('Не удалось загрузить каталог'))
+  }, [token])
+
+  const categories = ['Все', ...new Set(units.map(u => u.category).filter(Boolean))]
+  const filtered = units.filter(u => {
     const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase())
     const matchCat = category === 'Все' || u.category === category
     return matchSearch && matchCat
@@ -46,8 +53,16 @@ export default function PublicWarehousePage() {
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
 
+        {loadError && (
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>❌</div>
+            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Ссылка недействительна</h2>
+            <p style={{ color: 'var(--muted)', fontSize: 14 }}>{loadError}</p>
+          </div>
+        )}
+
         {/* Step: auth */}
-        {step === 'auth' && (
+        {!loadError && step === 'auth' && (
           <div style={{ maxWidth: 400, margin: '0 auto' }}>
             <div style={{
               background: 'var(--white)', borderRadius: 'var(--radius-card)',
@@ -180,7 +195,13 @@ export default function PublicWarehousePage() {
                 />
               </div>
 
-              <Button fullWidth onClick={() => setStep('done')}>Отправить запрос</Button>
+              <Button fullWidth onClick={() => {
+                fetch(`${BASE}/public/warehouse/${token}/request`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: form.name, phone: form.phone, unit_id: requestUnit.id, message: requestForm.message, dates: requestForm.dates }),
+                }).then(() => setStep('done')).catch(() => alert('Ошибка при отправке'))
+              }}>Отправить запрос</Button>
             </div>
           </div>
         )}

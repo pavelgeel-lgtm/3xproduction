@@ -62,26 +62,40 @@ router.get('/', verifyJWT, async (req, res) => {
 router.get('/:type/items', verifyJWT, async (req, res) => {
   const { type } = req.params
   const projectId = req.query.project_id || req.user.project_id
-  const targetUserId = req.query.user_id || req.user.id
+  const targetUserId = req.query.user_id
+  const seeAll = SEE_ALL_ROLES.includes(req.user.role)
 
   // Permission check
   const ownTypes = getOwnTypes(req.user.role)
-  const seeAll = SEE_ALL_ROLES.includes(req.user.role)
   if (!seeAll && !ownTypes.includes(type)) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
   try {
-    // Find or create list
+    // If seeAll and no specific user_id — return all items for this project+type
+    if (seeAll && !targetUserId) {
+      const items = await db.query(
+        `SELECT i.*, u.name AS user_name FROM production_list_items i
+         JOIN production_lists l ON l.id = i.list_id
+         LEFT JOIN users u ON u.id = l.user_id
+         WHERE l.project_id=$1 AND l.type=$2
+         ORDER BY i.sort_order, i.created_at`,
+        [projectId, type]
+      )
+      return res.json({ list: null, items: items.rows })
+    }
+
+    // Find or create list for specific user
+    const userId = targetUserId || req.user.id
     let { rows } = await db.query(
       `SELECT * FROM production_lists WHERE project_id=$1 AND user_id=$2 AND type=$3`,
-      [projectId, targetUserId, type]
+      [projectId, userId, type]
     )
 
     let list
     if (rows.length) {
       list = rows[0]
-    } else if (targetUserId === req.user.id) {
+    } else if (userId === String(req.user.id)) {
       // Auto-create own list
       const ins = await db.query(
         `INSERT INTO production_lists (project_id, user_id, type)

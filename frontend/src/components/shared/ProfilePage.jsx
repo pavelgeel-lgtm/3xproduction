@@ -9,10 +9,12 @@ import { auth } from '../../services/api'
 
 export default function ProfilePage() {
   const { user, login } = useAuth()
-  const isProducer = user?.role === 'producer'
   const [nameVal, setNameVal] = useState(user?.name || '')
   const [nameSaving, setNameSaving] = useState(false)
   const [nameSaved, setNameSaved] = useState(false)
+  const [phoneVal, setPhoneVal] = useState(user?.phone || '')
+  const [phoneSaving, setPhoneSaving] = useState(false)
+  const [phoneSaved, setPhoneSaved] = useState(false)
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [pwErrors, setPwErrors] = useState({})
   const [pwSaved, setPwSaved] = useState(false)
@@ -78,35 +80,56 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {isProducer && (
-          <div style={{
-            background: 'var(--white)', borderRadius: 'var(--radius-card)',
-            border: '1px solid var(--border)', padding: '24px', marginBottom: 20,
-          }}>
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14 }}>Имя и фамилия</div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <Input label="ФИО" value={nameVal} onChange={e => setNameVal(e.target.value)} />
-              </div>
-              <Button disabled={nameSaving || !nameVal.trim() || nameVal === user?.name}
-                style={{ height: 40, flexShrink: 0 }}
-                onClick={async () => {
-                  setNameSaving(true)
-                  try {
-                    await auth.changeName(nameVal.trim())
-                    const updated = { ...user, name: nameVal.trim() }
-                    login(localStorage.getItem('token'), updated)
-                    setNameSaved(true)
-                    setTimeout(() => setNameSaved(false), 2500)
-                  } catch {}
-                  setNameSaving(false)
-                }}>
-                {nameSaving ? '...' : 'Сохранить'}
-              </Button>
+        <div style={{
+          background: 'var(--white)', borderRadius: 'var(--radius-card)',
+          border: '1px solid var(--border)', padding: '24px', marginBottom: 20,
+        }}>
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14 }}>Имя и фамилия</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <Input label="ФИО" value={nameVal} onChange={e => setNameVal(e.target.value)} />
             </div>
-            {nameSaved && <div style={{ color: 'var(--green)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>Сохранено</div>}
+            <Button disabled={nameSaving || !nameVal.trim() || nameVal === user?.name}
+              style={{ height: 40, flexShrink: 0 }}
+              onClick={async () => {
+                setNameSaving(true)
+                try {
+                  await auth.changeName(nameVal.trim())
+                  const updated = { ...user, name: nameVal.trim() }
+                  login(localStorage.getItem('token'), updated)
+                  setNameSaved(true)
+                  setTimeout(() => setNameSaved(false), 2500)
+                } catch {}
+                setNameSaving(false)
+              }}>
+              {nameSaving ? '...' : 'Сохранить'}
+            </Button>
           </div>
-        )}
+          {nameSaved && <div style={{ color: 'var(--green)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>Сохранено</div>}
+
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14, marginTop: 20 }}>Телефон</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <Input label="Номер телефона" placeholder="+7 900 000 00 00" value={phoneVal} onChange={e => setPhoneVal(e.target.value)} />
+            </div>
+            <Button disabled={phoneSaving || !phoneVal.trim() || phoneVal === (user?.phone || '')}
+              style={{ height: 40, flexShrink: 0 }}
+              onClick={async () => {
+                setPhoneSaving(true)
+                try {
+                  await auth.changePhone(phoneVal.trim())
+                  const updated = { ...user, phone: phoneVal.trim() }
+                  login(localStorage.getItem('token'), updated)
+                  setPhoneSaved(true)
+                  setTimeout(() => setPhoneSaved(false), 2500)
+                } catch {}
+                setPhoneSaving(false)
+              }}>
+              {phoneSaving ? '...' : 'Сохранить'}
+            </Button>
+          </div>
+          {phoneSaved && <div style={{ color: 'var(--green)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>Сохранено</div>}
+        </div>
 
         <div style={{
           background: 'var(--white)', borderRadius: 'var(--radius-card)',

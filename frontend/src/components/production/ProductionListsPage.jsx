@@ -25,6 +25,7 @@ const SOURCE_BADGE = {
   manual:   { label: 'Вручную',  bg: 'var(--bg)',        color: 'var(--muted)' },
 }
 
+const HIDE_LIST_TYPES_ROLES = ['set_admin', 'project_director']
 const SEE_ALL_ROLES = ['production_designer', 'art_director_assistant', 'director', 'project_director', 'producer',
   'project_deputy_upload', 'project_deputy', 'set_admin', 'assistant_director',
   'gaffer', 'dop', 'camera_mechanic', 'casting_director', 'casting_assistant', 'playback', 'driver']
@@ -37,7 +38,8 @@ export default function ProductionListsPage() {
   const ownListTypes = roleDef.ownLists === undefined ? [] :
     (roleDef.ownLists[0] === 'all' ? Object.keys(LIST_TYPES) : roleDef.ownLists)
   const canSeeAll = SEE_ALL_ROLES.includes(role)
-  const visibleTypes = canSeeAll ? Object.keys(LIST_TYPES) : ownListTypes
+  const hideListTypes = HIDE_LIST_TYPES_ROLES.includes(role)
+  const visibleTypes = hideListTypes ? [] : (canSeeAll ? Object.keys(LIST_TYPES) : ownListTypes)
 
   const [activeType, setActiveType] = useState(visibleTypes[0] || 'props')
   const [tab, setTab] = useState('Мой список')
@@ -249,12 +251,12 @@ export default function ProductionListsPage() {
         {/* Sub-tabs: Мой список / Сверка ИИ */}
         <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid var(--border)', marginTop: 0 }}>
           {TABS.map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
+            <button key={t} onClick={(e) => { setTab(t); e.currentTarget.blur() }} style={{
               padding: '8px 18px', border: 'none', background: 'none',
               fontSize: 13, cursor: 'pointer', fontWeight: 500,
               color: tab === t ? 'var(--accent)' : 'var(--muted)',
               borderBottom: `2px solid ${tab === t ? 'var(--accent)' : 'transparent'}`,
-              marginBottom: -1,
+              marginBottom: -1, outline: 'none',
             }}>{t}</button>
           ))}
         </div>

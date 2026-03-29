@@ -79,7 +79,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, project_id: user.project_id },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, project_id: user.project_id, phone: user.phone },
     })
   } catch (err) {
     console.error(err)
@@ -366,13 +366,26 @@ router.patch('/password', verifyJWT, async (req, res) => {
   }
 })
 
-// PATCH /auth/name — update own name (producer only)
-router.patch('/name', verifyJWT, checkRole('producer'), async (req, res) => {
+// PATCH /auth/name — update own name
+router.patch('/name', verifyJWT, async (req, res) => {
   const { name } = req.body
   if (!name?.trim()) return res.status(400).json({ error: 'Missing name' })
   try {
     await db.query(`UPDATE users SET name=$1 WHERE id=$2`, [name.trim(), req.user.id])
     res.json({ ok: true, name: name.trim() })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// PATCH /auth/phone — update own phone
+router.patch('/phone', verifyJWT, async (req, res) => {
+  const { phone } = req.body
+  if (!phone?.trim()) return res.status(400).json({ error: 'Missing phone' })
+  try {
+    await db.query(`UPDATE users SET phone=$1 WHERE id=$2`, [phone.trim(), req.user.id])
+    res.json({ ok: true, phone: phone.trim() })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })

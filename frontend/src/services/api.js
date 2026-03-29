@@ -47,6 +47,7 @@ export const auth = {
   recoverReset:   (email, code, password) =>
     request('POST', '/auth/recover/reset', { email, code, password }),
   changeName:     (name)           => request('PATCH', '/auth/name',     { name }),
+  changePhone:    (phone)          => request('PATCH', '/auth/phone',    { phone }),
   changePassword: (current, next) => request('PATCH', '/auth/password', { current, next }),
 }
 
@@ -142,6 +143,12 @@ export const rent = {
 export const publicApi = {
   catalog: (token)       => request('GET',  `/public/warehouse/${token}`),
   sendRequest: (token, body) => request('POST', `/public/warehouse/${token}/request`, body),
+}
+
+// ─── Projects ────────────────────────────────────────────────────────────────
+export const projects = {
+  list:   () => request('GET',  '/projects'),
+  create: (name) => request('POST', '/projects', { name }),
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────

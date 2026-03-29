@@ -71,6 +71,23 @@ app.get('/projects', require('./middleware/auth').verifyJWT, async (req, res) =>
   }
 })
 
+// POST /projects — create new project (producer only)
+const { checkRole } = require('./middleware/auth')
+app.post('/projects', require('./middleware/auth').verifyJWT, checkRole('producer'), async (req, res) => {
+  const { name } = req.body
+  if (!name?.trim()) return res.status(400).json({ error: 'Missing project name' })
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO projects (name) VALUES ($1) RETURNING *`,
+      [name.trim()]
+    )
+    res.status(201).json({ project: rows[0] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // Notifications polling endpoint
 const { verifyJWT } = require('./middleware/auth')
 const db = require('./db')

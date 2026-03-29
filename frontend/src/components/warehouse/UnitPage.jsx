@@ -21,6 +21,7 @@ export default function UnitPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [editSaving, setEditSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const isDirectorOrDeputy = ['warehouse_director', 'warehouse_deputy'].includes(user?.role)
   const isDirector = user?.role === 'warehouse_director'
@@ -190,11 +191,7 @@ export default function UnitPage() {
               )}
               {isDirector && (
                 <Button variant="secondary" style={{ color: 'var(--red)' }}
-                  onClick={() => {
-                    if (window.confirm(`Удалить «${unit.name}»? Это действие необратимо.`)) {
-                      unitsApi.delete(unit.id).then(() => navigate('/units'))
-                    }
-                  }}>
+                  onClick={() => setShowDeleteConfirm(true)}>
                   Удалить
                 </Button>
               )}
@@ -280,6 +277,28 @@ export default function UnitPage() {
                   action.then(() => navigate('/units'))
                 }}>
                 {user?.role === 'warehouse_deputy' ? 'Отправить заявку' : 'Списать'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowDeleteConfirm(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 400, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Удалить позицию</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+              Вы уверены, что хотите удалить «{unit.name}»? Это действие необратимо.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowDeleteConfirm(false)}>Отмена</Button>
+              <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }}
+                onClick={() => {
+                  unitsApi.delete(unit.id).then(() => navigate('/units')).catch(() => alert('Ошибка при удалении'))
+                  setShowDeleteConfirm(false)
+                }}>
+                Удалить
               </Button>
             </div>
           </div>
