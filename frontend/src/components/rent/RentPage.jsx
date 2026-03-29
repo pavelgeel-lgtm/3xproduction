@@ -195,6 +195,9 @@ function NewDeal({ onDone }) {
         counterparty_type: cpType,
         counterparty_contact: form.contact,
         counterparty_email: form.email,
+        inn: form.inn,
+        legal_address: form.legal_address,
+        extra_contact: form.extra_contact,
         unit_ids: selectedUnits,
         period_start: dateStart,
         period_end: dateEnd,
@@ -252,8 +255,15 @@ function NewDeal({ onDone }) {
             ))}
           </div>
           <Input label={cpType === 'person' ? 'ФИО' : 'Название компании'} placeholder={cpType === 'person' ? 'Иванов Иван Иванович' : 'ООО «Реквизит+»'} value={form.name} onChange={set('name')} />
+          {cpType === 'company' && (
+            <>
+              <Input label="ИНН" placeholder="1234567890" value={form.inn || ''} onChange={set('inn')} />
+              <Input label="Юридический адрес" placeholder="г. Москва, ул. Примерная, д. 1" value={form.legal_address || ''} onChange={set('legal_address')} />
+            </>
+          )}
           <Input label="Контакт (телефон)" placeholder="+7 900 000 00 00" value={form.contact} onChange={set('contact')} />
           <Input label="Email" type="email" placeholder="client@example.com" value={form.email} onChange={set('email')} />
+          <Input label="Дополнительный контакт" placeholder="Имя, телефон или email" value={form.extra_contact || ''} onChange={set('extra_contact')} />
           <Button fullWidth disabled={!form.name} onClick={() => setStep(2)} style={{ marginTop: 8 }}>
             Далее — Единицы
           </Button>
@@ -264,27 +274,12 @@ function NewDeal({ onDone }) {
         <div>
           <div style={{ fontWeight: 600, marginBottom: 14 }}>Единицы и период</div>
 
-          {/* Search + filters */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
-              <input value={unitSearch} onChange={e => setUnitSearch(e.target.value)}
-                placeholder="Поиск по названию или серийному №..."
-                style={{ width: '100%', height: 38, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-            <select value={unitCat} onChange={e => setUnitCat(e.target.value)} style={{
-              height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 12, background: 'var(--white)', cursor: 'pointer',
-            }}>
-              {CATEGORIES_FILTER.map(c => <option key={c} value={c}>{c === 'all' ? 'Все категории' : categoryLabel(c)}</option>)}
-            </select>
-            {warehouseList.length > 1 && (
-              <select value={whFilter} onChange={e => setWhFilter(e.target.value)} style={{
-                height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 12, background: 'var(--white)', cursor: 'pointer',
-              }}>
-                <option value="">Все склады</option>
-                {warehouseList.map(w => <option key={w.id} value={String(w.id)}>{w.name}</option>)}
-              </select>
-            )}
+          {/* Search */}
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
+            <input value={unitSearch} onChange={e => setUnitSearch(e.target.value)}
+              placeholder="Поиск по названию или серийному №..."
+              style={{ width: '100%', height: 38, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
           {/* Selected units bar */}
@@ -295,9 +290,9 @@ function NewDeal({ onDone }) {
             </div>
           )}
 
-          {/* Units list — warehouse style */}
+          {/* Units list — only show search results or selected */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto', marginBottom: 14 }}>
-            {filteredUnits.map(u => {
+            {(unitSearch ? filteredUnits : availableUnits.filter(u => selectedUnits.includes(u.id))).map(u => {
               const isSel = selectedUnits.includes(u.id)
               return (
                 <div key={u.id} style={{
@@ -342,7 +337,7 @@ function NewDeal({ onDone }) {
                 </div>
               )
             })}
-            {filteredUnits.length === 0 && (
+            {unitSearch && filteredUnits.length === 0 && (
               <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--muted)', fontSize: 13 }}>Ничего не найдено</div>
             )}
           </div>

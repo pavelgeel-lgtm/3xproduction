@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ClipboardList, Package, Grid3x3,
   Users, FileText, Handshake, BarChart2, Bell,
-  User, X, Menu, ChevronDown, LogOut, Clock, AlertTriangle
+  User, X, Menu, ChevronDown, LogOut, Clock, AlertTriangle, ArrowLeft
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -71,8 +71,8 @@ const css = `
   padding: 22px 20px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.wl-logo-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; cursor: pointer; }
-.wl-logo-sub { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 2px; }
+.wl-logo-title { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; cursor: pointer; }
+.wl-logo-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 3px; }
 
 .wl-warehouse {
   padding: 12px 12px 8px;
@@ -151,6 +151,14 @@ const css = `
 
 /* ── Main ── */
 .wl-main { margin-left: 240px; flex: 1; min-height: 100vh; }
+.wl-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; color: var(--muted);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 8px 12px 0; font-family: inherit;
+  transition: color 0.12s;
+}
+.wl-back:hover { color: var(--text); }
 
 /* ── Mobile top bar ── */
 .wl-topbar {
@@ -274,7 +282,9 @@ export default function WarehouseLayout({ children }) {
   const [whOpen, setWhOpen] = useState(false)
   const [selectedWh, setSelectedWh] = useState(() => localStorage.getItem('warehouse') || 'Все склады')
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useAuth()
+  const showBack = location.pathname !== '/dashboard'
 
   function selectWarehouse(w) {
     localStorage.setItem('warehouse', w)
@@ -297,19 +307,6 @@ export default function WarehouseLayout({ children }) {
             <div className="wl-logo-sub">Production</div>
           </div>
 
-          <div className="wl-warehouse">
-            <button className="wl-warehouse-btn" onClick={() => setWhOpen(o => !o)}>
-              <span>{selectedWh}</span>
-              <ChevronDown size={12} style={{ transform: whOpen ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
-            </button>
-            {whOpen && (
-              <div className="wl-warehouse-dd">
-                {WAREHOUSES.map(w => (
-                  <button key={w} className={`wl-warehouse-opt${selectedWh === w ? ' sel' : ''}`} onClick={() => selectWarehouse(w)}>{w}</button>
-                ))}
-              </div>
-            )}
-          </div>
 
           <nav className="wl-nav">
             {NAV.map(group => (
@@ -353,7 +350,14 @@ export default function WarehouseLayout({ children }) {
         </div>
 
         {/* Main content */}
-        <main className="wl-main">{children}</main>
+        <main className="wl-main">
+          {showBack && (
+            <button className="wl-back" onClick={() => navigate(-1)}>
+              <ArrowLeft size={16} /> Назад
+            </button>
+          )}
+          {children}
+        </main>
 
         {/* Mobile bottom nav */}
         <nav className="wl-mobile-nav">

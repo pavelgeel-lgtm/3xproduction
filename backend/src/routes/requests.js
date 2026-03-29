@@ -16,15 +16,19 @@ router.post('/', verifyJWT, async (req, res) => {
     )
     const request = rows[0]
 
-    // Get unit names for notification
+    // Get unit names + requester info for notification
     const { rows: units } = await db.query(
       `SELECT name FROM units WHERE id = ANY($1)`, [unit_ids]
     )
     const names = units.map(u => u.name).join(', ')
+    const { rows: reqUser } = await db.query(
+      `SELECT u.name, p.name AS project_name FROM users u LEFT JOIN projects p ON p.id = u.project_id WHERE u.id = $1`, [req.user.id]
+    )
+    const from = reqUser[0] ? [reqUser[0].project_name, reqUser[0].name].filter(Boolean).join(' · ') : ''
 
     await notifyWarehouse({
       type: 'new_request',
-      text: `Новый запрос: ${names}`,
+      text: `Новый запрос${from ? ` от ${from}` : ''}: ${names}`,
       entity_id: request.id,
       entity_type: 'request',
     })
@@ -70,10 +74,12 @@ router.get('/', verifyJWT, async (req, res) => {
       }
     }
     let q = `
-      SELECT r.*, u.name AS requester_name, u.role AS requester_role,
+      SELECT r.*, u.name AS requester_name, u.role AS requester_role, u.email AS requester_email,
+             p.name AS project_name,
              i.id AS issuance_id, i.return_requested_at
       FROM requests r
       JOIN users u ON u.id = r.requester_id
+      LEFT JOIN projects p ON p.id = r.project_id
       LEFT JOIN issuances i ON i.request_id = r.id
       WHERE 1=1
     `

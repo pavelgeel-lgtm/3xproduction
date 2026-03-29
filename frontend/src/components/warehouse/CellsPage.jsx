@@ -94,6 +94,10 @@ export default function CellsPage() {
                   <span style={{ fontSize: 12, color: 'var(--muted)' }}>
                     {cells.filter(c => !c.unit_id || c.unit_status !== 'on_stock').length} свободных из {cells.length}
                   </span>
+                  <button onClick={(e) => { e.stopPropagation(); navigate(`/cells/constructor?warehouse=${selWh}&section=${section.id}`) }}
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', fontSize: 12, color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}>
+                    + Добавить
+                  </button>
                 </div>
                 <div className="cells-grid" style={{
                   display: 'grid',

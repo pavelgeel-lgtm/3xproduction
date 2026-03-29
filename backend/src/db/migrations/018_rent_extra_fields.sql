@@ -1,0 +1,3 @@
+ALTER TABLE rent_deals ADD COLUMN IF NOT EXISTS inn TEXT;
+ALTER TABLE rent_deals ADD COLUMN IF NOT EXISTS legal_address TEXT;
+ALTER TABLE rent_deals ADD COLUMN IF NOT EXISTS extra_contact TEXT;

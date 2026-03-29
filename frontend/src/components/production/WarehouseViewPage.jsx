@@ -31,6 +31,7 @@ export default function WarehouseViewPage() {
   const [cart, setCart] = useState([])
   const [showCart, setShowCart] = useState(false)
   const [cartSending, setCartSending] = useState(false)
+  const [successPopup, setSuccessPopup] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
@@ -69,6 +70,8 @@ export default function WarehouseViewPage() {
       setRequestedUnits(map)
       setCart([])
       setShowCart(false)
+      setSuccessPopup(true)
+      setTimeout(() => setSuccessPopup(false), 2500)
     } catch { alert('Ошибка отправки заявки') }
     setCartSending(false)
   }
@@ -252,6 +255,15 @@ export default function WarehouseViewPage() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+      {successPopup && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 500,
+          background: 'var(--green)', color: '#fff', padding: '12px 24px', borderRadius: 12,
+          fontWeight: 600, fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        }}>
+          Заявка успешно оформлена
         </div>
       )}
     </ProductionLayout>

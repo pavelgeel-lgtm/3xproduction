@@ -57,17 +57,19 @@ router.post('/', verifyJWT, async (req, res) => {
     )
     const unit = rows[0]
 
-    // Create approval record
-    await db.query(
-      `INSERT INTO approvals (unit_id, proposed_by, action, new_data)
-       VALUES ($1, $2, 'add', $3)`,
-      [unit.id, req.user.id, JSON.stringify(req.body)]
-    )
+    // Create approval record only for non-directors
+    if (!isDirector) {
+      await db.query(
+        `INSERT INTO approvals (unit_id, proposed_by, action, new_data)
+         VALUES ($1, $2, 'add', $3)`,
+        [unit.id, req.user.id, JSON.stringify(req.body)]
+      )
+    }
 
     // Log
     await db.query(
-      `INSERT INTO unit_history (unit_id, action, user_id) VALUES ($1, 'Добавлено (ожидает подписи)', $2)`,
-      [unit.id, req.user.id]
+      `INSERT INTO unit_history (unit_id, action, user_id) VALUES ($1, $2, $3)`,
+      [unit.id, isDirector ? 'Добавлено' : 'Добавлено (ожидает подписи)', req.user.id]
     )
 
     res.status(201).json({ unit })
@@ -151,11 +153,11 @@ router.put('/:id', verifyJWT, async (req, res) => {
 
     // Director can edit directly
     if (DIRECTOR_ROLES.includes(req.user.role)) {
-      const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation } = req.body
+      const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, materials, is_temporary } = req.body
       const { rows: updated } = await db.query(
         `UPDATE units SET name=$1,category=$2,serial=$3,warehouse_id=$4,cell_id=$5,
-         description=$6,qty=$7,condition=$8,valuation=$9 WHERE id=$10 RETURNING *`,
-        [name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, req.params.id]
+         description=$6,qty=$7,condition=$8,valuation=$9,materials=$10,is_temporary=$11 WHERE id=$12 RETURNING *`,
+        [name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, materials || null, is_temporary || false, req.params.id]
       )
       await db.query(
         `INSERT INTO unit_history (unit_id, action, user_id) VALUES ($1,'Изменено',$2)`,

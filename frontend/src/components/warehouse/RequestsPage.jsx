@@ -171,7 +171,9 @@ export default function RequestsPage() {
                         <Badge color={st.color}>{st.label}</Badge>
                       </div>
                       <div className="req-item-meta">
+                        {r.project_name && <span>{r.project_name} ·</span>}
                         <span>{r.requester_name}</span>
+                        {r.requester_email && <span>{r.requester_email}</span>}
                         <span>{ids.length} ед.</span>
                         {r.deadline && <span>до {formatDate(r.deadline)}</span>}
                         <span>{formatDate(r.created_at)}</span>

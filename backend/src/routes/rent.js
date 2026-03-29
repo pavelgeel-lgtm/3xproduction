@@ -13,6 +13,7 @@ router.post('/', verifyJWT, checkRole(...RENT_ROLES), async (req, res) => {
   const {
     type, counterparty_name, counterparty_type, counterparty_contact, counterparty_email,
     unit_ids, period_start, period_end, price_total, signature_data,
+    inn, legal_address, extra_contact,
   } = req.body
 
   if (!type || !counterparty_name || !unit_ids?.length || !period_start || !period_end) {
@@ -43,12 +44,13 @@ router.post('/', verifyJWT, checkRole(...RENT_ROLES), async (req, res) => {
       `INSERT INTO rent_deals
          (type, counterparty_name, counterparty_type, counterparty_contact, counterparty_email,
           unit_ids, period_start, period_end, price_total, signature_url, contract_pdf_url,
-          sign_token, sign_status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+          sign_token, sign_status, inn, legal_address, extra_contact)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [type, counterparty_name, counterparty_type || 'person', counterparty_contact || null,
        counterparty_email || null, unit_ids, period_start, period_end,
        price_total || null, null, contract_pdf_url,
-       signToken, signToken ? 'pending' : null]
+       signToken, signToken ? 'pending' : null,
+       inn || null, legal_address || null, extra_contact || null]
     )
     const deal = rows[0]
 

@@ -3,7 +3,7 @@ const db     = require('../db')
 const { verifyJWT, checkRole } = require('../middleware/auth')
 
 // GET /analytics/warehouse — for warehouse_director
-router.get('/warehouse', verifyJWT, checkRole('warehouse_director'), async (req, res) => {
+router.get('/warehouse', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy', 'warehouse_staff'), async (req, res) => {
   try {
     // Units by category
     const { rows: byCategory } = await db.query(`

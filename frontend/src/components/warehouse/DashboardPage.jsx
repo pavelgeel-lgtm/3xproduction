@@ -4,8 +4,9 @@ import { Bell, Plus, Package, ArrowRightLeft, AlertTriangle, Clock, MapPin } fro
 import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
-import { units as unitsApi, requests as requestsApi, issuances as issuancesApi } from '../../services/api'
+import { units as unitsApi, requests as requestsApi, issuances as issuancesApi, rent as rentApi } from '../../services/api'
 import { useNotifications } from '../../hooks/useNotifications'
+import { useAuth } from '../../hooks/useAuth'
 
 const css = `
 .dash-page { padding: 28px 32px; max-width: 1100px; }
@@ -119,6 +120,7 @@ const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'nu
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { items: notifs, unreadCount } = useNotifications()
   const [stats, setStats] = useState({ on_stock: 0, issued: 0, overdue: 0, pending: 0, no_cell: 0 })
   const [reqs, setReqs] = useState([])
@@ -161,6 +163,20 @@ export default function DashboardPage() {
             <p className="dash-sub">{today}</p>
           </div>
           <div className="dash-header-actions">
+            {user?.role === 'warehouse_director' && (
+              <Button variant="secondary" onClick={async () => {
+                try {
+                  const data = await rentApi.generateLink()
+                  const url = data.url || data.link
+                  if (url) {
+                    await navigator.clipboard.writeText(url)
+                    alert('Ссылка скопирована в буфер обмена')
+                  }
+                } catch (e) { alert(e.message || 'Ошибка') }
+              }}>
+                Публичная ссылка
+              </Button>
+            )}
             <Button variant="primary" onClick={() => navigate('/units')}>
               <Plus size={15} />
               Добавить
@@ -196,7 +212,7 @@ export default function DashboardPage() {
                 <div key={r.id} className="dash-req-item">
                   <div>
                     <div className="dash-req-title">Заявка #{r.id.slice(0, 8)}</div>
-                    <div className="dash-req-sub">{(r.unit_ids || []).length} ед. · {r.notes || ''}</div>
+                    <div className="dash-req-sub">{r.project_name && `${r.project_name} · `}{r.requester_name && `${r.requester_name} · `}{(r.unit_ids || []).length} ед.</div>
                   </div>
                   <Button variant="secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }}
                     onClick={() => navigate(`/issue/${r.id}`)}>
@@ -220,7 +236,7 @@ export default function DashboardPage() {
                       {iss.receiver_name || `Выдача #${String(iss.id).slice(0, 8)}`}
                       {iss.return_requested_at && <span style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 500, marginLeft: 8 }}>Запрос на возврат</span>}
                     </div>
-                    <div className="dash-req-sub">{(iss.unit_ids || []).length} ед. · {iss.deadline ? formatDate(iss.deadline) : ''}</div>
+                    <div className="dash-req-sub">{iss.project_name && `${iss.project_name} · `}{(iss.unit_ids || []).length} ед. · {iss.deadline ? formatDate(iss.deadline) : ''}</div>
                   </div>
                   <Button variant={iss.return_requested_at ? 'primary' : 'secondary'} style={{ height: 32, fontSize: 12, padding: '0 12px' }}
                     onClick={() => navigate(`/return/${iss.id}`)}>

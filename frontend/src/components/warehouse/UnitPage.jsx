@@ -136,6 +136,8 @@ export default function UnitPage() {
               {unit.qty && <InfoRow label="Количество" value={`${unit.qty} шт.`} />}
               {unit.dimensions && <InfoRow label="Размеры" value={unit.dimensions} />}
               {canSeeValuation && unit.source && <InfoRow label="Источник" value={unit.source} />}
+              {unit.materials && <InfoRow label="Материалы" value={unit.materials} />}
+              {unit.is_temporary && <InfoRow label="Тип" value="Временная единица" />}
               {unit.condition && <InfoRow label="Состояние" value={unit.condition} last />}
             </div>
 
@@ -167,6 +169,7 @@ export default function UnitPage() {
                       name: unit.name || '', category: unit.category || '', serial: unit.serial || '',
                       description: unit.description || '', qty: unit.qty || 1, condition: unit.condition || '',
                       valuation: unit.valuation || '', dimensions: unit.dimensions || '',
+                      materials: unit.materials || '', is_temporary: unit.is_temporary || false,
                     })
                     setShowEdit(true)
                   }}>
@@ -228,6 +231,14 @@ export default function UnitPage() {
             <EFL>Оценочная стоимость</EFL>
             <input type="number" value={editForm.valuation} onChange={e => setEditForm(f => ({ ...f, valuation: e.target.value }))}
               style={inputStyle} />
+            <EFL>Материалы</EFL>
+            <input value={editForm.materials} onChange={e => setEditForm(f => ({ ...f, materials: e.target.value }))}
+              placeholder="Дерево, металл, пластик..." style={inputStyle} />
+            <EFL>Временное</EFL>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, cursor: 'pointer' }}>
+              <input type="checkbox" checked={editForm.is_temporary} onChange={e => setEditForm(f => ({ ...f, is_temporary: e.target.checked }))} />
+              Временная единица (расходник / на проект)
+            </label>
             <EFL>Описание</EFL>
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
               style={{ ...inputStyle, height: 72, resize: 'vertical', padding: '8px 10px' }} />

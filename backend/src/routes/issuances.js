@@ -284,11 +284,13 @@ router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_depu
   try {
     const { rows } = await db.query(`
       SELECT i.*, u.name AS receiver_name, r.unit_ids,
+             p.name AS project_name,
              CASE WHEN i.deadline < NOW() THEN true ELSE false END AS is_overdue,
              i.return_requested_at
       FROM issuances i
       JOIN users u ON u.id = i.received_by
       LEFT JOIN requests r ON r.id = i.request_id
+      LEFT JOIN projects p ON p.id = r.project_id
       WHERE NOT EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id)
       ORDER BY i.deadline ASC
     `)
