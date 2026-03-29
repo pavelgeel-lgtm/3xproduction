@@ -4,7 +4,7 @@ import { Bell, Plus, Package, ArrowRightLeft, AlertTriangle, Clock, MapPin } fro
 import WarehouseLayout from './WarehouseLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
-import { units as unitsApi, requests as requestsApi } from '../../services/api'
+import { units as unitsApi, requests as requestsApi, issuances as issuancesApi } from '../../services/api'
 import { useNotifications } from '../../hooks/useNotifications'
 
 const css = `
@@ -31,7 +31,7 @@ const css = `
 .dash-stat-value { font-size: 28px; font-weight: 600; line-height: 1; letter-spacing: -0.04em; }
 .dash-stat-label { font-size: 12px; color: var(--muted); margin-top: 5px; font-weight: 500; }
 
-.dash-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dash-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .dash-card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius-card); padding: 20px;
@@ -110,6 +110,11 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)} д назад`
 }
 
+function formatDate(str) {
+  if (!str) return ''
+  return new Date(str).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+}
+
 const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
 
 export default function DashboardPage() {
@@ -117,6 +122,7 @@ export default function DashboardPage() {
   const { items: notifs, unreadCount } = useNotifications()
   const [stats, setStats] = useState({ on_stock: 0, issued: 0, overdue: 0, pending: 0, no_cell: 0 })
   const [reqs, setReqs] = useState([])
+  const [activeIssuances, setActiveIssuances] = useState([])
 
   useEffect(() => {
     unitsApi.list().then(data => {
@@ -131,6 +137,9 @@ export default function DashboardPage() {
     }).catch(() => {})
     requestsApi.list({ status: 'new' }).then(data => {
       setReqs((data.requests || []).slice(0, 4))
+    }).catch(() => {})
+    issuancesApi.active().then(data => {
+      setActiveIssuances((data.issuances || []).slice(0, 4))
     }).catch(() => {})
   }, [])
 
@@ -192,6 +201,27 @@ export default function DashboardPage() {
                   <Button variant="secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }}
                     onClick={() => navigate(`/issue/${r.id}`)}>
                     Выдать
+                  </Button>
+                </div>
+              ))
+            }
+          </div>
+
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">Активные выдачи</span>
+            </div>
+            {activeIssuances.length === 0
+              ? <div className="dash-card-empty">Нет активных выдач</div>
+              : activeIssuances.map(iss => (
+                <div key={iss.id} className="dash-req-item">
+                  <div>
+                    <div className="dash-req-title">{iss.receiver_name || `Выдача #${String(iss.id).slice(0, 8)}`}</div>
+                    <div className="dash-req-sub">{(iss.unit_ids || []).length} ед. · {iss.deadline ? formatDate(iss.deadline) : ''}</div>
+                  </div>
+                  <Button variant="secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }}
+                    onClick={() => navigate(`/return/${iss.id}`)}>
+                    Возврат
                   </Button>
                 </div>
               ))
