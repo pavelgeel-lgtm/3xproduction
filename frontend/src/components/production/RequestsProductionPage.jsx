@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import ProductionLayout from './ProductionLayout'
-import { requests as requestsApi } from '../../services/api'
+import { requests as requestsApi, units as unitsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
 const TABS = ['На рассмотрении', 'Выдано', 'Архив']
@@ -42,6 +42,11 @@ export default function RequestsProductionPage() {
   const [tab, setTab] = useState('На рассмотрении')
   const [allRequests, setAllRequests] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(null)
+  const [unitDetails, setUnitDetails] = useState({})
+  const [unitPhotos, setUnitPhotos] = useState({})
+  const [loadingUnits, setLoadingUnits] = useState(null)
+  const [selectedUnit, setSelectedUnit] = useState(null)
 
   useEffect(() => {
     if (!user?.id) return
@@ -53,6 +58,30 @@ export default function RequestsProductionPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [user?.id])
+
+  async function toggleExpand(reqId, unitIds) {
+    if (expanded === reqId) { setExpanded(null); return }
+    setExpanded(reqId)
+
+    const missing = (unitIds || []).filter(id => !unitDetails[id])
+    if (missing.length === 0) return
+
+    setLoadingUnits(reqId)
+    try {
+      const results = await Promise.all(missing.map(id => unitsApi.get(id).catch(() => null)))
+      const next = { ...unitDetails }
+      const nextPhotos = { ...unitPhotos }
+      for (const r of results) {
+        if (r?.unit) {
+          next[r.unit.id] = r.unit
+          nextPhotos[r.unit.id] = r.unit.photos || []
+        }
+      }
+      setUnitDetails(next)
+      setUnitPhotos(nextPhotos)
+    } catch {}
+    setLoadingUnits(null)
+  }
 
   const filtered = allRequests.filter(r => (STATUS_MAP[tab] || []).includes(r.status))
 
@@ -96,39 +125,127 @@ export default function RequestsProductionPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {filtered.map(r => {
               const badge = STATUS_BADGE[r.status] || { label: r.status, bg: 'var(--bg)', color: 'var(--muted)' }
+              const isOpen = expanded === r.id
+              const ids = r.unit_ids || []
               return (
                 <div key={r.id} className="rp-card" style={{
                   background: 'var(--white)', border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-card)', padding: '16px 20px',
                 }}>
-                  <div className="rp-card-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontWeight: 500, fontSize: 14 }}>
-                      Заявка #{String(r.id).slice(0, 8)}
+                  <div className="rp-card-head" style={{
+                    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8,
+                    cursor: 'pointer',
+                  }} onClick={() => toggleExpand(r.id, ids)}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500, fontSize: 14 }}>
+                        Заявка #{String(r.id).slice(0, 8)}
+                      </div>
+                      {r.notes && (
+                        <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 4, lineHeight: 1.5 }}>
+                          {r.notes}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                        {ids.length} ед. · {formatDate(r.created_at)}
+                        {r.user_name && ` · ${r.user_name}`}
+                      </div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 'var(--radius-badge)', background: badge.bg, color: badge.color }}>
-                      {badge.label}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 'var(--radius-badge)', background: badge.bg, color: badge.color }}>
+                        {badge.label}
+                      </span>
+                      <span style={{ fontSize: 16, color: 'var(--muted)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>
+                        ▾
+                      </span>
+                    </div>
                   </div>
-                  {r.notes && (
-                    <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 8, lineHeight: 1.5 }}>
-                      {r.notes}
+
+                  {isOpen && (
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+                      {loadingUnits === r.id ? (
+                        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Загрузка единиц...</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {ids.map(uid => {
+                            const u = unitDetails[uid]
+                            if (!u) return (
+                              <div key={uid} style={{ fontSize: 12, color: 'var(--muted)', padding: '8px 0' }}>
+                                Единица не найдена
+                              </div>
+                            )
+                            const photos = unitPhotos[uid] || []
+                            return (
+                              <div key={uid} onClick={() => setSelectedUnit(selectedUnit === uid ? null : uid)} style={{
+                                padding: '10px 12px', borderRadius: 8,
+                                border: '1px solid var(--border)', cursor: 'pointer',
+                                background: selectedUnit === uid ? 'var(--blue-dim)' : 'var(--bg)',
+                                transition: 'background 0.15s',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  {photos.length > 0 && (
+                                    <img src={photos[0].url || photos[0]} alt="" style={{
+                                      width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0,
+                                    }} />
+                                  )}
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                                      {u.serial && `${u.serial} · `}{u.category || ''}
+                                    </div>
+                                  </div>
+                                  <span style={{
+                                    fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 'var(--radius-badge)',
+                                    background: u.status === 'on_stock' ? 'var(--green-dim)' : u.status === 'issued' ? 'var(--amber-dim)' : 'var(--bg)',
+                                    color: u.status === 'on_stock' ? 'var(--green)' : u.status === 'issued' ? 'var(--amber)' : 'var(--muted)',
+                                  }}>
+                                    {u.status === 'on_stock' ? 'На складе' : u.status === 'issued' ? 'Выдано' : u.status}
+                                  </span>
+                                </div>
+
+                                {selectedUnit === uid && (
+                                  <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                                    {u.description && (
+                                      <div style={{ fontSize: 12, color: 'var(--text)', marginBottom: 8, lineHeight: 1.5 }}>
+                                        {u.description}
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                                      {u.serial && <div>Серийный №: {u.serial}</div>}
+                                      {u.category && <div>Категория: {u.category}</div>}
+                                      {u.cell_name && <div>Ячейка: {u.cell_name}</div>}
+                                    </div>
+                                    {photos.length > 0 && (
+                                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        {photos.map((p, i) => (
+                                          <img key={i} src={p.url || p} alt="" style={{
+                                            width: 80, height: 80, borderRadius: 8, objectFit: 'cover',
+                                          }} />
+                                        ))}
+                                      </div>
+                                    )}
+                                    {photos.length === 0 && (
+                                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>Нет фото</div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
-                  {(r.unit_ids || []).length > 0 && (
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
-                      {r.unit_ids.length} ед. имущества
-                    </div>
-                  )}
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {formatDate(r.created_at)}
-                    {r.user_name && ` · ${r.user_name}`}
-                  </div>
                 </div>
               )
             })}
           </div>
         )}
       </div>
+
+      {selectedUnit && unitDetails[selectedUnit] && (() => {
+        const photos = unitPhotos[selectedUnit] || []
+        return photos.length > 0 ? null : null
+      })()}
     </ProductionLayout>
   )
 }
