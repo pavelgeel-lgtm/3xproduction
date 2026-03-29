@@ -114,7 +114,7 @@ export const ROLES = {
     uploadKpp: true,
     uploadScenario: true,
     uploadCallsheet: true,
-    ownLists: ['props', 'art_fill', 'dummy', 'auto'],
+    ownLists: ['props', 'art_fill', 'dummy', 'auto', 'costumes'],
   },
   props_assistant: {
     label: 'Ассистент художника по реквизиту',
@@ -122,7 +122,7 @@ export const ROLES = {
     uploadKpp: true,
     uploadScenario: true,
     uploadCallsheet: true,
-    ownLists: ['props', 'art_fill', 'dummy', 'auto'],
+    ownLists: ['props', 'art_fill', 'dummy', 'auto', 'costumes'],
   },
   decorator: {
     label: 'Декоратор',

@@ -114,6 +114,7 @@ export const documents = {
     return request('GET', `/documents/${projectId}${q}`)
   },
   upload:  (formData)  => request('POST', '/documents/upload', formData),
+  view:    (projectId, docId) => request('GET', `/documents/${projectId}/view/${docId}`),
   delta:   (id)        => request('GET',  `/documents/${id}/delta`),
   reparse: (id, text)  => request('POST', `/documents/${id}/parse`, { text }),
   lists:      (projectId, role) => request('GET', `/documents/lists/${projectId}/${role}`),

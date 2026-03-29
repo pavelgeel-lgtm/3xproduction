@@ -201,9 +201,15 @@ export default function DocumentsPage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    {doc.file_url && (
+                    {doc.parsed_content && (
+                      <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 12px' }}
+                        onClick={() => navigate(`/production/documents/${projectId}/${doc.id}`)}>
+                        Открыть
+                      </Button>
+                    )}
+                    {!doc.parsed_content && doc.file_url && (
                       <a href={doc.file_url} target="_blank" rel="noreferrer">
-                        <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 12px' }}>Открыть</Button>
+                        <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 12px' }}>Скачать</Button>
                       </a>
                     )}
                     {i === 0 && (
@@ -258,16 +264,43 @@ export default function DocumentsPage() {
                         {new Date(callsheetDoc.created_at).toLocaleDateString('ru-RU')} · {callsheetDoc.uploaded_by_name || '—'}
                       </div>
                     </div>
-                    {callsheetDoc.file_url && (
-                      <a href={callsheetDoc.file_url} target="_blank" rel="noreferrer">
-                        <Button variant="secondary" style={{ height: 34, fontSize: 13 }}>Скачать</Button>
-                      </a>
-                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {callsheetDoc.parsed_content && (
+                        <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
+                          onClick={() => navigate(`/production/documents/${projectId}/${callsheetDoc.id}`)}>
+                          Открыть
+                        </Button>
+                      )}
+                      {callsheetDoc.file_url && (
+                        <a href={callsheetDoc.file_url} target="_blank" rel="noreferrer">
+                          <Button variant="secondary" style={{ height: 34, fontSize: 13 }}>Скачать</Button>
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--muted)', fontSize: 14, flexDirection: 'column', gap: 12 }}>
-                    <span style={{ fontSize: 40 }}>📅</span>
-                    <span>Просмотр PDF</span>
-                  </div>
+                  {callsheetDoc.parsed_content ? (
+                    <div style={{ padding: '16px 20px', fontSize: 13 }}>
+                      {(() => {
+                        const c = typeof callsheetDoc.parsed_content === 'string' ? JSON.parse(callsheetDoc.parsed_content) : callsheetDoc.parsed_content
+                        return (
+                          <div>
+                            {c.cast?.length > 0 && c.cast.map((a, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 16, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                                <span style={{ fontWeight: 500, minWidth: 120 }}>{a.role}</span>
+                                <span>{a.actor}</span>
+                                <span style={{ color: 'var(--muted)', marginLeft: 'auto' }}>{a.call}</span>
+                              </div>
+                            ))}
+                            {(!c.cast || c.cast.length === 0) && <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>Нет данных</div>}
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--muted)', fontSize: 14 }}>
+                      Загрузите вызывной (.xlsx)
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--muted)' }}>
@@ -330,10 +363,10 @@ export default function DocumentsPage() {
                 ) : (
                   <>
                     <div style={{ fontSize: 14, fontWeight: 500 }}>Перетащите файл или нажмите</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>PDF, до 50 МБ</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>xlsx / docx, до 50 МБ</div>
                   </>
                 )}
-                <input ref={fileRef} type="file" accept=".pdf" style={{ display: 'none' }}
+                <input ref={fileRef} type="file" accept=".xlsx,.docx" style={{ display: 'none' }}
                   onChange={e => setUploadFile(e.target.files[0] || null)} />
               </div>
 

@@ -2,9 +2,9 @@ const router   = require('express').Router()
 const multer   = require('multer')
 const db       = require('../db')
 const { verifyJWT } = require('../middleware/auth')
-const { uploadFile } = require('../services/r2')
+const { parseDocumentFile } = require('../services/docParser')
+const { matchUnits } = require('../services/unitMatcher')
 const { parseDocument, computeDelta } = require('../services/groq')
-const pdfParse = require('pdf-parse')
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } })
 
@@ -29,6 +29,11 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
   if (!['kpp', 'scenario', 'callsheet'].includes(type)) return res.status(400).json({ error: 'Invalid type' })
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
 
+  // Validate file extension
+  const ext = (req.file.originalname || '').split('.').pop().toLowerCase()
+  if (type === 'scenario' && ext !== 'docx') return res.status(400).json({ error: 'Сценарий должен быть .docx' })
+  if ((type === 'kpp' || type === 'callsheet') && ext !== 'xlsx') return res.status(400).json({ error: `${type.toUpperCase()} должен быть .xlsx` })
+
   // Check upload permission
   const canUpload = type === 'callsheet'
     ? UPLOAD_CALLSHEET_ROLES.includes(req.user.role)
@@ -43,17 +48,35 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
     )
     const version = latest.length ? latest[0].version + 1 : 1
 
-    // Upload to R2
-    const file_url = await uploadFile(req.file.buffer, req.file.originalname, 'documents')
+    // Parse document (xlsx/docx → JSON)
+    let parsed_content = null
+    try {
+      parsed_content = await parseDocumentFile(req.file.buffer, req.file.originalname, type)
+    } catch (err) {
+      console.error('Document parse error:', err.message)
+      return res.status(400).json({ error: `Ошибка парсинга: ${err.message}` })
+    }
 
-    // Parse with Groq (only kpp and scenario)
-    let parsed_data = null
-    let delta = null
-    if (type !== 'callsheet') {
+    // Match props/costumes against warehouse units (kpp and scenario only)
+    let matched_units = null
+    if (type !== 'callsheet' && parsed_content) {
       try {
-        const pdfData = await pdfParse(req.file.buffer)
-        const text = pdfData.text.slice(0, 15000)
-        parsed_data = await parseDocument(text)
+        matched_units = await matchUnits(parsed_content, project_id)
+      } catch (err) {
+        console.error('Unit matching error:', err.message)
+      }
+    }
+
+    // Compute delta with previous version (kpp and scenario)
+    let delta = null
+    let parsed_data = null
+    if (type !== 'callsheet' && parsed_content) {
+      // AI parsing via Groq for production lists (separate from document content)
+      try {
+        const allText = parsed_content.scenes.map(s =>
+          `Сцена ${s.id}: ${s.object}\nРеквизит: ${(s.props||[]).join(', ')}\nКостюм: ${(s.costumes||[]).join(', ')}\nГрим: ${(s.makeup||[]).join(', ')}`
+        ).join('\n\n')
+        parsed_data = await parseDocument(allText.slice(0, 12000))
 
         if (latest.length && latest[0].parsed_data) {
           delta = computeDelta(latest[0].parsed_data, parsed_data)
@@ -61,13 +84,23 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
       } catch (err) {
         console.error('Groq parse error:', err.message)
       }
+
+      // Also compute scene-level delta for the document viewer
+      if (latest.length && latest[0].parsed_content?.scenes) {
+        delta = computeSceneDelta(latest[0].parsed_content.scenes, parsed_content.scenes)
+      }
     }
 
     const { rows } = await db.query(
-      `INSERT INTO documents (project_id, type, version, file_url, parsed_data, delta, uploaded_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [project_id, type, version, file_url, parsed_data ? JSON.stringify(parsed_data) : null,
-       delta ? JSON.stringify(delta) : null, req.user.id]
+      `INSERT INTO documents (project_id, type, version, file_url, parsed_data, parsed_content, matched_units, delta, uploaded_by, original_name, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [project_id, type, version, null,
+       parsed_data ? JSON.stringify(parsed_data) : null,
+       parsed_content ? JSON.stringify(parsed_content) : null,
+       matched_units ? JSON.stringify(matched_units) : null,
+       delta ? JSON.stringify(delta) : null,
+       req.user.id, req.file.originalname,
+       parsed_content ? 'parsed' : 'uploaded']
     )
     const doc = rows[0]
 
@@ -113,6 +146,24 @@ router.get('/:projectId', verifyJWT, async (req, res) => {
   }
 })
 
+// GET /documents/:projectId/view/:id — get full document content for viewer
+router.get('/:projectId/view/:id', verifyJWT, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT d.*, u.name AS uploaded_by_name
+       FROM documents d
+       LEFT JOIN users u ON u.id = d.uploaded_by
+       WHERE d.id = $1 AND d.project_id = $2`,
+      [req.params.id, req.params.projectId]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Document not found' })
+    res.json({ document: rows[0] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // POST /documents/:id/parse — re-parse existing document
 router.post('/:id/parse', verifyJWT, async (req, res) => {
   try {
@@ -124,7 +175,6 @@ router.post('/:id/parse', verifyJWT, async (req, res) => {
       return res.status(400).json({ error: 'Only kpp/scenario can be parsed' })
     }
 
-    // In production: download file from R2, extract text
     const parsed_data = await parseDocument(req.body.text || '')
     await db.query(`UPDATE documents SET parsed_data=$1 WHERE id=$2`, [JSON.stringify(parsed_data), doc.id])
 
@@ -151,10 +201,9 @@ router.get('/:id/delta', verifyJWT, async (req, res) => {
 router.get('/lists/:projectId/:role', verifyJWT, async (req, res) => {
   const { projectId, role } = req.params
 
-  // Map role to categories
   const ROLE_CATEGORIES = {
-    props_master:           ['props', 'auto'],
-    props_assistant:        ['props', 'auto'],
+    props_master:           ['props', 'auto', 'costumes'],
+    props_assistant:        ['props', 'auto', 'costumes'],
     decorator:              ['decoration', 'props'],
     costumer:               ['costumes'],
     costume_assistant:      ['costumes'],
@@ -173,7 +222,6 @@ router.get('/lists/:projectId/:role', verifyJWT, async (req, res) => {
       [projectId]
     )
 
-    // Merge items from all docs for the relevant categories
     const items = []
     for (const doc of docs) {
       if (!doc.parsed_data) continue
@@ -183,7 +231,6 @@ router.get('/lists/:projectId/:role', verifyJWT, async (req, res) => {
       }
     }
 
-    // Also include ai_suggestions for the role's categories
     const aiSuggestions = []
     for (const doc of docs) {
       if (!doc.parsed_data?.ai_suggestions) continue
@@ -209,9 +256,7 @@ router.put('/lists/:projectId/item', verifyJWT, async (req, res) => {
   const projectId = req.params.projectId
 
   try {
-    // If accepted, add item to the user's production list
     if (ai_status === 'accepted' && list_type) {
-      // Ensure list exists
       await db.query(
         `INSERT INTO production_lists (project_id, user_id, type)
          VALUES ($1, $2, $3)
@@ -240,7 +285,7 @@ router.put('/lists/:projectId/item', verifyJWT, async (req, res) => {
   }
 })
 
-// GET /documents/:projectId/parsed — latest parsed_data (ai_suggestions + cross_check)
+// GET /documents/:projectId/parsed — latest parsed_data
 router.get('/:projectId/parsed', verifyJWT, async (req, res) => {
   try {
     const { rows } = await db.query(
@@ -261,8 +306,8 @@ router.get('/:projectId/parsed', verifyJWT, async (req, res) => {
 const ROLE_OWN_LISTS = {
   production_designer:    ['props','art_fill','dummy','auto','decoration','costumes','makeup','stunts','pyrotechnics'],
   art_director_assistant: ['props','art_fill','dummy','auto','decoration','costumes','makeup','stunts','pyrotechnics'],
-  props_master:           ['props','art_fill','dummy','auto'],
-  props_assistant:        ['props','art_fill','dummy','auto'],
+  props_master:           ['props','art_fill','dummy','auto','costumes'],
+  props_assistant:        ['props','art_fill','dummy','auto','costumes'],
   decorator:              ['decoration','props','art_fill','dummy'],
   costumer:               ['costumes'],
   costume_assistant:      ['costumes'],
@@ -288,7 +333,6 @@ router.post('/:id/import', verifyJWT, async (req, res) => {
       const items = doc.parsed_data[type] || []
       if (!items.length) continue
 
-      // Ensure list exists
       await db.query(
         `INSERT INTO production_lists (project_id, user_id, type)
          VALUES ($1,$2,$3) ON CONFLICT (project_id,user_id,type) DO NOTHING`,
@@ -301,7 +345,6 @@ router.post('/:id/import', verifyJWT, async (req, res) => {
       const listId = listRows[0].id
 
       for (const item of items) {
-        // Skip if already in list by name
         const { rows: exists } = await db.query(
           `SELECT id FROM production_list_items WHERE list_id=$1 AND name=$2`,
           [listId, item.name]
@@ -325,5 +368,34 @@ router.post('/:id/import', verifyJWT, async (req, res) => {
     res.status(500).json({ error: 'Server error' })
   }
 })
+
+// Compute scene-level delta between two versions
+function computeSceneDelta(oldScenes, newScenes) {
+  const delta = { added: [], changed: [], removed: [] }
+  const oldMap = {}
+  for (const s of (oldScenes || [])) oldMap[s.id] = s
+  const newMap = {}
+  for (const s of (newScenes || [])) newMap[s.id] = s
+
+  for (const id of Object.keys(newMap)) {
+    if (!oldMap[id]) {
+      delta.added.push({ id, object: newMap[id].object, props: newMap[id].props, costumes: newMap[id].costumes })
+    } else {
+      const changes = []
+      const o = oldMap[id], n = newMap[id]
+      if (JSON.stringify(o.props) !== JSON.stringify(n.props)) changes.push({ field: 'props', old: o.props, new: n.props })
+      if (JSON.stringify(o.costumes) !== JSON.stringify(n.costumes)) changes.push({ field: 'costumes', old: o.costumes, new: n.costumes })
+      if (JSON.stringify(o.characters) !== JSON.stringify(n.characters)) changes.push({ field: 'characters', old: o.characters, new: n.characters })
+      if (o.object !== n.object) changes.push({ field: 'object', old: o.object, new: n.object })
+      if (changes.length) delta.changed.push({ id, object: n.object, changes })
+    }
+  }
+
+  for (const id of Object.keys(oldMap)) {
+    if (!newMap[id]) delta.removed.push({ id, object: oldMap[id].object })
+  }
+
+  return delta
+}
 
 module.exports = router
