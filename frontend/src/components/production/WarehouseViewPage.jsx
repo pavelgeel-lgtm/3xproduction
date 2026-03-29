@@ -9,16 +9,19 @@ import { units as unitsApi, requests as requestsApi, warehouses as warehousesApi
 import { useAuth } from '../../hooks/useAuth'
 
 const REQUEST_STATUSES = {
-  none:      null,
-  pending:   { label: 'Запрос отправлен', color: 'amber' },
-  approved:  { label: 'Одобрено',         color: 'green' },
-  rejected:  { label: 'Отклонено',        color: 'red' },
+  pending:    { label: 'Запрос отправлен',  color: 'amber' },
+  new:        { label: 'Запрос отправлен',  color: 'amber' },
+  collecting: { label: 'Собирается',        color: 'amber' },
+  ready:      { label: 'Готово к выдаче',   color: 'green' },
+  approved:   { label: 'Одобрено',          color: 'green' },
+  issued:     { label: 'Выдано',            color: 'green' },
+  rejected:   { label: 'Отклонено',         color: 'red' },
 }
 
 export default function WarehouseViewPage() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
-  const [requests, setRequests] = useState({})
+  const [requestedUnits, setRequestedUnits] = useState({})
   const [expanded, setExpanded] = useState(null)
   const [units, setUnits] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,7 +33,21 @@ export default function WarehouseViewPage() {
   useEffect(() => {
     warehousesApi.list().then(d => setWhList(d.warehouses || [])).catch(() => {})
     unitsApi.list().then(d => setUnits(d.units || [])).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+    // Load existing requests to restore state
+    if (user?.id) {
+      const params = user.project_id ? { project_id: user.project_id } : { requester_id: user.id }
+      requestsApi.list(params).then(d => {
+        const map = {}
+        for (const r of (d.requests || [])) {
+          if (['cancelled', 'rejected'].includes(r.status)) continue
+          for (const uid of (r.unit_ids || [])) {
+            map[uid] = r.status === 'new' ? 'pending' : r.status
+          }
+        }
+        setRequestedUnits(map)
+      }).catch(() => {})
+    }
+  }, [user?.id])
 
   const filtered = units.filter(u => {
     const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase()) || (u.serial || '').toLowerCase().includes(search.toLowerCase())
@@ -40,14 +57,14 @@ export default function WarehouseViewPage() {
   })
 
   async function requestUnit(id) {
-    setRequests(r => ({ ...r, [id]: 'pending' }))
+    setRequestedUnits(r => ({ ...r, [id]: 'pending' }))
     try {
       await requestsApi.create({
         unit_ids: [id],
         project_id: user?.project_id || null,
       })
     } catch {
-      setRequests(r => ({ ...r, [id]: null }))
+      setRequestedUnits(r => ({ ...r, [id]: null }))
     }
   }
 
@@ -89,7 +106,7 @@ export default function WarehouseViewPage() {
         {/* Units */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(u => {
-            const reqStatus = requests[u.id]
+            const reqStatus = requestedUnits[u.id]
             const isOpen = expanded === u.id
             return (
               <div key={u.id} style={{
@@ -128,7 +145,7 @@ export default function WarehouseViewPage() {
                         onClick={() => requestUnit(u.id)}>
                         Запросить
                       </Button>
-                    ) : reqStatus ? (
+                    ) : reqStatus && REQUEST_STATUSES[reqStatus] ? (
                       <Badge color={REQUEST_STATUSES[reqStatus].color}>
                         {REQUEST_STATUSES[reqStatus].label}
                       </Badge>
