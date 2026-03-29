@@ -302,6 +302,21 @@ router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_depu
 // POST /issuances/:id/request-return — project director requests return
 router.post('/:id/request-return', verifyJWT, async (req, res) => {
   try {
+    // First check issuance exists at all
+    const { rows: check } = await db.query(
+      `SELECT i.id, i.received_by, i.request_id, r.requester_id, r.project_id
+       FROM issuances i
+       LEFT JOIN requests r ON r.id = i.request_id
+       WHERE i.id = $1`,
+      [req.params.id]
+    )
+    console.log('request-return debug:', {
+      issuance_id: req.params.id,
+      user_id: req.user.id,
+      user_project_id: req.user.project_id,
+      found: check[0] || null,
+    })
+
     const { rows } = await db.query(
       `SELECT i.id, i.received_by, u.name AS receiver_name, r.unit_ids
        FROM issuances i
