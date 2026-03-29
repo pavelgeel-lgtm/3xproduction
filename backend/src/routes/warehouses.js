@@ -188,4 +188,19 @@ router.put('/request-visibility', verifyJWT, checkRole('warehouse_director'), as
   }
 })
 
+// DELETE /warehouses/:id — delete warehouse (director/deputy only)
+router.delete('/:id', verifyJWT, checkRole(...DIRECTOR_ROLES), async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT COUNT(*) AS cnt FROM units WHERE warehouse_id = $1 AND status != 'written_off'`, [req.params.id])
+    if (Number(rows[0].cnt) > 0) {
+      return res.status(400).json({ error: 'Нельзя удалить склад с активными единицами' })
+    }
+    await db.query(`DELETE FROM warehouses WHERE id = $1`, [req.params.id])
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 module.exports = router

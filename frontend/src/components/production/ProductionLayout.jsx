@@ -173,19 +173,9 @@ function buildNav(role) {
   // Documents — everyone
   nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
 
-  // Own lists
-  if (def.ownLists?.length || def.seeAllLists) {
+  // Lists — single link for all production roles
+  if (def.ownLists?.length || def.seeAllLists || role === 'project_director' || (def.world === 'production' && role !== 'producer')) {
     nav.push({ to: '/production/lists', icon: List, label: 'Мои списки' })
-  }
-
-  // All lists (director, production_designer, project_director)
-  if (def.seeAllLists || role === 'project_director') {
-    nav.push({ to: '/production/lists', icon: List, label: 'Наполнение' })
-  }
-
-  // Сверка ИИ — all production roles that don't already have lists link
-  if (!def.ownLists?.length && !def.seeAllLists && role !== 'project_director' && role !== 'producer' && def.world === 'production') {
-    nav.push({ to: '/production/lists', icon: List, label: 'Сверка ИИ' })
   }
 
   // Warehouse view
@@ -244,6 +234,8 @@ export default function ProductionLayout({ children }) {
     setProjectOpen(false)
   }
 
+  const [projectCreated, setProjectCreated] = useState(false)
+
   async function handleCreateProject() {
     if (!newProjectName.trim()) return
     setCreatingProject(true)
@@ -251,8 +243,7 @@ export default function ProductionLayout({ children }) {
       await projectsApi.create(newProjectName.trim())
       setProjectsList(prev => [...prev, newProjectName.trim()])
       selectProject(newProjectName.trim())
-      setNewProjectName('')
-      setShowNewProject(false)
+      setProjectCreated(true)
     } catch (e) { alert(e.message || 'Ошибка') }
     setCreatingProject(false)
   }
@@ -414,20 +405,31 @@ export default function ProductionLayout({ children }) {
           onClick={() => setShowNewProject(false)}>
           <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 24, maxWidth: 400, width: '100%' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Новый проект</div>
-            <Input label="Название проекта" placeholder="Название..." value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <Button variant="secondary" fullWidth onClick={() => setShowNewProject(false)}>Отмена</Button>
-              <Button fullWidth disabled={!newProjectName.trim() || creatingProject} onClick={handleCreateProject}>
-                {creatingProject ? 'Создание...' : 'Создать'}
-              </Button>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>
+              {projectCreated ? 'Проект создан' : 'Новый проект'}
             </div>
-            {isProducer && (
-              <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <Button variant="secondary" fullWidth onClick={() => { setShowNewProject(false); setShowInvite(true) }}>
+            {!projectCreated ? (
+              <>
+                <Input label="Название проекта" placeholder="Название..." value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <Button variant="secondary" fullWidth onClick={() => setShowNewProject(false)}>Отмена</Button>
+                  <Button fullWidth disabled={!newProjectName.trim() || creatingProject} onClick={handleCreateProject}>
+                    {creatingProject ? 'Создание...' : 'Создать'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--green)', marginBottom: 16, fontWeight: 500 }}>
+                  Проект «{selectedProject}» успешно создан
+                </div>
+                <Button fullWidth onClick={() => { setShowNewProject(false); setShowInvite(true) }}>
                   Пригласить участника
                 </Button>
-              </div>
+                <Button variant="secondary" fullWidth style={{ marginTop: 8 }} onClick={() => { setShowNewProject(false); setProjectCreated(false); setNewProjectName('') }}>
+                  Закрыть
+                </Button>
+              </>
             )}
           </div>
         </div>

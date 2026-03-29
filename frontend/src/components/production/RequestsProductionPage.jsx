@@ -3,11 +3,11 @@ import ProductionLayout from './ProductionLayout'
 import { requests as requestsApi, units as unitsApi, issuances as issuancesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
-const TABS = ['На рассмотрении', 'Выдано', 'Архив']
+const TABS = ['На рассмотрении', 'Получено', 'Архив']
 
 const STATUS_MAP = {
   'На рассмотрении': ['new', 'approved', 'collecting', 'ready'],
-  'Выдано':          ['issued'],
+  'Получено':        ['issued'],
   'Архив':           ['cancelled', 'rejected'],
 }
 
@@ -16,7 +16,7 @@ const STATUS_BADGE = {
   approved:   { label: 'Одобрено',           bg: 'var(--green-dim)',  color: 'var(--green)' },
   collecting: { label: 'Принято в работу',   bg: 'var(--amber-dim)',  color: 'var(--amber)' },
   ready:      { label: 'Готово к выдаче',    bg: 'var(--green-dim)',  color: 'var(--green)' },
-  issued:     { label: 'Выдано',             bg: 'var(--green-dim)',  color: 'var(--green)' },
+  issued:     { label: 'Получено',            bg: 'var(--green-dim)',  color: 'var(--green)' },
   cancelled:  { label: 'Отменено',           bg: 'var(--bg)',         color: 'var(--muted)' },
   rejected:   { label: 'Отклонено',          bg: 'var(--red-dim)',    color: 'var(--red)' },
 }
@@ -230,7 +230,7 @@ export default function RequestsProductionPage() {
                                     background: u.status === 'on_stock' ? 'var(--green-dim)' : u.status === 'issued' ? 'var(--amber-dim)' : 'var(--bg)',
                                     color: u.status === 'on_stock' ? 'var(--green)' : u.status === 'issued' ? 'var(--amber)' : 'var(--muted)',
                                   }}>
-                                    {u.status === 'on_stock' ? 'На складе' : u.status === 'issued' ? 'Выдано' : u.status}
+                                    {u.status === 'on_stock' ? 'На складе' : u.status === 'issued' ? 'Получено' : u.status}
                                   </span>
                                 </div>
 

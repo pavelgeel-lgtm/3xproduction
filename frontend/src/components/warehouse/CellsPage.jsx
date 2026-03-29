@@ -4,9 +4,12 @@ import WarehouseLayout from './WarehouseLayout'
 import Button from '../shared/Button'
 import UnitCardModal from '../shared/UnitCardModal'
 import { warehouses as warehousesApi } from '../../services/api'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function CellsPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const canDeleteWarehouse = ['warehouse_director', 'warehouse_deputy'].includes(user?.role)
   const [warehouseList, setWarehouseList] = useState([])
   const [selWh, setSelWh] = useState('')
   const [sections, setSections] = useState([])
@@ -65,6 +68,20 @@ export default function CellsPage() {
                 onClick={() => navigate('/cells/constructor')}>
                 + Секция
               </Button>
+              {canDeleteWarehouse && selWh && (
+                <Button variant="secondary" style={{ height: 36, fontSize: 13, color: 'var(--red)' }}
+                  onClick={async () => {
+                    if (!confirm('Удалить этот склад? Это действие необратимо.')) return
+                    try {
+                      await warehousesApi.deleteWarehouse(selWh)
+                      setWarehouseList(prev => prev.filter(w => String(w.id) !== selWh))
+                      setSelWh('')
+                      setSections([])
+                    } catch (e) { alert(e.message || 'Ошибка') }
+                  }}>
+                  Удалить склад
+                </Button>
+              )}
             </div>
           </div>
 

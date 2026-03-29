@@ -85,6 +85,7 @@ export const warehouses = {
   createSection: (body) => request('POST', '/warehouses/sections', body),
   renameCell:    (cellId, name) => request('PUT', `/warehouses/cells/${cellId}`, { custom_name: name }),
   deleteCell:    (cellId)      => request('DELETE', `/warehouses/cells/${cellId}`),
+  deleteWarehouse: (id)        => request('DELETE', `/warehouses/${id}`),
   reorderSections: (section_ids) => request('PUT', '/warehouses/sections/reorder', { section_ids }),
   requestVisibility: ()         => request('GET', '/warehouses/request-visibility'),
   setRequestVisibility: (user_id, can_see_requests) =>

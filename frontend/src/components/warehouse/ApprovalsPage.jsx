@@ -69,6 +69,7 @@ export default function ApprovalsPage() {
   const [processing, setProcessing] = useState(null)
   const [rejectId, setRejectId] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [approvedMsg, setApprovedMsg] = useState(false)
 
   const isDirector = user?.role === 'warehouse_director'
 
@@ -86,6 +87,8 @@ export default function ApprovalsPage() {
     setProcessing(item.approval_id)
     try {
       await unitsApi.approve(item.unit_id, item.approval_id)
+      setApprovedMsg(true)
+      setTimeout(() => setApprovedMsg(false), 2500)
       load()
     } catch (e) { alert(e.message) }
     finally { setProcessing(null) }
@@ -111,6 +114,12 @@ export default function ApprovalsPage() {
         <p className="apr-sub">
           {loading ? '...' : `${items.length} ${items.length === 1 ? 'запрос' : 'запросов'} ожидают подписи`}
         </p>
+
+        {approvedMsg && (
+          <div style={{ background: 'var(--green-dim)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 'var(--radius-card)', padding: '10px 16px', fontSize: 13, marginBottom: 16, fontWeight: 500, color: 'var(--green)' }}>
+            ✓ Подписано
+          </div>
+        )}
 
         {loading ? (
           <div className="apr-empty">Загрузка...</div>

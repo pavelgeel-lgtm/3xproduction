@@ -41,7 +41,7 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // POST /units — add unit (goes to pending, waits for director approval)
 router.post('/', verifyJWT, async (req, res) => {
-  const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, source, dimensions, is_temporary } = req.body
+  const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, source, dimensions, period } = req.body
   if (!name || !category) return res.status(400).json({ error: 'Missing required fields' })
 
   const isDirector = req.user.role === 'warehouse_director'
@@ -49,11 +49,11 @@ router.post('/', verifyJWT, async (req, res) => {
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO units (name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, source, dimensions, status, is_temporary)
+      `INSERT INTO units (name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, source, dimensions, status, period)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [name, category, serial || null, warehouse_id || null, cell_id || null,
        description || null, qty || 1, condition || null, valuation || null,
-       source || null, dimensions || null, finalStatus, is_temporary || false]
+       source || null, dimensions || null, finalStatus, period || null]
     )
     const unit = rows[0]
 
@@ -153,11 +153,11 @@ router.put('/:id', verifyJWT, async (req, res) => {
 
     // Director can edit directly
     if (DIRECTOR_ROLES.includes(req.user.role)) {
-      const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, materials, is_temporary } = req.body
+      const { name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, materials, period } = req.body
       const { rows: updated } = await db.query(
         `UPDATE units SET name=$1,category=$2,serial=$3,warehouse_id=$4,cell_id=$5,
-         description=$6,qty=$7,condition=$8,valuation=$9,materials=$10,is_temporary=$11 WHERE id=$12 RETURNING *`,
-        [name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, materials || null, is_temporary || false, req.params.id]
+         description=$6,qty=$7,condition=$8,valuation=$9,materials=$10,period=$11 WHERE id=$12 RETURNING *`,
+        [name, category, serial, warehouse_id, cell_id, description, qty, condition, valuation, materials || null, period || null, req.params.id]
       )
       await db.query(
         `INSERT INTO unit_history (unit_id, action, user_id) VALUES ($1,'Изменено',$2)`,
@@ -275,7 +275,7 @@ router.post('/:id/photos', verifyJWT, upload.array('photos', 10), async (req, re
 })
 
 // POST /units/:id/request-writeoff — deputy requests writeoff from director
-router.post('/:id/request-writeoff', verifyJWT, checkRole('warehouse_deputy'), async (req, res) => {
+router.post('/:id/request-writeoff', verifyJWT, checkRole('warehouse_deputy', 'warehouse_staff'), async (req, res) => {
   const { reason } = req.body
   try {
     const { rows } = await db.query(`SELECT * FROM units WHERE id = $1`, [req.params.id])

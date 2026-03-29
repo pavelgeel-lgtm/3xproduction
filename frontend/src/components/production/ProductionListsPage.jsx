@@ -229,19 +229,12 @@ export default function ProductionListsPage() {
           </div>
         )}
 
-        {/* List type tabs */}
-        <div className="pll-type-tabs" style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid var(--border)', overflowX: 'auto' }}>
+        {/* List type tabs — hidden, kept for data logic */}
+        <div className="pll-type-tabs" style={{ display: 'none' }}>
           {visibleTypes.map(type => {
             const t = LIST_TYPES[type]
             return (
-              <button key={type} onClick={() => setActiveType(type)} style={{
-                padding: '9px 16px', border: 'none', background: 'none',
-                fontWeight: 500, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', gap: 4,
-                color: activeType === type ? 'var(--blue)' : 'var(--muted)',
-                borderBottom: `2px solid ${activeType === type ? 'var(--blue)' : 'transparent'}`,
-                marginBottom: -2,
-              }}>
+              <button key={type} onClick={() => setActiveType(type)} style={{}}>
                 {t.icon} {t.label}
               </button>
             )

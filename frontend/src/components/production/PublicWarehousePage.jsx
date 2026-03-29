@@ -9,7 +9,7 @@ const BASE = import.meta.env.VITE_API_URL || ''
 export default function PublicWarehousePage() {
   const { token } = useParams()
   const [step, setStep] = useState('auth') // auth | browse | request | done
-  const [form, setForm] = useState({ name: '', phone: '' })
+  const [form, setForm] = useState({ name: '', phone: '', project_name: '' })
   const [units, setUnits] = useState([])
   const [loadError, setLoadError] = useState(null)
   const [requestUnit, setRequestUnit] = useState(null)
@@ -77,6 +77,7 @@ export default function PublicWarehousePage() {
               </div>
               <Input label="Имя" placeholder="Иван Иванов" value={form.name} onChange={set('name')} />
               <Input label="Телефон" placeholder="+7 900 000 00 00" value={form.phone} onChange={set('phone')} />
+              <Input label="Название проекта" placeholder="Мой проект" value={form.project_name} onChange={set('project_name')} />
               <Button fullWidth disabled={!form.name || !form.phone}
                 onClick={() => setStep('browse')}>
                 Просмотреть каталог
@@ -199,7 +200,7 @@ export default function PublicWarehousePage() {
                 fetch(`${BASE}/public/warehouse/${token}/request`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name: form.name, phone: form.phone, unit_id: requestUnit.id, message: requestForm.message, dates: requestForm.dates }),
+                  body: JSON.stringify({ name: form.name, phone: form.phone, project_name: form.project_name, unit_id: requestUnit.id, message: requestForm.message, dates: requestForm.dates }),
                 }).then(() => setStep('done')).catch(() => alert('Ошибка при отправке'))
               }}>Отправить запрос</Button>
             </div>

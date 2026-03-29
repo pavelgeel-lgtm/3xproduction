@@ -29,10 +29,11 @@ router.get('/warehouse/:token', async (req, res) => {
 
 // POST /public/warehouse/:token/request — external rent request
 router.post('/warehouse/:token/request', async (req, res) => {
-  const { name, phone, unit_id, message, dates } = req.body
+  const { name, phone, unit_id, message, dates, project_name } = req.body
   if (!name || !phone || !unit_id) return res.status(400).json({ error: 'Missing fields' })
 
   try {
+    const projectLabel = project_name ? `Проект: ${project_name}` : 'Проект: гость'
     const { rows: directors } = await db.query(
       `SELECT id FROM users WHERE role IN ('warehouse_director','warehouse_deputy')`
     )
@@ -40,7 +41,7 @@ router.post('/warehouse/:token/request', async (req, res) => {
       await db.query(
         `INSERT INTO notifications (user_id, type, text, entity_id, entity_type)
          VALUES ($1,'new_request',$2,$3,'unit')`,
-        [u.id, `Внешний запрос аренды от ${name} (${phone}): ${message || ''}`, unit_id]
+        [u.id, `Внешний запрос от ${name} (${phone}) · ${projectLabel}${message ? ': ' + message : ''}`, unit_id]
       )
     }
 

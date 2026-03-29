@@ -14,7 +14,7 @@ const REQUEST_STATUSES = {
   collecting: { label: 'В работе',           color: 'amber' },
   ready:      { label: 'Готово к выдаче',   color: 'green' },
   approved:   { label: 'Одобрено',          color: 'green' },
-  issued:     { label: 'Выдано',            color: 'green' },
+  issued:     { label: 'Получено',           color: 'green' },
   rejected:   { label: 'Отклонено',         color: 'red' },
 }
 

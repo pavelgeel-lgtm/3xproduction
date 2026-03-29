@@ -76,13 +76,21 @@ export default function UnitCardModal({ unitId, onClose }) {
     setCellSaving(false)
   }
 
+  const [writeoffSuccess, setWriteoffSuccess] = useState(false)
+
   async function handleWriteoff() {
     if (!writeoffReason.trim()) return
     try {
-      const action = user?.role === 'warehouse_deputy'
+      const isRequest = user?.role === 'warehouse_deputy' || user?.role === 'warehouse_staff'
+      const action = isRequest
         ? unitsApi.requestWriteoff(unitId, writeoffReason)
         : unitsApi.writeoff(unitId, writeoffReason)
       await action
+      if (!isRequest) {
+        setWriteoffSuccess(true)
+        setTimeout(() => onClose(), 1500)
+        return
+      }
       onClose()
     } catch (e) {
       alert(e.message || 'Ошибка при списании')
@@ -238,19 +246,28 @@ export default function UnitCardModal({ unitId, onClose }) {
           {/* Writeoff panel */}
           {showWriteoff && (
             <div style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Причина списания</div>
-              <textarea
-                value={writeoffReason}
-                onChange={e => setWriteoffReason(e.target.value)}
-                placeholder="Сломано, утеряно, износ..."
-                style={{ width: '100%', height: 70, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              />
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <Button variant="secondary" fullWidth onClick={() => setShowWriteoff(false)}>Отмена</Button>
-                <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={handleWriteoff}>
-                  Списать
-                </Button>
-              </div>
+              {writeoffSuccess ? (
+                <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>✓</div>
+                  <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 14 }}>Успешно списано</div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Причина списания</div>
+                  <textarea
+                    value={writeoffReason}
+                    onChange={e => setWriteoffReason(e.target.value)}
+                    placeholder="Сломано, утеряно, износ..."
+                    style={{ width: '100%', height: 70, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <Button variant="secondary" fullWidth onClick={() => setShowWriteoff(false)}>Отмена</Button>
+                    <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={handleWriteoff}>
+                      Списать
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

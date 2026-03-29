@@ -138,7 +138,7 @@ export default function UnitPage() {
               {unit.dimensions && <InfoRow label="Размеры" value={unit.dimensions} />}
               {canSeeValuation && unit.source && <InfoRow label="Источник" value={unit.source} />}
               {unit.materials && <InfoRow label="Материалы" value={unit.materials} />}
-              {unit.is_temporary && <InfoRow label="Тип" value="Временная единица" />}
+              {unit.period && <InfoRow label="Временное понятие" value={unit.period} />}
               {unit.condition && <InfoRow label="Состояние" value={unit.condition} last />}
             </div>
 
@@ -170,7 +170,7 @@ export default function UnitPage() {
                       name: unit.name || '', category: unit.category || '', serial: unit.serial || '',
                       description: unit.description || '', qty: unit.qty || 1, condition: unit.condition || '',
                       valuation: unit.valuation || '', dimensions: unit.dimensions || '',
-                      materials: unit.materials || '', is_temporary: unit.is_temporary || false,
+                      materials: unit.materials || '', period: unit.period || '',
                     })
                     setShowEdit(true)
                   }}>
@@ -183,7 +183,7 @@ export default function UnitPage() {
                   Списать
                 </Button>
               )}
-              {user?.role === 'warehouse_deputy' && (
+              {(user?.role === 'warehouse_deputy' || user?.role === 'warehouse_staff') && (
                 <Button variant="secondary" style={{ color: 'var(--muted)' }}
                   onClick={() => { setWriteoffReason(''); setShowWriteoff(true) }}>
                   Заявка на списание
@@ -231,11 +231,8 @@ export default function UnitPage() {
             <EFL>Материалы</EFL>
             <input value={editForm.materials} onChange={e => setEditForm(f => ({ ...f, materials: e.target.value }))}
               placeholder="Дерево, металл, пластик..." style={inputStyle} />
-            <EFL>Временное</EFL>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, cursor: 'pointer' }}>
-              <input type="checkbox" checked={editForm.is_temporary} onChange={e => setEditForm(f => ({ ...f, is_temporary: e.target.checked }))} />
-              Временная единица (расходник / на проект)
-            </label>
+            <EFL>Временное понятие</EFL>
+            <input value={editForm.period} onChange={e => setEditForm(f => ({ ...f, period: e.target.value }))} placeholder="Советское, XVIII век..." style={inputStyle} />
             <EFL>Описание</EFL>
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
               style={{ ...inputStyle, height: 72, resize: 'vertical', padding: '8px 10px' }} />
@@ -271,12 +268,13 @@ export default function UnitPage() {
               <Button variant="secondary" fullWidth onClick={() => setShowWriteoff(false)}>Отмена</Button>
               <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }}
                 onClick={() => {
-                  const action = user?.role === 'warehouse_deputy'
+                  const isRequest = user?.role === 'warehouse_deputy' || user?.role === 'warehouse_staff'
+                  const action = isRequest
                     ? unitsApi.requestWriteoff(unit.id, writeoffReason)
                     : unitsApi.writeoff(unit.id, writeoffReason)
-                  action.then(() => navigate('/units'))
+                  action.then(() => navigate('/units')).catch(e => alert(e.message || 'Ошибка'))
                 }}>
-                {user?.role === 'warehouse_deputy' ? 'Отправить заявку' : 'Списать'}
+                {(user?.role === 'warehouse_deputy' || user?.role === 'warehouse_staff') ? 'Отправить заявку' : 'Списать'}
               </Button>
             </div>
           </div>

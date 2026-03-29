@@ -16,7 +16,7 @@ const STATUS_KEY = {
   'На утверждении': 'pending', 'Списано': 'written_off',
 }
 
-const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1, warehouse_id: '', cell_id: '', is_temporary: false }
+const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1, warehouse_id: '', cell_id: '', period: '' }
 const catOption = (key) => key === 'all' ? 'Все категории' : categoryLabel(key)
 
 export default function UnitsPage() {
@@ -240,10 +240,8 @@ export default function UnitsPage() {
               </div>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.is_temporary} onChange={e => setForm(f => ({ ...f, is_temporary: e.target.checked }))} />
-              Временная единица (расходник / на проект)
-            </label>
+            <FL>Временное понятие</FL>
+            <FI value={form.period} onChange={v => setForm(f => ({ ...f, period: v }))} placeholder="Советское, XVIII век, современное..." />
 
             <FL>Комментарий</FL>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Цвет, состояние, особенности..."
