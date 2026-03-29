@@ -63,7 +63,7 @@ const css = `
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0; left: 0; bottom: 0;
+  top: var(--impersonate-offset, 0px); left: 0; bottom: 0;
   z-index: 100;
   border-right: 1px solid rgba(255,255,255,0.06);
 }
@@ -163,7 +163,7 @@ const css = `
 /* ── Mobile top bar ── */
 .wl-topbar {
   display: none;
-  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  position: fixed; top: var(--impersonate-offset, 0px); left: 0; right: 0; height: 52px;
   background: var(--sidebar-bg);
   color: #fff;
   align-items: center; justify-content: space-between;

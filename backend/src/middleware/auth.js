@@ -16,7 +16,16 @@ async function verifyJWT(req, res, next) {
     )
     if (!rows.length) return res.status(401).json({ error: 'User not found' })
 
-    req.user = { id: rows[0].id, role: rows[0].role, project_id: rows[0].project_id }
+    // If impersonating, use target user's data but keep track of real user
+    if (payload.impersonating) {
+      const { rows: target } = await db.query(
+        `SELECT id, role, project_id FROM users WHERE id = $1`, [payload.impersonating]
+      )
+      if (!target.length) return res.status(401).json({ error: 'Impersonated user not found' })
+      req.user = { id: target[0].id, role: target[0].role, project_id: target[0].project_id, impersonator_id: rows[0].id }
+    } else {
+      req.user = { id: rows[0].id, role: rows[0].role, project_id: rows[0].project_id }
+    }
     next()
   } catch (err) {
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {

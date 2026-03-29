@@ -87,6 +87,48 @@ router.post('/login', async (req, res) => {
   }
 })
 
+// GET /auth/users — list all users (producer only)
+const { verifyJWT, checkRole } = require('../middleware/auth')
+router.get('/users', verifyJWT, checkRole('producer'), async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT u.id, u.name, u.email, u.role, p.name AS project_name
+      FROM users u
+      LEFT JOIN projects p ON p.id = u.project_id
+      ORDER BY u.role, u.name
+    `)
+    res.json({ users: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// POST /auth/impersonate — producer switches to another user's view
+router.post('/impersonate', verifyJWT, checkRole('producer'), async (req, res) => {
+  const { user_id } = req.body
+  if (!user_id) return res.status(400).json({ error: 'Missing user_id' })
+
+  try {
+    const { rows } = await db.query(
+      `SELECT id, name, email, role, project_id FROM users WHERE id = $1`, [user_id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'User not found' })
+    const target = rows[0]
+
+    const token = jwt.sign(
+      { id: req.user.id, role: 'producer', impersonating: target.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '4h' }
+    )
+
+    res.json({ token, user: { id: target.id, name: target.name, email: target.email, role: target.role, project_id: target.project_id } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 // POST /auth/recover/request
 router.post('/recover/request', async (req, res) => {
   const { email } = req.body

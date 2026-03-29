@@ -16,7 +16,7 @@ const css = `
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   display: flex; flex-direction: column;
-  position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  position: fixed; top: var(--impersonate-offset, 0px); left: 0; bottom: 0; z-index: 100;
   border-right: 1px solid rgba(255,255,255,0.06);
 }
 .pl-logo { padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
@@ -85,7 +85,7 @@ const css = `
 
 /* Mobile top bar */
 .pl-topbar {
-  display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  display: none; position: fixed; top: var(--impersonate-offset, 0px); left: 0; right: 0; height: 52px;
   background: var(--sidebar-bg); color: #fff;
   align-items: center; justify-content: space-between;
   padding: 0 16px; z-index: 200;
@@ -196,6 +196,7 @@ function buildNav(role) {
     nav.push({ to: '/production/lists',     icon: List,      label: 'Сверка ИИ' })
     nav.push({ to: '/production/warehouse', icon: Package,   label: 'Склад' })
     nav.push({ to: '/production/requests',  icon: Inbox,     label: 'Заявки' })
+    nav.push({ to: '/production/staff',     icon: Users,     label: 'Сотрудники' })
     nav.push({ to: '/analytics/producer',   icon: BarChart2, label: 'Аналитика' })
   }
 
