@@ -308,9 +308,9 @@ router.post('/:id/request-return', verifyJWT, async (req, res) => {
        JOIN users u ON u.id = i.received_by
        LEFT JOIN requests r ON r.id = i.request_id
        WHERE i.id = $1
-         AND i.received_by = $2
+         AND (i.received_by = $2 OR r.requester_id = $2 OR r.project_id = $3)
          AND NOT EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id)`,
-      [req.params.id, req.user.id]
+      [req.params.id, req.user.id, req.user.project_id || null]
     )
     if (!rows.length) return res.status(404).json({ error: 'Issuance not found' })
 
