@@ -42,7 +42,7 @@ export default function WarehouseViewPage() {
       requestsApi.list(params).then(d => {
         const map = {}
         for (const r of (d.requests || [])) {
-          if (['cancelled', 'rejected'].includes(r.status)) continue
+          if (['cancelled', 'rejected', 'issued'].includes(r.status)) continue
           for (const uid of (r.unit_ids || [])) {
             map[uid] = r.status === 'new' ? 'pending' : r.status
           }
