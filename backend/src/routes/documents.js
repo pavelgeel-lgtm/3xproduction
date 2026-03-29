@@ -67,17 +67,28 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
       }
     }
 
-    // Compute delta with previous version (kpp and scenario)
+    // Compute deltas and AI parsing (kpp and scenario only)
     let delta = null
     let parsed_data = null
     if (type !== 'callsheet' && parsed_content) {
-      // AI parsing via Groq for production lists (separate from document content)
+      // Build rich text for Groq AI analysis
       try {
-        const allText = parsed_content.scenes.map(s =>
-          `Сцена ${s.id}: ${s.object}\nРеквизит: ${(s.props||[]).join(', ')}\nКостюм: ${(s.costumes||[]).join(', ')}\nГрим: ${(s.makeup||[]).join(', ')}`
-        ).join('\n\n')
+        const allText = parsed_content.scenes.map(s => {
+          let t = `Сцена ${s.id}. ${s.int_nat || ''} ${s.object}. ${s.mode || ''}. СД ${s.day}`
+          if (s.synopsis) t += `\nСинопсис: ${s.synopsis}`
+          if (s.text) t += `\n${s.text.substring(0, 300)}`
+          if (s.characters?.length) t += `\nПерсонажи: ${s.characters.join(', ')}`
+          if (s.props?.length) t += `\nРеквизит: ${s.props.join(', ')}`
+          if (s.costumes?.length) t += `\nКостюм: ${s.costumes.join(', ')}`
+          if (s.makeup?.length) t += `\nГрим: ${s.makeup.join(', ')}`
+          if (s.vehicles?.length) t += `\nИгровой транспорт: ${s.vehicles.join(', ')}`
+          if (s.extras) t += `\nМассовка: ${s.extras}`
+          return t
+        }).join('\n\n')
+
         parsed_data = await parseDocument(allText.slice(0, 12000))
 
+        // Groq-level delta (for production lists categories)
         if (latest.length && latest[0].parsed_data) {
           delta = computeDelta(latest[0].parsed_data, parsed_data)
         }
@@ -85,9 +96,14 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
         console.error('Groq parse error:', err.message)
       }
 
-      // Also compute scene-level delta for the document viewer
+      // Scene-level delta (for document viewer) — merge with Groq delta
       if (latest.length && latest[0].parsed_content?.scenes) {
-        delta = computeSceneDelta(latest[0].parsed_content.scenes, parsed_content.scenes)
+        const sceneDelta = computeSceneDelta(latest[0].parsed_content.scenes, parsed_content.scenes)
+        if (delta) {
+          delta.scene_changes = sceneDelta
+        } else {
+          delta = { scene_changes: sceneDelta }
+        }
       }
     }
 

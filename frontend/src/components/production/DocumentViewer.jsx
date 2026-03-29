@@ -41,7 +41,9 @@ export default function DocumentViewer() {
 
   const delta = useMemo(() => {
     if (!doc?.delta) return null
-    return typeof doc.delta === 'string' ? JSON.parse(doc.delta) : doc.delta
+    const d = typeof doc.delta === 'string' ? JSON.parse(doc.delta) : doc.delta
+    // scene_changes is nested if both Groq and scene deltas exist
+    return d.scene_changes || d
   }, [doc?.delta])
 
   // Collect unique days and characters for filters
