@@ -302,32 +302,18 @@ router.get('/active', verifyJWT, checkRole('warehouse_director', 'warehouse_depu
 // POST /issuances/:id/request-return — project director requests return
 router.post('/:id/request-return', verifyJWT, async (req, res) => {
   try {
-    // First check issuance exists at all
-    const { rows: check } = await db.query(
-      `SELECT i.id, i.received_by, i.request_id, r.requester_id, r.project_id
-       FROM issuances i
-       LEFT JOIN requests r ON r.id = i.request_id
-       WHERE i.id = $1`,
-      [req.params.id]
-    )
-    console.log('request-return debug:', {
-      issuance_id: req.params.id,
-      user_id: req.user.id,
-      user_project_id: req.user.project_id,
-      found: check[0] || null,
-    })
-
     const { rows } = await db.query(
-      `SELECT i.id, i.received_by, u.name AS receiver_name, r.unit_ids
+      `SELECT i.id, i.received_by, u.name AS receiver_name, r.unit_ids,
+              EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id) AS already_returned
        FROM issuances i
        JOIN users u ON u.id = i.received_by
        LEFT JOIN requests r ON r.id = i.request_id
        WHERE i.id = $1
-         AND (i.received_by = $2 OR r.requester_id = $2 OR r.project_id = $3)
-         AND NOT EXISTS (SELECT 1 FROM returns rt WHERE rt.issuance_id = i.id)`,
+         AND (i.received_by = $2 OR r.requester_id = $2 OR r.project_id = $3)`,
       [req.params.id, req.user.id, req.user.project_id || null]
     )
     if (!rows.length) return res.status(404).json({ error: 'Issuance not found' })
+    if (rows[0].already_returned) return res.status(400).json({ error: 'Already returned' })
 
     await db.query(
       `UPDATE issuances SET return_requested_at = NOW() WHERE id = $1`,
