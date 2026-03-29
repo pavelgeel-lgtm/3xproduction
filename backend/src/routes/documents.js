@@ -143,6 +143,8 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
 // GET /documents/:projectId
 router.get('/:projectId', verifyJWT, async (req, res) => {
   const { type } = req.query
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRe.test(req.params.projectId)) return res.status(400).json({ error: 'Invalid project ID' })
   try {
     let q = `
       SELECT d.*, u.name AS uploaded_by_name

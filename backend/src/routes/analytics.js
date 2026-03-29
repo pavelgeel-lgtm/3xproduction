@@ -60,7 +60,7 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director', 'warehouse_d
     // Issuance dynamics (last 6 months)
     const { rows: issuanceDynamics } = await db.query(`
       SELECT
-        TO_CHAR(i.created_at, 'YYYY-MM') AS month,
+        TO_CHAR(i.issued_at, 'YYYY-MM') AS month,
         COUNT(*)                          AS issuances,
         COUNT(DISTINCT rt.id)             AS returns,
         COUNT(*) FILTER (
@@ -68,7 +68,7 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director', 'warehouse_d
         ) AS overdue_count
       FROM issuances i
       LEFT JOIN returns rt ON rt.issuance_id = i.id
-      WHERE i.created_at >= NOW() - INTERVAL '6 months'
+      WHERE i.issued_at >= NOW() - INTERVAL '6 months'
       GROUP BY month
       ORDER BY month
     `)
@@ -166,7 +166,7 @@ router.get('/producer', verifyJWT, checkRole('producer'), async (req, res) => {
     // Monthly issuance load (all projects or filtered)
     let loadQuery = `
       SELECT
-        TO_CHAR(i.created_at, 'YYYY-MM') AS month,
+        TO_CHAR(i.issued_at, 'YYYY-MM') AS month,
         COUNT(*)                          AS issuances,
         COUNT(DISTINCT i.received_by)     AS active_users
       FROM issuances i
@@ -176,7 +176,7 @@ router.get('/producer', verifyJWT, checkRole('producer'), async (req, res) => {
       loadQuery += ` JOIN users u ON u.id = i.received_by WHERE u.project_id = $1`
       params.push(project_id)
     } else {
-      loadQuery += ` WHERE i.created_at >= NOW() - INTERVAL '6 months'`
+      loadQuery += ` WHERE i.issued_at >= NOW() - INTERVAL '6 months'`
     }
     loadQuery += ` GROUP BY month ORDER BY month`
     const { rows: monthlyLoad } = await db.query(loadQuery, params)
