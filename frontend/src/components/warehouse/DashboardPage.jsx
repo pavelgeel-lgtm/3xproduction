@@ -59,7 +59,9 @@ const css = `
 .dash-notif-item {
   display: flex; gap: 10px; align-items: flex-start;
   padding: 10px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s; border-radius: 6px;
 }
+.dash-notif-item:hover { background: var(--bg); }
 .dash-notif-item:last-child { border-bottom: none; }
 .dash-notif-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
 .dash-notif-text { font-size: 13px; line-height: 1.4; }
@@ -255,12 +257,17 @@ export default function DashboardPage() {
             {notifs.length === 0
               ? <div className="dash-card-empty">Нет уведомлений</div>
               : notifs.slice(0, 4).map(n => (
-                <div key={n.id} className="dash-notif-item">
+                <div key={n.id} className="dash-notif-item" onClick={() => {
+                  if (n.entity_type === 'request') navigate(`/issue/${n.entity_id}`)
+                  else if (n.entity_type === 'unit') navigate(`/units/${n.entity_id}`)
+                  else navigate('/notifications')
+                }}>
                   <div className="dash-notif-dot" style={{ background: DOT_COLOR[n.type] || 'var(--border)' }} />
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div className="dash-notif-text">{n.text}</div>
                     <div className="dash-notif-time">{timeAgo(n.created_at)}</div>
                   </div>
+                  <span style={{ color: 'var(--muted)', fontSize: 14, flexShrink: 0, marginTop: 2 }}>→</span>
                 </div>
               ))
             }

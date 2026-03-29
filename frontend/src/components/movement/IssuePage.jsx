@@ -38,6 +38,7 @@ export default function IssuePage() {
   const [missing, setMissing] = useState(new Set())
   const [loading, setLoading] = useState(false)
   const [initLoading, setInitLoading] = useState(true)
+  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     if (requestId) {
@@ -105,7 +106,8 @@ export default function IssuePage() {
       }
 
       await issuancesApi.issue(fd)
-      navigate('/dashboard')
+      setSuccess(true)
+      setTimeout(() => navigate('/dashboard'), 2000)
     } catch (err) {
       alert(err.message || 'Ошибка выдачи')
     } finally {
@@ -231,15 +233,22 @@ export default function IssuePage() {
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{u.serial} · {u.category}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: done ? 'var(--green)' : 'var(--muted)' }}>
-                        {done ? 'Собрано' : 'Не собрано'}
-                      </div>
+                      {done && (
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)' }}>
+                          Собрано
+                        </div>
+                      )}
                       {!done && (
                         <button onClick={e => { e.stopPropagation(); markMissing(u.id) }} style={{
-                          fontSize: 11, color: 'var(--red)', background: 'none',
-                          border: '1px solid var(--red)', borderRadius: 4,
-                          padding: '2px 8px', cursor: 'pointer',
-                        }}>Нет в наличии</button>
+                          fontSize: 11, color: 'var(--red)', background: 'var(--red-dim, rgba(239,68,68,0.08))',
+                          border: '1px solid var(--red)', borderRadius: 6,
+                          padding: '4px 10px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          transition: 'background 0.15s, box-shadow 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--red-dim, rgba(239,68,68,0.08))'; e.currentTarget.style.boxShadow = 'none' }}
+                        >Нет в наличии →</button>
                       )}
                     </div>
                   </div>
@@ -314,6 +323,22 @@ export default function IssuePage() {
           </div>
         )}
       </div>
+
+      {success && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 500,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'var(--white)', borderRadius: 16, padding: '32px 40px',
+            textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Выдача оформлена</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Акт выдачи сформирован</div>
+          </div>
+        </div>
+      )}
     </WarehouseLayout>
   )
 }

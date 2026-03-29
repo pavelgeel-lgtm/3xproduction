@@ -217,12 +217,7 @@ function NewDeal({ onDone }) {
           }
         }
       }
-      if (data.deal?.sign_token) {
-        setSignLink(`${window.location.origin}/sign/${data.deal.sign_token}`)
-        setStep(5)
-      } else {
-        onDone()
-      }
+      setStep(5)
     } catch (err) {
       alert(err.message || 'Ошибка создания сделки')
     } finally {
@@ -401,34 +396,10 @@ function NewDeal({ onDone }) {
       )}
 
       {step === 5 && (
-        <div>
-          <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Сделка создана</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>Отправьте арендатору ссылку для подписания</div>
-          </div>
-          <div style={{
-            background: 'var(--bg)', border: '1px solid var(--border)',
-            borderRadius: 10, padding: '12px 14px',
-            display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
-          }}>
-            <span style={{ flex: 1, fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all', color: 'var(--text)' }}>
-              {signLink}
-            </span>
-            <button onClick={copyLink} style={{
-              flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
-              background: copied ? 'var(--green-dim)' : 'var(--accent-dim)',
-              color: copied ? 'var(--green)' : 'var(--accent)',
-              border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-            }}>
-              {copied ? '✓ Скопировано' : 'Скопировать'}
-            </button>
-          </div>
-          {form.email && (
-            <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginBottom: 16 }}>
-              Ссылка также отправлена на {form.email}
-            </div>
-          )}
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Сделка оформлена</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24 }}>Договор аренды подписан и сформирован</div>
           <Button fullWidth onClick={onDone}>К списку сделок</Button>
         </div>
       )}
