@@ -38,7 +38,7 @@ async function parseDocument(text) {
         { role: 'user',   content: `Документ для анализа:\n\n${text.slice(0, 12000)}` },
       ],
       temperature: 0.1,
-      max_tokens: 4096,
+      max_tokens: 8192,
     }),
   })
 
@@ -49,10 +49,38 @@ async function parseDocument(text) {
 
   const data = await resp.json()
   const content = data.choices?.[0]?.message?.content || ''
+  const finishReason = data.choices?.[0]?.finish_reason
+
+  if (!content) {
+    console.error('Groq returned empty content, finish_reason:', finishReason)
+    throw new Error('Groq returned empty response')
+  }
 
   // Strip any accidental markdown fences
-  const clean = content.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim()
-  return JSON.parse(clean)
+  let clean = content.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim()
+
+  // If response was truncated (length limit), try to fix JSON
+  if (finishReason === 'length') {
+    console.warn('Groq response truncated, attempting JSON repair')
+    // Close any open arrays/objects
+    let opens = 0, openArr = 0
+    for (const ch of clean) {
+      if (ch === '{') opens++
+      if (ch === '}') opens--
+      if (ch === '[') openArr++
+      if (ch === ']') openArr--
+    }
+    while (openArr > 0) { clean += ']'; openArr-- }
+    while (opens > 0) { clean += '}'; opens-- }
+  }
+
+  try {
+    return JSON.parse(clean)
+  } catch (err) {
+    console.error('Groq JSON parse failed, first 500 chars:', clean.substring(0, 500))
+    console.error('Last 200 chars:', clean.substring(clean.length - 200))
+    throw err
+  }
 }
 
 // Compute delta between two parsed_data JSONs
