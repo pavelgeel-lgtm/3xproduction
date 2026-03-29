@@ -184,11 +184,6 @@ export const lists = {
   deleteItem: (id)         => request('DELETE', `/lists/items/${id}`),
 }
 
-// ─── Projects ───────────────────────────────────────────────────────────────
-export const projects = {
-  list: () => request('GET', '/projects'),
-}
-
 // ─── Debts ──────────────────────────────────────────────────────────────────
 export const debts = {
   list:   (status) => request('GET', `/debts${status ? '?status=' + status : ''}`),
