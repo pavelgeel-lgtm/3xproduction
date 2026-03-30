@@ -8,6 +8,7 @@ import { STATUS_LABEL, STATUS_COLOR } from '../../constants/statuses'
 import { ALL_CATEGORIES, CATEGORY_MAP, categoryLabel } from '../../constants/categories'
 import { units as unitsApi, warehouses as warehousesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import { useToast } from '../shared/Toast'
 
 const CATEGORIES = ['all', ...ALL_CATEGORIES]
 const STATUSES = ['Все статусы', 'На складе', 'Выдано', 'Просрочено', 'На утверждении', 'Списано']
@@ -22,6 +23,7 @@ const catOption = (key) => key === 'all' ? 'Все категории' : categor
 export default function UnitsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const toast = useToast()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [statusFilter, setStatusFilter] = useState('Все статусы')
@@ -98,15 +100,16 @@ export default function UnitsPage() {
           catch { photoErrors++ }
         }
       }
-      if (photoErrors > 0) {
-        setAddError(`Единица создана, но ${photoErrors} фото не загрузилось`)
-      } else {
-        setShowAdd(false)
-      }
+      setShowAdd(false)
       setForm(EMPTY_FORM)
       setPhotos([])
-      if (unitId) navigate(`/units/${unitId}`)
-      else { const d = await unitsApi.list(); setAllUnits(d.units || []) }
+      const d = await unitsApi.list()
+      setAllUnits(d.units || [])
+      if (photoErrors > 0) {
+        toast?.(`Единица создана, но ${photoErrors} фото не загрузилось`, 'error')
+      } else {
+        toast?.(isDirector ? 'Позиция добавлена на склад' : 'Позиция отправлена на утверждение', 'success')
+      }
     } catch (err) {
       setAddError(err.message || 'Ошибка')
     } finally {
@@ -119,7 +122,10 @@ export default function UnitsPage() {
       <div style={{ padding: '24px 32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Склад</h1>
-          <Button onClick={() => { setForm(EMPTY_FORM); setPhotos([]); setAddError(''); setShowAdd(true) }}>+ Добавить</Button>
+          <Button onClick={() => {
+            setForm(EMPTY_FORM); setPhotos([]); setAddError(''); setShowAdd(true)
+            warehousesApi.list().then(d => setWarehouses(d.warehouses || [])).catch(() => {})
+          }}>+ Добавить</Button>
         </div>
 
         <div style={{ position: 'relative', marginBottom: 14 }}>
@@ -290,7 +296,9 @@ export default function UnitsPage() {
           </div>
         </div>
       )}
-      {cardId && <UnitCardModal unitId={cardId} onClose={() => setCardId(null)} />}
+      {cardId && <UnitCardModal unitId={cardId} onClose={() => setCardId(null)} onChanged={() => {
+        unitsApi.list().then(d => setAllUnits(d.units || [])).catch(() => {})
+      }} />}
     </WarehouseLayout>
   )
 }

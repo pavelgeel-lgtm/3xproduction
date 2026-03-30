@@ -326,6 +326,12 @@ router.delete('/:id', verifyJWT, checkRole('warehouse_director'), async (req, re
       await deleteFile(p.url).catch(() => {})
     }
 
+    // Clean up related records before delete
+    await db.query(`DELETE FROM debts WHERE unit_id = $1`, [req.params.id])
+    await db.query(`DELETE FROM approvals WHERE unit_id = $1`, [req.params.id])
+    await db.query(`DELETE FROM unit_history WHERE unit_id = $1`, [req.params.id])
+    await db.query(`DELETE FROM unit_photos WHERE unit_id = $1`, [req.params.id])
+
     await db.query(`DELETE FROM units WHERE id = $1`, [req.params.id])
     res.json({ ok: true })
   } catch (err) {

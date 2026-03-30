@@ -10,7 +10,7 @@ import { categoryLabel } from '../../constants/categories'
 const WAREHOUSE_ROLES = ['warehouse_director', 'warehouse_deputy', 'warehouse_staff']
 const DIRECTOR_ROLES  = ['warehouse_director', 'warehouse_deputy']
 
-export default function UnitCardModal({ unitId, onClose }) {
+export default function UnitCardModal({ unitId, onClose, onChanged }) {
   const { user } = useAuth()
   const [unit, setUnit]               = useState(null)
   const [loading, setLoading]         = useState(true)
@@ -237,7 +237,7 @@ export default function UnitCardModal({ unitId, onClose }) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button variant="secondary" fullWidth onClick={() => setShowDeleteConfirm(false)}>Отмена</Button>
                 <Button fullWidth style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => {
-                  try { await unitsApi.delete(unitId); onClose() } catch (e) { alert(e.message || 'Ошибка') }
+                  try { await unitsApi.delete(unitId); onChanged?.(); onClose() } catch (e) { alert(e.message || 'Ошибка') }
                 }}>Удалить</Button>
               </div>
             </div>

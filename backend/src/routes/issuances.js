@@ -123,10 +123,13 @@ router.post('/returns', verifyJWT, checkRole(...WAREHOUSE_ROLES), upload.fields(
     )
     if (!issuances.length) return res.status(404).json({ error: 'Issuance not found' })
     const issuance = issuances[0]
+    const unitIds = issuance.unit_ids || []
 
     const { rows: returnerRow } = await client.query(`SELECT name FROM users WHERE id=$1`, [issuance.received_by])
     const { rows: acceptorRow } = await client.query(`SELECT name FROM users WHERE id=$1`, [req.user.id])
-    const { rows: units } = await client.query(`SELECT * FROM units WHERE id = ANY($1)`, [issuance.unit_ids])
+    const { rows: units } = unitIds.length
+      ? await client.query(`SELECT * FROM units WHERE id = ANY($1)`, [unitIds])
+      : { rows: [] }
 
     // Parse conditions per unit
     let condMap = {}

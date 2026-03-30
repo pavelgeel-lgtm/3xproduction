@@ -5,10 +5,12 @@ import Button from '../shared/Button'
 import UnitCardModal from '../shared/UnitCardModal'
 import { warehouses as warehousesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
+import { useToast } from '../shared/Toast'
 
 export default function CellsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const toast = useToast()
   const canDeleteWarehouse = ['warehouse_director', 'warehouse_deputy'].includes(user?.role)
   const [warehouseList, setWarehouseList] = useState([])
   const [selWh, setSelWh] = useState('')
@@ -17,6 +19,11 @@ export default function CellsPage() {
   const [selected, setSelected] = useState(null)
   const [cardId, setCardId] = useState(null)
   const [dragIdx, setDragIdx] = useState(null)
+
+  // Add warehouse modal
+  const [showAddWh, setShowAddWh] = useState(false)
+  const [newWhName, setNewWhName] = useState('')
+  const [addingWh, setAddingWh] = useState(false)
 
   useEffect(() => {
     warehousesApi.list().then(d => {
@@ -35,6 +42,24 @@ export default function CellsPage() {
       .finally(() => setLoading(false))
   }, [selWh])
 
+  async function handleAddWarehouse() {
+    if (!newWhName.trim()) return
+    setAddingWh(true)
+    try {
+      const data = await warehousesApi.create({ name: newWhName.trim() })
+      const wh = data.warehouse
+      setWarehouseList(prev => [...prev, wh])
+      setSelWh(String(wh.id))
+      setShowAddWh(false)
+      setNewWhName('')
+      toast?.(`Склад "${wh.name}" создан`, 'success')
+    } catch (e) {
+      toast?.(e.message || 'Ошибка создания склада', 'error')
+    } finally {
+      setAddingWh(false)
+    }
+  }
+
   const selectedCell = sections.flatMap(s => s.cells || []).find(c => String(c.id) === String(selected))
 
   return (
@@ -50,31 +75,21 @@ export default function CellsPage() {
           .cells-sheet { display: block !important; }
           .cells-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
         }
+        .wh-chip {
+          padding: 8px 18px; border-radius: 20; border: 2px solid var(--border);
+          background: var(--white); cursor: pointer; font-size: 13px; font-weight: 500;
+          color: var(--text); transition: all 0.15s; white-space: nowrap;
+        }
+        .wh-chip:hover { border-color: var(--blue); }
+        .wh-chip.active { border-color: var(--blue); background: var(--blue-dim); color: var(--blue); font-weight: 600; }
       `}</style>
       <div className="cells-page">
         <div className="cells-main">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
             <h1 style={{ fontSize: 20, fontWeight: 600 }}>Карта ячеек</h1>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {warehouseList.length > 0 && (
-                <select value={selWh} onChange={e => setSelWh(e.target.value)} style={{
-                  height: 36, padding: '0 10px', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
-                }}>
-                  {warehouseList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              )}
+            <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
-                onClick={async () => {
-                  const name = prompt('Название нового склада:')
-                  if (!name?.trim()) return
-                  try {
-                    const data = await warehousesApi.create({ name: name.trim() })
-                    const wh = data.warehouse
-                    setWarehouseList(prev => [...prev, wh])
-                    setSelWh(String(wh.id))
-                  } catch (e) { alert(e.message || 'Ошибка') }
-                }}>
+                onClick={() => { setNewWhName(''); setShowAddWh(true) }}>
                 + Склад
               </Button>
               <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
@@ -90,7 +105,8 @@ export default function CellsPage() {
                       setWarehouseList(prev => prev.filter(w => String(w.id) !== selWh))
                       setSelWh('')
                       setSections([])
-                    } catch (e) { alert(e.message || 'Ошибка') }
+                      toast?.('Склад удалён', 'success')
+                    } catch (e) { toast?.(e.message || 'Ошибка', 'error') }
                   }}>
                   Удалить склад
                 </Button>
@@ -98,10 +114,31 @@ export default function CellsPage() {
             </div>
           </div>
 
+          {/* Warehouse chips slider */}
+          {warehouseList.length > 0 && (
+            <div style={{
+              display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto',
+              paddingBottom: 4, scrollbarWidth: 'thin',
+            }}>
+              {warehouseList.map(w => (
+                <button key={w.id}
+                  className={`wh-chip ${String(w.id) === selWh ? 'active' : ''}`}
+                  onClick={() => setSelWh(String(w.id))}
+                  style={{ borderRadius: 20 }}>
+                  <span style={{ marginRight: 6 }}>🏪</span>
+                  {w.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading && <div style={{ color: 'var(--muted)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Загрузка...</div>}
 
           {sections.map((section, sIdx) => {
             const cells = section.cells || []
+            const freeCells = cells.filter(c => !c.unit_id || c.unit_status !== 'on_stock').length
+            const totalCells = cells.length
+            const occupancyPct = totalCells > 0 ? Math.round(((totalCells - freeCells) / totalCells) * 100) : 0
             return (
               <div key={section.id} style={{ marginBottom: 28 }}
                 draggable
@@ -118,12 +155,18 @@ export default function CellsPage() {
                 }}
                 onDragEnd={() => setDragIdx(null)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, cursor: 'grab' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, cursor: 'grab' }}>
                   <span style={{ color: 'var(--muted)', fontSize: 14 }}>⠿</span>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{section.name}</div>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {cells.filter(c => !c.unit_id || c.unit_status !== 'on_stock').length} свободных из {cells.length}
-                  </span>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '3px 10px', borderRadius: 20,
+                    background: occupancyPct > 80 ? 'rgba(239,68,68,0.1)' : occupancyPct > 50 ? 'rgba(234,179,8,0.1)' : 'rgba(34,197,94,0.1)',
+                    fontSize: 11, fontWeight: 500,
+                    color: occupancyPct > 80 ? 'var(--red)' : occupancyPct > 50 ? '#b45309' : 'var(--green)',
+                  }}>
+                    {freeCells} свободных / {totalCells}
+                  </div>
                   <button onClick={(e) => { e.stopPropagation(); navigate(`/cells/constructor?warehouse=${selWh}&section=${section.id}`) }}
                     style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', fontSize: 12, color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}>
                     + Добавить
@@ -142,28 +185,36 @@ export default function CellsPage() {
                         onClick={() => setSelected(isSelected ? null : cell.id)}
                         style={{
                           aspectRatio: '1',
-                          background: isOccupied ? 'var(--blue-dim)' : 'var(--bg)',
+                          background: isOccupied
+                            ? 'linear-gradient(135deg, rgba(30,157,218,0.08), rgba(30,157,218,0.15))'
+                            : 'var(--bg)',
                           border: isSelected
                             ? '2px solid var(--blue)'
                             : isOccupied
                               ? '1px solid rgba(30,157,218,0.3)'
                               : '1px solid var(--border)',
-                          borderRadius: 8,
+                          borderRadius: 10,
                           display: 'flex', flexDirection: 'column',
                           alignItems: 'center', justifyContent: 'center',
                           cursor: 'pointer', transition: 'all 0.15s',
                           fontSize: 10, fontWeight: 500,
                           color: isOccupied ? 'var(--blue)' : 'var(--muted)',
                           userSelect: 'none',
-                          overflow: 'hidden', padding: 4,
+                          overflow: 'hidden', padding: 6,
+                          boxShadow: isSelected ? '0 0 0 3px rgba(30,157,218,0.15)' : 'none',
                         }}
                       >
-                        <div style={{ fontSize: 9, fontWeight: 600 }}>{cell.custom_name || cell.code}</div>
+                        <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 2 }}>{cell.custom_name || cell.code}</div>
                         {isOccupied && (
-                          <div style={{ fontSize: 8, marginTop: 2, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', maxWidth: '100%', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{
+                            fontSize: 8, textAlign: 'center', lineHeight: 1.2,
+                            overflow: 'hidden', maxWidth: '100%', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            opacity: 0.8,
+                          }}>
                             {cell.unit_name}
                           </div>
                         )}
+                        {!isOccupied && <div style={{ fontSize: 12, opacity: 0.3, marginTop: 2 }}>—</div>}
                       </div>
                     )
                   })}
@@ -191,6 +242,7 @@ export default function CellsPage() {
 
             {!selectedCell.unit_id || selectedCell.unit_status !== 'on_stock' ? (
               <div style={{ textAlign: 'center', paddingTop: 40 }}>
+                <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.3 }}>📦</div>
                 <div style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 16 }}>Ячейка свободна</div>
                 <button onClick={async () => {
                   if (!window.confirm('Удалить ячейку?')) return
@@ -200,7 +252,8 @@ export default function CellsPage() {
                       ...s, cells: (s.cells || []).filter(c => c.id !== selectedCell.id)
                     })))
                     setSelected(null)
-                  } catch (e) { alert(e.message || 'Ошибка') }
+                    toast?.('Ячейка удалена', 'success')
+                  } catch (e) { toast?.(e.message || 'Ошибка', 'error') }
                 }} style={{
                   fontSize: 12, color: 'var(--red)', background: 'none',
                   border: '1px solid var(--red)', borderRadius: 6,
@@ -209,8 +262,14 @@ export default function CellsPage() {
               </div>
             ) : (
               <>
-                <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>{selectedCell.unit_name}</div>
-                <Button fullWidth style={{ marginTop: 12 }} onClick={() => { setCardId(selectedCell.unit_id); setSelected(null) }}>
+                <div style={{
+                  padding: '14px', background: 'var(--bg)', borderRadius: 10,
+                  marginBottom: 14,
+                }}>
+                  <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>{selectedCell.unit_name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>Занята</div>
+                </div>
+                <Button fullWidth onClick={() => { setCardId(selectedCell.unit_id); setSelected(null) }}>
                   Открыть карточку
                 </Button>
               </>
@@ -233,6 +292,40 @@ export default function CellsPage() {
             ) : (
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>Ячейка свободна</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Add warehouse modal */}
+      {showAddWh && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowAddWh(false)}>
+          <div style={{ background: 'var(--white)', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <span style={{ fontSize: 24 }}>🏪</span>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>Новый склад</div>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--muted)' }}>Название склада</div>
+            <input
+              autoFocus
+              value={newWhName}
+              onChange={e => setNewWhName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddWarehouse()}
+              placeholder="Основной склад, Цех №2..."
+              style={{
+                width: '100%', height: 44, padding: '0 14px',
+                border: '1px solid var(--border)', borderRadius: 10,
+                fontSize: 14, background: 'var(--bg)', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+              <Button variant="secondary" fullWidth onClick={() => setShowAddWh(false)}>Отмена</Button>
+              <Button fullWidth disabled={!newWhName.trim() || addingWh} onClick={handleAddWarehouse}>
+                {addingWh ? 'Создание...' : 'Создать'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
