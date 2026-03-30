@@ -25,7 +25,9 @@ function getOwnTypes(role) {
 
 // GET /lists — own lists (or all if seeAllLists role)
 router.get('/', verifyJWT, async (req, res) => {
-  const projectId = req.query.project_id || req.user.project_id
+  const raw = req.query.project_id
+  const projectId = (raw && raw !== 'null' && raw !== 'undefined') ? raw : req.user.project_id
+  if (!projectId) return res.status(400).json({ error: 'Missing project_id' })
   const seeAll = SEE_ALL_ROLES.includes(req.user.role)
 
   try {
@@ -61,8 +63,11 @@ router.get('/', verifyJWT, async (req, res) => {
 // GET /lists/:type/items — get or auto-create list + items
 router.get('/:type/items', verifyJWT, async (req, res) => {
   const { type } = req.params
-  const projectId = req.query.project_id || req.user.project_id
-  const targetUserId = req.query.user_id
+  const raw = req.query.project_id
+  const projectId = (raw && raw !== 'null' && raw !== 'undefined') ? raw : req.user.project_id
+  if (!projectId) return res.status(400).json({ error: 'Missing project_id' })
+  const rawUserId = req.query.user_id
+  const targetUserId = (rawUserId && rawUserId !== 'null' && rawUserId !== 'undefined') ? rawUserId : undefined
   const seeAll = SEE_ALL_ROLES.includes(req.user.role)
 
   // Permission check
