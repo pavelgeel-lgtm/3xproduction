@@ -254,7 +254,7 @@ export default function ProductionLayout({ children }) {
     try {
       const proj = projectsList.find(p => p === selectedProject)
       const d = await invitesApi.generate({ role: inviteRole, project_id: user?.project_id })
-      setInviteLink(`${window.location.origin}/invite/${d.token}`)
+      setInviteLink(`${window.location.origin}/invite/${d.invite.token}`)
     } catch (e) { alert(e.message || 'Ошибка') }
     setInviteLoading(false)
   }
