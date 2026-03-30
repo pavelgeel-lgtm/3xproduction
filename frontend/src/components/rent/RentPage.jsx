@@ -9,7 +9,7 @@ import PhotoUpload from '../shared/PhotoUpload'
 import { categoryLabel, CATEGORIES_FILTER } from '../../constants/categories'
 import { rent as rentApi, units as unitsApi, warehouses as warehousesApi } from '../../services/api'
 
-const DEAL_FILTERS = ['Все', 'Сдаём', 'Берём', 'Активные', 'Завершённые']
+const DEAL_FILTERS = ['Все', 'Активные', 'Завершённые', 'Сдали']
 
 export default function RentPage() {
   const [tab, setTab] = useState('list')
@@ -25,10 +25,9 @@ export default function RentPage() {
 
   const filtered = deals.filter(d => {
     if (dealFilter === 'Все') return true
-    if (dealFilter === 'Сдаём') return d.type === 'out'
-    if (dealFilter === 'Берём') return d.type === 'in'
-    if (dealFilter === 'Активные') return d.status === 'active'
+    if (dealFilter === 'Активные') return d.status === 'active' || d.status === 'overdue'
     if (dealFilter === 'Завершённые') return d.status === 'done'
+    if (dealFilter === 'Сдали') return d.type === 'out'
     return true
   })
 
