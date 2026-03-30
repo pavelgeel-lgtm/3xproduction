@@ -16,7 +16,7 @@ const STATUS_KEY = {
   'На утверждении': 'pending', 'Списано': 'written_off',
 }
 
-const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1, warehouse_id: '', cell_id: '', period: '' }
+const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1, warehouse_id: '', cell_id: '', period: '', valuation: '' }
 const catOption = (key) => key === 'all' ? 'Все категории' : categoryLabel(key)
 
 export default function UnitsPage() {
@@ -69,8 +69,11 @@ export default function UnitsPage() {
     setPhotos(prev => [...prev, ...files].slice(0, 5))
   }
 
+  const isDirector = user?.role === 'warehouse_director'
+
   async function handleAdd() {
     if (!form.name.trim()) return
+    if (isDirector && !form.valuation) { setAddError('Укажите стоимость единицы'); return }
     setAdding(true)
     setAddError('')
     try {
@@ -81,6 +84,7 @@ export default function UnitsPage() {
         description: form.description || null,
         source: canSeeSource ? form.source : null,
         qty: Number(form.qty) || 1,
+        valuation: form.valuation ? Number(form.valuation) : null,
         warehouse_id: form.warehouse_id || null,
         cell_id: form.cell_id || null,
       })
@@ -201,6 +205,13 @@ export default function UnitsPage() {
 
             <FL>Размеры</FL>
             <FI value={form.dimensions} onChange={v => setForm(f => ({ ...f, dimensions: v }))} placeholder="80×60×90 см" />
+
+            {isDirector && (
+              <div style={{ marginBottom: 12 }}>
+                <FL>Стоимость единицы, ₽ *</FL>
+                <FI type="number" value={form.valuation} onChange={v => setForm(f => ({ ...f, valuation: v }))} placeholder="0.00" />
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
               <div>
