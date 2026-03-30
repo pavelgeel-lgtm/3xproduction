@@ -62,6 +62,7 @@ function DealsList({ deals, allDeals, filter, setFilter, loading, onRefresh }) {
   const activeCount = allDeals.filter(d => d.status === 'active').length
   const monthSum = allDeals.filter(d => d.status !== 'cancelled').reduce((a, d) => a + (Number(d.price_total) || 0), 0)
   const overdueCount = allDeals.filter(d => d.status === 'overdue').length
+  const [returnDeal, setReturnDeal] = useState(null)
 
   return (
     <div>
@@ -131,14 +132,7 @@ function DealsList({ deals, allDeals, filter, setFilter, loading, onRefresh }) {
             )}
             {(d.status === 'active' || d.status === 'overdue') && (
               <button
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  if (!confirm(`Оформить возврат по сделке с ${d.counterparty_name}?`)) return
-                  try {
-                    await rentApi.return(d.id, {})
-                    onRefresh()
-                  } catch (err) { alert(err.message || 'Ошибка возврата') }
-                }}
+                onClick={(e) => { e.stopPropagation(); setReturnDeal(d) }}
                 style={{
                   padding: '5px 12px', fontSize: 12, fontWeight: 500,
                   color: 'var(--green)', background: 'var(--green-dim)',
@@ -151,6 +145,201 @@ function DealsList({ deals, allDeals, filter, setFilter, loading, onRefresh }) {
         ))}
         {!loading && deals.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)', fontSize: 14 }}>Нет сделок</div>
+        )}
+      </div>
+
+      {returnDeal && (
+        <RentReturnModal deal={returnDeal} onClose={() => setReturnDeal(null)} onDone={() => { setReturnDeal(null); onRefresh() }} />
+      )}
+    </div>
+  )
+}
+
+const CONDITIONS = [
+  { value: 'excellent', label: 'Отлично', color: 'var(--green)' },
+  { value: 'good', label: 'Хорошее', color: 'var(--blue)' },
+  { value: 'damaged', label: 'Повреждено', color: 'var(--red)' },
+]
+
+const RETURN_STEPS = ['Детали сделки', 'Фото и состояние', 'Подпись арендатора', 'Подпись принимающего']
+
+function RentReturnModal({ deal, onClose, onDone }) {
+  const [step, setStep] = useState(0)
+  const [units, setUnits] = useState([])
+  const [conditions, setConditions] = useState({})
+  const [damages, setDamages] = useState({})
+  const [photos, setPhotos] = useState({})
+  const [renterSignature, setRenterSignature] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [unitsLoading, setUnitsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!deal.unit_ids?.length) { setUnitsLoading(false); return }
+    unitsApi.list().then(d => {
+      const ids = deal.unit_ids.map(String)
+      const found = (d.units || []).filter(u => ids.includes(String(u.id)))
+      setUnits(found.length ? found : deal.unit_ids.map(id => ({ id, name: `Единица #${String(id).slice(0, 8)}` })))
+    }).catch(() => {
+      setUnits(deal.unit_ids.map(id => ({ id, name: `Единица #${String(id).slice(0, 8)}` })))
+    }).finally(() => setUnitsLoading(false))
+  }, [deal])
+
+  function setPhoto(unitId, idx, file) {
+    setPhotos(p => {
+      const arr = [...(p[unitId] || [null, null])]
+      arr[idx] = file
+      return { ...p, [unitId]: arr }
+    })
+  }
+
+  async function handleReturn(acceptorSignature) {
+    setLoading(true)
+    try {
+      const allNotes = Object.entries(damages)
+        .filter(([, v]) => v)
+        .map(([id, v]) => {
+          const u = units.find(u => String(u.id) === String(id))
+          return `${u?.name || id}: ${v}`
+        })
+        .join('; ')
+      await rentApi.return(deal.id, { condition_notes: allNotes || undefined })
+      onDone()
+    } catch (err) {
+      alert(err.message || 'Ошибка возврата')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={onClose}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-card)', padding: 28, maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ fontWeight: 600, fontSize: 16 }}>Возврат по аренде</div>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18 }}>✕</button>
+        </div>
+
+        {/* Step indicator */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 24 }}>
+          {RETURN_STEPS.map((s, i) => (
+            <div key={s} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: '50%', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600,
+                  background: i < step ? 'var(--green)' : i === step ? 'var(--blue)' : 'var(--border)',
+                  color: i <= step ? '#fff' : 'var(--muted)',
+                }}>{i < step ? '✓' : i + 1}</div>
+                <div style={{ fontSize: 10, color: i === step ? 'var(--blue)' : 'var(--muted)', marginTop: 3, fontWeight: i === step ? 600 : 400, textAlign: 'center' }}>{s}</div>
+              </div>
+              {i < RETURN_STEPS.length - 1 && <div style={{ height: 2, flex: 1, background: i < step ? 'var(--green)' : 'var(--border)', marginBottom: 16 }} />}
+            </div>
+          ))}
+        </div>
+
+        {/* Step 0 — deal details */}
+        {step === 0 && (
+          <div>
+            <div style={{ background: 'var(--bg)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>Контрагент</span>
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{deal.counterparty_name}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>Период</span>
+                <span style={{ fontSize: 13 }}>{new Date(deal.period_start).toLocaleDateString('ru-RU')} — {new Date(deal.period_end).toLocaleDateString('ru-RU')}</span>
+              </div>
+              {deal.price_total && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>Сумма</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{Number(deal.price_total).toLocaleString('ru-RU')} ₽</span>
+                </div>
+              )}
+            </div>
+            <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 8 }}>Единицы ({units.length})</div>
+            {unitsLoading ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {units.map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 6, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, overflow: 'hidden' }}>
+                      {u.photo_url ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
+                      {u.serial && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{u.serial}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button fullWidth onClick={() => setStep(1)}>Далее — Фото и состояние</Button>
+          </div>
+        )}
+
+        {/* Step 1 — photos + condition */}
+        {step === 1 && (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Фото и состояние при возврате</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Зафиксируйте состояние каждой единицы</div>
+            {units.map(u => (
+              <div key={u.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+                <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 10 }}>{u.name}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  {[0, 1].map(i => (
+                    <PhotoUpload key={i} label={`Фото ${i + 1}`} onChange={f => setPhoto(u.id, i, f)} />
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                  {CONDITIONS.map(c => (
+                    <button key={c.value} onClick={() => setConditions(p => ({ ...p, [u.id]: c.value }))} style={{
+                      flex: 1, height: 34, borderRadius: 'var(--radius-btn)',
+                      border: `2px solid ${conditions[u.id] === c.value ? c.color : 'var(--border)'}`,
+                      background: conditions[u.id] === c.value ? c.color + '15' : 'var(--white)',
+                      color: conditions[u.id] === c.value ? c.color : 'var(--muted)',
+                      fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                    }}>{c.label}</button>
+                  ))}
+                </div>
+                {conditions[u.id] === 'damaged' && (
+                  <textarea placeholder="Опишите повреждение..." value={damages[u.id] || ''}
+                    onChange={e => setDamages(p => ({ ...p, [u.id]: e.target.value }))}
+                    style={{ width: '100%', minHeight: 60, padding: '8px 10px', border: '1px solid var(--red)', borderRadius: 'var(--radius-btn)', fontSize: 12, resize: 'vertical', outline: 'none' }} />
+                )}
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" onClick={() => setStep(0)}>Назад</Button>
+              <Button fullWidth onClick={() => setStep(2)}>Далее — Подпись</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2 — renter signature */}
+        {step === 2 && (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись арендатора</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{deal.counterparty_name}</div>
+            <SignatureCanvas onSave={data => { setRenterSignature(data); setStep(3) }} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, textAlign: 'center' }}>Подпись лица, возвращающего имущество</div>
+            <Button variant="secondary" fullWidth style={{ marginTop: 12 }} onClick={() => setStep(1)}>Назад</Button>
+          </div>
+        )}
+
+        {/* Step 3 — acceptor signature */}
+        {step === 3 && (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Подпись принимающего</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Сотрудник склада</div>
+            <SignatureCanvas onSave={data => handleReturn(data)} />
+            {loading && <div style={{ textAlign: 'center', marginTop: 12, color: 'var(--muted)', fontSize: 13 }}>Оформление возврата...</div>}
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, textAlign: 'center' }}>После подписи сделка будет завершена, единицы вернутся на склад</div>
+            <Button variant="secondary" fullWidth style={{ marginTop: 12 }} onClick={() => setStep(2)}>Назад</Button>
+          </div>
         )}
       </div>
     </div>
