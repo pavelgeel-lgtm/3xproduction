@@ -64,7 +64,7 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director', 'warehouse_d
         COUNT(*)                          AS issuances,
         COUNT(DISTINCT rt.id)             AS returns,
         COUNT(*) FILTER (
-          WHERE i.deadline < COALESCE(rt.created_at, NOW())
+          WHERE i.deadline < COALESCE(rt.returned_at, NOW())
         ) AS overdue_count
       FROM issuances i
       LEFT JOIN returns rt ON rt.issuance_id = i.id
