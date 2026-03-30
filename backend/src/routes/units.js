@@ -32,7 +32,9 @@ router.get('/', verifyJWT, async (req, res) => {
     q += ` ORDER BY u.created_at DESC`
 
     const { rows } = await db.query(q, params)
-    res.json({ units: rows })
+    const canSeeValuation = ['warehouse_director', 'producer'].includes(req.user.role)
+    const units = canSeeValuation ? rows : rows.map(({ valuation, ...rest }) => rest)
+    res.json({ units })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Server error' })
@@ -180,7 +182,7 @@ router.put('/:id', verifyJWT, async (req, res) => {
 
 // POST /units/:id/approve
 router.post('/:id/approve', verifyJWT, checkRole('warehouse_director', 'warehouse_deputy'), async (req, res) => {
-  const { approval_id } = req.body
+  const { approval_id, valuation } = req.body
   try {
     const { rows } = await db.query(
       `SELECT * FROM approvals WHERE id = $1 AND unit_id = $2 AND status = 'pending'`,
@@ -190,7 +192,8 @@ router.post('/:id/approve', verifyJWT, checkRole('warehouse_director', 'warehous
     const approval = rows[0]
 
     if (approval.action === 'add') {
-      await db.query(`UPDATE units SET status = 'on_stock' WHERE id = $1`, [req.params.id])
+      if (valuation == null || valuation === '') return res.status(400).json({ error: 'Укажите стоимость единицы' })
+      await db.query(`UPDATE units SET status = 'on_stock', valuation = $2 WHERE id = $1`, [req.params.id, valuation])
       await db.query(
         `INSERT INTO unit_history (unit_id, action, user_id) VALUES ($1,'Принято на склад',$2)`,
         [req.params.id, req.user.id]

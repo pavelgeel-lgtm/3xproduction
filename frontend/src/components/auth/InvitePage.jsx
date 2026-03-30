@@ -15,7 +15,7 @@ export default function InvitePage() {
   useEffect(() => {
     invites.get(token)
       .then(data => setInvite(data.invite))
-      .catch(() => setError('Приглашение не найдено или истекло'))
+      .catch(err => setError(err.message || 'Приглашение не найдено или истекло'))
       .finally(() => setLoading(false))
   }, [token])
 

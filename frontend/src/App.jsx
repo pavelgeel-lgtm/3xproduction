@@ -31,6 +31,7 @@ import ProfilePage from './components/shared/ProfilePage'
 import WarehouseAnalyticsPage from './components/analytics/WarehouseAnalyticsPage'
 import ProducerDashboardPage from './components/analytics/ProducerDashboardPage'
 import StaffPage from './components/production/StaffPage'
+import AssetsPage from './components/warehouse/AssetsPage'
 import SeedPage from './components/dev/SeedPage'
 
 // Requires auth only
@@ -118,6 +119,7 @@ function App() {
         <Route path="/debts"                   element={<WarehouseRoute><DebtsPage /></WarehouseRoute>} />
         <Route path="/approvals"               element={<WarehouseRoute><ApprovalsPage /></WarehouseRoute>} />
         <Route path="/analytics"               element={<WarehouseRoute><WarehouseAnalyticsPage /></WarehouseRoute>} />
+        <Route path="/assets"                  element={<PrivateRoute><AssetsPage /></PrivateRoute>} />
 
         {/* Production routes */}
         <Route path="/production/requests"      element={<ProductionRoute><RequestsProductionPage /></ProductionRoute>} />

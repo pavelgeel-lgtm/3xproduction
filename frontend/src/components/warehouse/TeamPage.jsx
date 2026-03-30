@@ -134,7 +134,7 @@ export default function TeamPage() {
   const [inviteError, setInviteError] = useState('')
 
   const canInvite = ROLES[user?.role]?.canInvite?.length > 0
-  const canRemove = ['warehouse_director', 'project_director'].includes(user?.role)
+  const canRemove = ['warehouse_director', 'project_director', 'producer'].includes(user?.role)
   const roleOptions = getRoleOptions(user?.role)
 
   useEffect(() => {

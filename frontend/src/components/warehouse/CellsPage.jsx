@@ -65,6 +65,19 @@ export default function CellsPage() {
                 </select>
               )}
               <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
+                onClick={async () => {
+                  const name = prompt('Название нового склада:')
+                  if (!name?.trim()) return
+                  try {
+                    const data = await warehousesApi.create({ name: name.trim() })
+                    const wh = data.warehouse
+                    setWarehouseList(prev => [...prev, wh])
+                    setSelWh(String(wh.id))
+                  } catch (e) { alert(e.message || 'Ошибка') }
+                }}>
+                + Склад
+              </Button>
+              <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
                 onClick={() => navigate('/cells/constructor')}>
                 + Секция
               </Button>

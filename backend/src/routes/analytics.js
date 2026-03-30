@@ -112,6 +112,15 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director', 'warehouse_d
       FROM rent_deals
     `)
 
+    // Asset valuation
+    const { rows: assetValuation } = await db.query(`
+      SELECT
+        COALESCE(SUM(valuation * qty) FILTER (WHERE status IN ('on_stock','issued')), 0) AS total_assets_value,
+        COALESCE(SUM(valuation * qty) FILTER (WHERE status = 'issued'), 0) AS issued_assets_value
+      FROM units
+      WHERE valuation IS NOT NULL
+    `)
+
     res.json({
       totals:           totals[0],
       by_category:      byCategory,
@@ -122,6 +131,7 @@ router.get('/warehouse', verifyJWT, checkRole('warehouse_director', 'warehouse_d
       damage_stats:     damageStats[0],
       rent_summary:     activeRentDeals[0],
       debt_stats:       debtStats[0],
+      asset_valuation:  assetValuation[0],
     })
   } catch (err) {
     console.error(err)
@@ -221,6 +231,15 @@ router.get('/producer', verifyJWT, checkRole('producer'), async (req, res) => {
       ORDER BY last_upload DESC NULLS LAST
     `)
 
+    // Asset valuation
+    const { rows: assetValuation } = await db.query(`
+      SELECT
+        COALESCE(SUM(valuation * qty) FILTER (WHERE status IN ('on_stock','issued')), 0) AS total_assets_value,
+        COALESCE(SUM(valuation * qty) FILTER (WHERE status = 'issued'), 0) AS issued_assets_value
+      FROM units
+      WHERE valuation IS NOT NULL
+    `)
+
     res.json({
       budget_by_category:  budgetByCategory,
       project_comparison:  projectComparison,
@@ -228,6 +247,7 @@ router.get('/producer', verifyJWT, checkRole('producer'), async (req, res) => {
       category_load:       categoryLoad,
       top_users:           topUsers,
       document_stats:      documentStats,
+      asset_valuation:     assetValuation[0],
     })
   } catch (err) {
     console.error(err)

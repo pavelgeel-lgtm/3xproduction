@@ -172,7 +172,7 @@ export default function DashboardPage() {
                 try {
                   const data = await rentApi.generateLink()
                   const url = data.url || data.link
-                  if (url) setPublicLink(url)
+                  if (url) setPublicLink(`${window.location.origin}${url}`)
                 } catch (e) { alert(e.message || 'Ошибка') }
               }}>
                 Публичная ссылка

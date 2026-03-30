@@ -26,6 +26,7 @@ export default function ProducerDashboardPage() {
   const projectComp   = data?.project_comparison  || []
   const topUsers      = data?.top_users           || []
   const categoryLoad  = data?.category_load       || []
+  const assetVal      = data?.asset_valuation     || {}
 
   const totalBudget = budgetByCat.reduce((s, c) => s + Number(c.estimated_cost || 0), 0)
   const maxBudget = Math.max(...budgetByCat.map(c => Number(c.estimated_cost || 0)), 1)
@@ -53,8 +54,8 @@ export default function ProducerDashboardPage() {
 
         <div className="resp-3-col" style={{ marginBottom: 28 }}>
           <StatCard label="Общие расходы" value={totalBudget.toLocaleString('ru-RU') + ' ₽'} color="var(--blue)" />
-          <StatCard label="Активных проектов" value={projectComp.length} color="var(--green)" />
-          <StatCard label="Категорий задействовано" value={categoryLoad.length} color="var(--amber)" />
+          <StatCard label="Стоимость активов" value={Number(assetVal.total_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--green)" />
+          <StatCard label="Сумма выданных активов" value={Number(assetVal.issued_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--amber)" />
         </div>
 
         <div className="resp-2-col" style={{ marginBottom: 20 }}>

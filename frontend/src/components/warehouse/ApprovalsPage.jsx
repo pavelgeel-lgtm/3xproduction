@@ -70,6 +70,7 @@ export default function ApprovalsPage() {
   const [rejectId, setRejectId] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [approvedMsg, setApprovedMsg] = useState(false)
+  const [valuations, setValuations] = useState({})
 
   const isDirector = user?.role === 'warehouse_director'
 
@@ -84,9 +85,13 @@ export default function ApprovalsPage() {
   useEffect(() => { load() }, [])
 
   async function approve(item) {
+    if (item.action === 'add' && !valuations[item.approval_id]) {
+      alert('Укажите стоимость единицы')
+      return
+    }
     setProcessing(item.approval_id)
     try {
-      await unitsApi.approve(item.unit_id, item.approval_id)
+      await unitsApi.approve(item.unit_id, item.approval_id, valuations[item.approval_id])
       setApprovedMsg(true)
       setTimeout(() => setApprovedMsg(false), 2500)
       load()
@@ -153,6 +158,21 @@ export default function ApprovalsPage() {
                         <span className="apr-data-value">{String(v)}</span>
                       </div>
                     ) : null)}
+                  </div>
+                )}
+
+                {item.action === 'add' && isDirector && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4, color: 'var(--text)' }}>Стоимость единицы (обязательно)</div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Стоимость, ₽"
+                      value={valuations[item.approval_id] || ''}
+                      onChange={e => setValuations(v => ({ ...v, [item.approval_id]: e.target.value }))}
+                      className="apr-reject-input"
+                    />
                   </div>
                 )}
 

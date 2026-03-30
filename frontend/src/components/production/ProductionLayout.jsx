@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  FileText, List, Package, BarChart2,
+  FileText, List, Package, BarChart2, DollarSign,
   Bell, User, Menu, Users, Home, ChevronDown, Inbox
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -191,6 +191,7 @@ function buildNav(role) {
     nav.push({ to: '/production/requests',  icon: Inbox,     label: 'Заявки' })
     nav.push({ to: '/production/staff',     icon: Users,     label: 'Сотрудники' })
     nav.push({ to: '/analytics/producer',   icon: BarChart2, label: 'Аналитика' })
+    nav.push({ to: '/assets',              icon: DollarSign, label: 'Активы' })
   }
 
   // Team (project director)

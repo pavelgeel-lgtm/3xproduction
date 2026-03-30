@@ -16,6 +16,7 @@ export default function WarehouseAnalyticsPage() {
   }
 
   const totals = data?.totals || {}
+  const assetVal = data?.asset_valuation || {}
   const byCategory = data?.by_category || []
   const topRequested = data?.top_requested || []
   const dynamics = data?.issuance_dynamics || []
@@ -57,6 +58,17 @@ export default function WarehouseAnalyticsPage() {
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{m.label}</div>
             </div>
           ))}
+        </div>
+
+        <div className="wa-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 28 }}>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: '18px' }}>
+            <div className="wa-stat-val" style={{ fontSize: 22, fontWeight: 700, color: 'var(--blue)' }}>{Number(assetVal.total_assets_value || 0).toLocaleString('ru-RU')} ₽</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Стоимость активов</div>
+          </div>
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: '18px' }}>
+            <div className="wa-stat-val" style={{ fontSize: 22, fontWeight: 700, color: 'var(--amber)' }}>{Number(assetVal.issued_assets_value || 0).toLocaleString('ru-RU')} ₽</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Сумма выданных активов</div>
+          </div>
         </div>
 
         <div className="wa-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>

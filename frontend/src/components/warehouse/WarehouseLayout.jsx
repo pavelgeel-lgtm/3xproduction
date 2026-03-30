@@ -31,6 +31,7 @@ const NAV = [
     section: 'Аналитика',
     items: [
       { to: '/analytics', icon: BarChart2, label: 'Отчёты' },
+      { to: '/assets', icon: Package, label: 'Активы' },
     ],
   },
 ]

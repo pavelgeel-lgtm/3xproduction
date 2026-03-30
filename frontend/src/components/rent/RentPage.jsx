@@ -51,14 +51,14 @@ export default function RentPage() {
           ))}
         </div>
 
-        {tab === 'list' && <DealsList deals={filtered} allDeals={deals} filter={dealFilter} setFilter={setDealFilter} loading={loading} />}
+        {tab === 'list' && <DealsList deals={filtered} allDeals={deals} filter={dealFilter} setFilter={setDealFilter} loading={loading} onRefresh={loadDeals} />}
         {tab === 'new' && <NewDeal onDone={() => { setTab('list'); loadDeals() }} />}
       </div>
     </WarehouseLayout>
   )
 }
 
-function DealsList({ deals, allDeals, filter, setFilter, loading }) {
+function DealsList({ deals, allDeals, filter, setFilter, loading, onRefresh }) {
   const activeCount = allDeals.filter(d => d.status === 'active').length
   const monthSum = allDeals.filter(d => d.status !== 'cancelled').reduce((a, d) => a + (Number(d.price_total) || 0), 0)
   const overdueCount = allDeals.filter(d => d.status === 'overdue').length
@@ -128,6 +128,24 @@ function DealsList({ deals, allDeals, filter, setFilter, loading }) {
               <Badge color={d.sign_status === 'signed' ? 'green' : 'amber'}>
                 {d.sign_status === 'signed' ? '✓ Подписано' : 'Ожидает подписи'}
               </Badge>
+            )}
+            {(d.status === 'active' || d.status === 'overdue') && (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (!confirm(`Оформить возврат по сделке с ${d.counterparty_name}?`)) return
+                  try {
+                    await rentApi.return(d.id, {})
+                    onRefresh()
+                  } catch (err) { alert(err.message || 'Ошибка возврата') }
+                }}
+                style={{
+                  padding: '5px 12px', fontSize: 12, fontWeight: 500,
+                  color: 'var(--green)', background: 'var(--green-dim)',
+                  border: '1px solid var(--green)', borderRadius: 6, cursor: 'pointer',
+                }}>
+                Возврат
+              </button>
             )}
           </div>
         ))}
