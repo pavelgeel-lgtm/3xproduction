@@ -45,6 +45,18 @@ app.use(cors({
 }))
 app.use(express.json())
 
+// Serve frontend SPA for browser navigation (before API routes)
+const frontendDist = path.join(__dirname, '../../frontend/dist')
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist))
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.sendFile(path.join(frontendDist, 'index.html'))
+    }
+    next()
+  })
+}
+
 // Routes
 app.use('/auth',       require('./routes/auth'))
 app.use('/invites',    require('./routes/invites'))
@@ -162,15 +174,8 @@ setInterval(checkOverdue, 30 * 60 * 1000)
 // Health check
 app.get('/health', (_, res) => res.json({ ok: true }))
 
-// Serve frontend in production
-const frontendDist = path.join(__dirname, '../../frontend/dist')
-if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist))
-  app.get('/{*path}', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')))
-} else {
-  // 404 for API-only mode (local dev)
-  app.use((req, res) => res.status(404).json({ error: 'Not found' }))
-}
+// 404 for unmatched API routes
+app.use((req, res) => res.status(404).json({ error: 'Not found' }))
 
 // Error handler
 app.use((err, req, res, next) => {
