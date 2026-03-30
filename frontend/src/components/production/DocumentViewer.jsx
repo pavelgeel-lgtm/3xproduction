@@ -80,7 +80,7 @@ export default function DocumentViewer() {
     <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 900 }}>
         <BackHeader doc={doc} navigate={navigate} />
-        <CallsheetView content={content} />
+        <CallsheetTabs content={content} />
       </div>
     </ProductionLayout>
   )
@@ -334,6 +334,93 @@ function BackHeader({ doc, navigate }) {
         </div>
       </div>
       <Badge color={doc.status === 'parsed' ? 'green' : 'muted'}>{doc.status}</Badge>
+    </div>
+  )
+}
+
+// Callsheet tabs: ВЫЗЫВНОЙ + ПЛАН С.ДНЯ
+function CallsheetTabs({ content }) {
+  const [tab, setTab] = useState('callsheet')
+  const hasPlan = content.plan_day?.scenes?.length > 0
+
+  return (
+    <div>
+      {hasPlan && (
+        <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid var(--border)' }}>
+          {[['callsheet', 'ВЫЗЫВНОЙ'], ['plan', 'ПЛАН С.ДНЯ']].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding: '10px 20px', border: 'none', background: 'none',
+              fontWeight: 500, fontSize: 14, cursor: 'pointer',
+              color: tab === key ? 'var(--blue)' : 'var(--muted)',
+              borderBottom: `2px solid ${tab === key ? 'var(--blue)' : 'transparent'}`,
+              marginBottom: -2,
+            }}>{label}</button>
+          ))}
+        </div>
+      )}
+      {tab === 'callsheet' && <CallsheetView content={content} />}
+      {tab === 'plan' && hasPlan && <PlanDayView planDay={content.plan_day} />}
+    </div>
+  )
+}
+
+// Plan day view — renders scenes like KPP
+function PlanDayView({ planDay }) {
+  const [expandedScene, setExpandedScene] = useState(null)
+  const scenes = planDay?.scenes || []
+  const MODE_COLORS = { 'день': '#f59e0b', 'утро': '#eab308', 'вечер': '#8b5cf6', 'ночь': '#1e40af' }
+
+  return (
+    <div>
+      {planDay.shoot_days?.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          {planDay.shoot_days.map(sd => (
+            <span key={sd.day_number} style={{ padding: '6px 12px', borderRadius: 'var(--radius-btn)', background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12 }}>
+              С/Д {sd.day_number} · {sd.date} · {sd.scenes.length} сц.
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {scenes.map(scene => (
+          <div key={scene.id} style={{
+            background: 'var(--white)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-card)', padding: '14px 18px',
+            borderLeft: `3px solid ${MODE_COLORS[scene.mode] || 'var(--border)'}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', cursor: 'pointer' }}
+              onClick={() => setExpandedScene(expandedScene === scene.id ? null : scene.id)}>
+              <span style={{ fontWeight: 600, fontSize: 14, fontFamily: 'monospace' }}>{scene.id}.</span>
+              <span style={{ fontWeight: 500, fontSize: 14 }}>{scene.object}</span>
+              <Badge color="muted">{scene.mode}</Badge>
+              {scene.int_nat && <Badge color="muted">{scene.int_nat}</Badge>}
+              {scene.day && <span style={{ fontSize: 12, color: 'var(--muted)' }}>СД {scene.day}</span>}
+              {scene.duration && <span style={{ fontSize: 12, color: 'var(--muted)' }}>({scene.duration})</span>}
+              {scene.time_slot && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{scene.time_slot}</span>}
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>{expandedScene === scene.id ? '▲' : '▼'}</span>
+            </div>
+            {scene.characters?.length > 0 && (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                {scene.characters.map(c => (
+                  <span key={c} style={{ padding: '2px 8px', borderRadius: 'var(--radius-badge)', background: 'var(--blue-dim)', color: 'var(--blue)', fontSize: 11, fontWeight: 500 }}>{c}</span>
+                ))}
+              </div>
+            )}
+            {expandedScene === scene.id && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+                {scene.props?.length > 0 && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Реквизит: </span>{scene.props.join(', ')}</div>}
+                {scene.costumes?.length > 0 && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Костюм: </span>{scene.costumes.join(', ')}</div>}
+                {scene.makeup?.length > 0 && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Грим: </span>{scene.makeup.join(', ')}</div>}
+                {scene.vehicles?.length > 0 && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Транспорт: </span>{scene.vehicles.join(', ')}</div>}
+                {scene.extras && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Массовка: </span>{scene.extras}</div>}
+                {scene.location && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Локация: </span>{scene.location}</div>}
+                {scene.platform && <div><span style={{ color: 'var(--muted)', fontWeight: 500 }}>Площадка: </span>{scene.platform}</div>}
+              </div>
+            )}
+          </div>
+        ))}
+        {scenes.length === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 13 }}>Нет сцен</div>}
+      </div>
     </div>
   )
 }

@@ -10,9 +10,17 @@ async function parseKpp(buffer) {
   const ws = wb.worksheets[0]
   if (!ws) throw new Error('No worksheet found')
 
+  const result = parseSheetAsKpp(ws)
+  result.type = 'kpp'
+  return result
+}
+
+// Shared parser for KPP sheet and ПЛАН С.ДНЯ sheet
+function parseSheetAsKpp(ws) {
   const scenes = []
   const shootDays = []
   let currentDay = null
+  let currentPlatform = ''
 
   ws.eachRow((row, rowNum) => {
     const vals = []
@@ -36,6 +44,14 @@ async function parseKpp(buffer) {
         scenes: [],
       }
       shootDays.push(currentDay)
+      currentPlatform = ''
+      return
+    }
+
+    // Detect platform header: "ПЛОЩАДКА №1 : ..."
+    if (/^ПЛОЩАДКА\s*№?\d*/i.test(col0)) {
+      const m = col0.match(/:\s*(.+)/)
+      currentPlatform = m ? m[1].trim() : col0
       return
     }
 
@@ -75,13 +91,14 @@ async function parseKpp(buffer) {
       vehicles: parseList(vals[11]),
       stunts: (vals[12] || '').trim(),
       notes,
+      platform: currentPlatform,
     }
 
     scenes.push(scene)
     if (currentDay) currentDay.scenes.push(id)
   })
 
-  return { type: 'kpp', scenes, shoot_days: shootDays }
+  return { scenes, shoot_days: shootDays }
 }
 
 // ============================================================
@@ -188,8 +205,12 @@ function parseRightColumn(text) {
 async function parseCallsheet(buffer) {
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.load(buffer)
-  const ws = wb.worksheets[0]
-  if (!ws) throw new Error('No worksheet found')
+
+  // Find sheets by name
+  const callsheetSheet = wb.worksheets.find(ws => /ВЫЗЫВНОЙ/i.test(ws.name)) || wb.worksheets[0]
+  const planSheet = wb.worksheets.find(ws => /ПЛАН\s*С\.?\s*ДНЯ/i.test(ws.name))
+
+  if (!callsheetSheet) throw new Error('No worksheet found')
 
   const data = {
     type: 'callsheet',
@@ -204,11 +225,12 @@ async function parseCallsheet(buffer) {
     vehicles: [],
     notes: '',
     extras: '',
+    plan_day: null,
   }
 
   let section = 'header' // header | cast | departments
 
-  ws.eachRow((row, rowNum) => {
+  callsheetSheet.eachRow((row, rowNum) => {
     const vals = []
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
       vals[colNum - 1] = cellText(cell)
@@ -227,8 +249,9 @@ async function parseCallsheet(buffer) {
       data.day_number = numMatch ? parseInt(numMatch[1]) : 0
     }
 
-    if (/ПЛОЩАДКА/i.test(col1)) {
-      const locs = (col1).match(/ПЛОЩАДКА\s*№?\d*:\s*(.+)/gi) || []
+    if (/ПЛОЩАДКА/i.test(col1 || col0)) {
+      const text = col1 || col0
+      const locs = text.match(/ПЛОЩАДКА\s*№?\d*\s*:\s*(.+)/gi) || []
       locs.forEach(l => {
         const m = l.match(/:\s*(.+)/)
         if (m) data.locations.push(m[1].trim())
@@ -236,14 +259,14 @@ async function parseCallsheet(buffer) {
     }
 
     if (/КАРАВАН/i.test(col4 || col0)) {
-      data.caravan = (col4 || col0).replace(/КАРАВАН:\s*/i, '').trim()
+      data.caravan = (col4 || col0).replace(/КАРАВАН\s*:\s*/i, '').trim()
     }
 
     // Date + shift
     const dateMatch = col0.match(/^(\d{1,2}\.\d{2})\.\w/)
     if (dateMatch) data.date = dateMatch[1]
 
-    const shiftMatch = (col4 || '').match(/СМЕНА:\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/i)
+    const shiftMatch = (col4 || '').match(/СМЕНА\s*[:\s]*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/i)
     if (shiftMatch) data.shift = `${shiftMatch[1]}-${shiftMatch[2]}`
 
     // Cast section: РОЛЬ - ИСПОЛНИТЕЛЬ header
@@ -296,6 +319,11 @@ async function parseCallsheet(buffer) {
       data.vehicles.push(col2.trim())
     }
   })
+
+  // Parse ПЛАН С.ДНЯ sheet as KPP-style scenes
+  if (planSheet) {
+    data.plan_day = parseSheetAsKpp(planSheet)
+  }
 
   return data
 }

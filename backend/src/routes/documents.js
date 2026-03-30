@@ -30,6 +30,8 @@ router.post('/upload', verifyJWT, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
 
   // Validate file extension
+  // Fix Cyrillic filename encoding from multer
+  try { req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8') } catch {}
   const ext = (req.file.originalname || '').split('.').pop().toLowerCase()
   if (type === 'scenario' && ext !== 'docx') return res.status(400).json({ error: 'Сценарий должен быть .docx' })
   if ((type === 'kpp' || type === 'callsheet') && ext !== 'xlsx') return res.status(400).json({ error: `${type.toUpperCase()} должен быть .xlsx` })
