@@ -7,7 +7,13 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 
-const NAV = [
+const HIDDEN_BY_ROLE = {
+  warehouse_director: ['/analytics'],
+  warehouse_deputy:   ['/analytics', '/assets'],
+  warehouse_staff:    ['/analytics', '/assets', '/acts', '/rent', '/team'],
+}
+
+const NAV_ALL = [
   {
     section: 'Склад',
     items: [
@@ -36,14 +42,19 @@ const NAV = [
   },
 ]
 
-const MOBILE_NAV = [
+function getNav(role) {
+  const hidden = HIDDEN_BY_ROLE[role] || []
+  return NAV_ALL.map(s => ({ ...s, items: s.items.filter(i => !hidden.includes(i.to)) })).filter(s => s.items.length > 0)
+}
+
+const MOBILE_NAV_ALL = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Офис' },
   { to: '/requests',  icon: ClipboardList,   label: 'Заявки' },
   { to: '/units',     icon: Package,          label: 'Склад' },
   { to: '/analytics', icon: BarChart2,        label: 'Отчёты' },
 ]
 
-const MOBILE_BURGER = [
+const MOBILE_BURGER_ALL = [
   { to: '/cells',      icon: Grid3x3,   label: 'Места на складе' },
   { to: '/team',       icon: Users,     label: 'Наша команда' },
   { to: '/acts',       icon: FileText,  label: 'Акты' },
@@ -310,7 +321,7 @@ export default function WarehouseLayout({ children }) {
 
 
           <nav className="wl-nav">
-            {NAV.map(group => (
+            {getNav(user?.role).map(group => (
               <div key={group.section}>
                 <div className="wl-section-label">{group.section}</div>
                 {group.items.map(item => (
@@ -363,7 +374,7 @@ export default function WarehouseLayout({ children }) {
         {/* Mobile bottom nav */}
         <nav className="wl-mobile-nav">
           <div className="wl-mobile-nav-inner">
-            {MOBILE_NAV.map(item => (
+            {MOBILE_NAV_ALL.filter(i => !(HIDDEN_BY_ROLE[user?.role] || []).includes(i.to)).map(item => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => `wl-mobile-nav-item${isActive ? ' active' : ''}`}>
                 <item.icon size={22} strokeWidth={1.8} />
                 {item.label}
@@ -382,7 +393,7 @@ export default function WarehouseLayout({ children }) {
             <div className="wl-drawer" onClick={e => e.stopPropagation()}>
               <div className="wl-drawer-handle" />
               <div className="wl-drawer-title">Меню</div>
-              {MOBILE_BURGER.map(item => (
+              {MOBILE_BURGER_ALL.filter(i => !(HIDDEN_BY_ROLE[user?.role] || []).includes(i.to)).map(item => (
                 <NavLink
                   key={item.to}
                   to={item.to}
