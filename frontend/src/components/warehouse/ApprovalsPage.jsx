@@ -115,7 +115,7 @@ export default function ApprovalsPage() {
     <WarehouseLayout>
       <style>{css}</style>
       <div className="apr-page">
-        <h1 className="apr-title">На утверждении</h1>
+        <h1 className="apr-title">Принять на склад</h1>
         <p className="apr-sub">
           {loading ? '...' : `${items.length} ${items.length === 1 ? 'запрос' : 'запросов'} ожидают подписи`}
         </p>

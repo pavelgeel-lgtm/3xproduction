@@ -262,7 +262,7 @@ export default function ProductionListsPage() {
             <div>
               <div style={{ position: 'relative', marginBottom: 12 }}>
                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по названию..."
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Найдите по названию..."
                   style={{ width: '100%', height: 36, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               {items.length > 0 && (

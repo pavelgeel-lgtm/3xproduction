@@ -101,7 +101,7 @@ export default function PublicWarehousePage() {
               <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
                 <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }}>🔍</span>
                 <input value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Поиск..."
+                  placeholder="Найдите..."
                   style={{
                     width: '100%', height: 40, padding: '0 12px 0 36px',
                     border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)',

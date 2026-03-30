@@ -87,12 +87,12 @@ export default function ActsPage() {
         <div className="acts-tabs">
           <button className={`acts-tab${tab === 'issue' ? ' active' : ''}`} onClick={() => setTab('issue')}>
             <FileText size={15} strokeWidth={1.8} />
-            Выдача
+            Выдано
             <span className="acts-tab-count">{data.issuances.length}</span>
           </button>
           <button className={`acts-tab${tab === 'return' ? ' active' : ''}`} onClick={() => setTab('return')}>
             <FileCheck size={15} strokeWidth={1.8} />
-            Возврат
+            Вернули
             <span className="acts-tab-count">{data.returns.length}</span>
           </button>
         </div>

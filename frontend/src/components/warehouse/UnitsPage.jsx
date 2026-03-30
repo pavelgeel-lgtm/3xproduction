@@ -11,14 +11,14 @@ import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../shared/Toast'
 
 const CATEGORIES = ['all', ...ALL_CATEGORIES]
-const STATUSES = ['Все статусы', 'На складе', 'Выдано', 'Просрочено', 'На утверждении', 'Списано']
+const STATUSES = ['Фильтр', 'На складе', 'Выдано', 'Просрочено', 'На утверждении', 'Списано']
 const STATUS_KEY = {
   'На складе': 'on_stock', 'Выдано': 'issued', 'Просрочено': 'overdue',
   'На утверждении': 'pending', 'Списано': 'written_off',
 }
 
 const EMPTY_FORM = { name: '', category: ALL_CATEGORIES[0], dimensions: '', description: '', source: 'покупка', qty: 1, warehouse_id: '', cell_id: '', period: '', valuation: '' }
-const catOption = (key) => key === 'all' ? 'Все категории' : categoryLabel(key)
+const catOption = (key) => key === 'all' ? 'Выбрать категорию' : categoryLabel(key)
 
 export default function UnitsPage() {
   const navigate = useNavigate()
@@ -125,13 +125,13 @@ export default function UnitsPage() {
           <Button onClick={() => {
             setForm(EMPTY_FORM); setPhotos([]); setAddError(''); setShowAdd(true)
             warehousesApi.list().then(d => setWarehouses(d.warehouses || [])).catch(() => {})
-          }}>+ Добавить</Button>
+          }}>+ Новое</Button>
         </div>
 
         <div style={{ position: 'relative', marginBottom: 14 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 16 }}>🔍</span>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Поиск по названию или серийному номеру..."
+            placeholder="Найдите по названию или серийному номеру..."
             style={{ width: '100%', height: 40, padding: '0 12px 0 36px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 14, background: 'var(--white)', outline: 'none' }}
           />
         </div>

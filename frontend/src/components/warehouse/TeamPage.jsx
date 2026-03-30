@@ -217,7 +217,7 @@ export default function TeamPage() {
       <div className="team-page">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 className="team-title">Команда</h1>
+            <h1 className="team-title">Наша команда</h1>
             <p className="team-sub">{loading ? '...' : `${members.length} участников`}</p>
           </div>
           {canInvite && (
@@ -235,7 +235,7 @@ export default function TeamPage() {
               className="team-search"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Поиск по имени, email или роли..."
+              placeholder="Найдите по имени, email или роли..."
             />
           </div>
         </div>

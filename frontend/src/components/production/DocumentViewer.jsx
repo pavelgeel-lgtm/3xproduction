@@ -179,7 +179,7 @@ export default function DocumentViewer() {
         <div className="dv-filters" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
             <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.5 }}>🔍</span>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..."
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Найдите..."
               style={{ width: '100%', height: 36, padding: '0 12px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <FilterSelect value={charFilter} onChange={setCharFilter} placeholder="Все персонажи" options={characters.map(c => ({ value: c, label: c }))} />
@@ -594,7 +594,7 @@ function PlanDayView({ planDay, matched, onUnitClick }) {
       <div className="dv-filters" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 140 }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.5 }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Найдите..."
             style={{ width: '100%', height: 36, padding: '0 12px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, boxSizing: 'border-box' }} />
         </div>
         {characters.length > 0 && (

@@ -479,7 +479,7 @@ function NewDeal({ onDone }) {
           <div style={{ position: 'relative', marginBottom: 14 }}>
             <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
             <input value={unitSearch} onChange={e => setUnitSearch(e.target.value)}
-              placeholder="Поиск по названию или серийному №..."
+              placeholder="Найдите по названию или серийному №..."
               style={{ width: '100%', height: 38, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
           </div>
 

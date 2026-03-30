@@ -144,7 +144,7 @@ export default function DocumentsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div className="doc-filters" style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <input value={docSearch} onChange={e => setDocSearch(e.target.value)}
-                placeholder="Поиск..."
+                placeholder="Найдите..."
                 style={{ flex: 1, minWidth: 140, height: 36, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
               <select value={blockFilter} onChange={e => setBlockFilter(e.target.value)}
                 style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: blockFilter ? 'var(--blue-dim)' : 'var(--white)', color: blockFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>

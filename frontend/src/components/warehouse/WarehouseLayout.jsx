@@ -11,12 +11,12 @@ const NAV = [
   {
     section: 'Склад',
     items: [
-      { to: '/dashboard',  icon: LayoutDashboard, label: 'Главная' },
+      { to: '/dashboard',  icon: LayoutDashboard, label: 'Офис' },
       { to: '/requests',   icon: ClipboardList,   label: 'Заявки',     badge: true },
       { to: '/units',      icon: Package,          label: 'Склад' },
-      { to: '/cells',      icon: Grid3x3,          label: 'Карта ячеек' },
-      { to: '/team',       icon: Users,            label: 'Команда' },
-      { to: '/approvals',  icon: Clock,            label: 'На утверждении' },
+      { to: '/cells',      icon: Grid3x3,          label: 'Места на складе' },
+      { to: '/team',       icon: Users,            label: 'Наша команда' },
+      { to: '/approvals',  icon: Clock,            label: 'Принять на склад' },
       { to: '/debts',      icon: AlertTriangle,    label: 'Долги' },
     ],
   },
@@ -37,18 +37,18 @@ const NAV = [
 ]
 
 const MOBILE_NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Главная' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Офис' },
   { to: '/requests',  icon: ClipboardList,   label: 'Заявки' },
   { to: '/units',     icon: Package,          label: 'Склад' },
   { to: '/analytics', icon: BarChart2,        label: 'Отчёты' },
 ]
 
 const MOBILE_BURGER = [
-  { to: '/cells',      icon: Grid3x3,   label: 'Карта ячеек' },
-  { to: '/team',       icon: Users,     label: 'Команда' },
+  { to: '/cells',      icon: Grid3x3,   label: 'Места на складе' },
+  { to: '/team',       icon: Users,     label: 'Наша команда' },
   { to: '/acts',       icon: FileText,  label: 'Акты' },
   { to: '/rent',       icon: Handshake, label: 'Аренда' },
-  { to: '/notifications', icon: Bell,  label: 'Уведомления' },
+  { to: '/notifications', icon: Bell,  label: 'Что нового?' },
   { to: '/profile',    icon: User,      label: 'Профиль' },
 ]
 
@@ -276,12 +276,12 @@ function getInitials(name = '') {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-const WAREHOUSES = ['Все склады', 'Вирки 22', 'Чапаева 6']
+const WAREHOUSES = ['Выбрать склад', 'Вирки 22', 'Чапаева 6']
 
 export default function WarehouseLayout({ children }) {
   const [burger, setBurger] = useState(false)
   const [whOpen, setWhOpen] = useState(false)
-  const [selectedWh, setSelectedWh] = useState(() => localStorage.getItem('warehouse') || 'Все склады')
+  const [selectedWh, setSelectedWh] = useState(() => localStorage.getItem('warehouse') || 'Выбрать склад')
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()

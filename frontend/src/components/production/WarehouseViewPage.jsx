@@ -96,7 +96,7 @@ export default function WarehouseViewPage() {
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }}>🔍</span>
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Поиск..."
+              placeholder="Найдите..."
               style={{
                 width: '100%', height: 40, padding: '0 12px 0 36px',
                 border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)',
@@ -107,13 +107,13 @@ export default function WarehouseViewPage() {
             height: 40, padding: '0 12px', border: '1px solid var(--border)',
             borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
           }}>
-            {CATEGORIES_FILTER.map(c => <option key={c} value={c}>{c === 'all' ? 'Все категории' : categoryLabel(c)}</option>)}
+            {CATEGORIES_FILTER.map(c => <option key={c} value={c}>{c === 'all' ? 'Выбрать категорию' : categoryLabel(c)}</option>)}
           </select>
           <select value={selectedWh} onChange={e => setSelectedWh(e.target.value)} style={{
             height: 40, padding: '0 12px', border: '1px solid var(--border)',
             borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', cursor: 'pointer',
           }}>
-            <option value="all">Все склады</option>
+            <option value="all">Выбрать склад</option>
             {whList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
         </div>

@@ -53,9 +53,9 @@ export default function ProducerDashboardPage() {
         </div>
 
         <div className="resp-3-col" style={{ marginBottom: 28 }}>
-          <StatCard label="Общие расходы" value={totalBudget.toLocaleString('ru-RU') + ' ₽'} color="var(--blue)" />
-          <StatCard label="Стоимость активов" value={Number(assetVal.total_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--green)" />
-          <StatCard label="Сумма выданных активов" value={Number(assetVal.issued_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--amber)" />
+          <StatCard label="Потрачено" value={totalBudget.toLocaleString('ru-RU') + ' ₽'} color="var(--blue)" />
+          <StatCard label="Хранится" value={Number(assetVal.total_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--green)" />
+          <StatCard label="Выдано" value={Number(assetVal.issued_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--amber)" />
         </div>
 
         <div className="resp-2-col" style={{ marginBottom: 20 }}>

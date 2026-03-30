@@ -152,9 +152,9 @@ export default function DashboardPage() {
   const STATS = [
     { label: 'На складе',      value: stats.on_stock, color: 'var(--green)',  bg: 'var(--green-dim)',  Icon: Package },
     { label: 'Выдано',         value: stats.issued,   color: 'var(--blue)',   bg: 'var(--blue-dim)',   Icon: ArrowRightLeft },
-    { label: 'Просрочено',     value: stats.overdue,  color: 'var(--red)',    bg: 'var(--red-dim)',    Icon: AlertTriangle },
-    { label: 'На утверждении', value: stats.pending,  color: 'var(--amber)',  bg: 'var(--amber-dim)',  Icon: Clock },
-    { label: 'Без ячейки',    value: stats.no_cell,  color: 'var(--muted)',  bg: 'var(--bg)',         Icon: MapPin },
+    { label: 'Не вернули',        value: stats.overdue,  color: 'var(--red)',    bg: 'var(--red-dim)',    Icon: AlertTriangle },
+    { label: 'Принять на склад', value: stats.pending,  color: 'var(--amber)',  bg: 'var(--amber-dim)',  Icon: Clock },
+    { label: 'Ждут своей полки', value: stats.no_cell,  color: 'var(--muted)',  bg: 'var(--bg)',         Icon: MapPin },
   ]
 
   return (
@@ -163,7 +163,7 @@ export default function DashboardPage() {
       <div className="dash-page">
         <div className="dash-header">
           <div>
-            <h1 className="dash-title">Главная</h1>
+            <h1 className="dash-title">Офис</h1>
             <p className="dash-sub">{today}</p>
           </div>
           <div className="dash-header-actions">
@@ -180,7 +180,7 @@ export default function DashboardPage() {
             )}
             <Button variant="primary" onClick={() => navigate('/units')}>
               <Plus size={15} />
-              Добавить
+              Новое
             </Button>
             <button className="dash-bell" onClick={() => navigate('/notifications')}>
               <Bell size={18} />
@@ -226,7 +226,7 @@ export default function DashboardPage() {
 
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-title">Активные выдачи</span>
+              <span className="dash-card-title">Выдали</span>
             </div>
             {activeIssuances.length === 0
               ? <div className="dash-card-empty">Нет активных выдач</div>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
 
           <div className="dash-card">
             <div className="dash-card-header">
-              <span className="dash-card-title">Уведомления</span>
+              <span className="dash-card-title">Что нового?</span>
               <button className="dash-card-link" onClick={() => navigate('/notifications')}>Все →</button>
             </div>
             {notifs.length === 0

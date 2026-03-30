@@ -86,7 +86,7 @@ export default function CellsPage() {
       <div className="cells-page">
         <div className="cells-main">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-            <h1 style={{ fontSize: 20, fontWeight: 600 }}>Карта ячеек</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600 }}>Места на складе</h1>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="secondary" style={{ height: 36, fontSize: 13 }}
                 onClick={() => { setNewWhName(''); setShowAddWh(true) }}>

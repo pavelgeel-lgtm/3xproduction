@@ -17,7 +17,7 @@ const ROLE_GROUPS = [
     color: 'blue',
   },
   {
-    label: 'Проект',
+    label: 'Площадка',
     roles: [
       'project_director', 'production_designer', 'art_director_assistant',
       'decorator', 'props_master', 'costumer',
@@ -167,7 +167,7 @@ export default function StaffPage() {
         {/* Search */}
         <div style={{ position: 'relative', marginBottom: 20 }}>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Поиск по имени или email..."
+            placeholder="Найдите по имени или email..."
             style={{
               width: '100%', height: 40, padding: '0 14px',
               border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)',

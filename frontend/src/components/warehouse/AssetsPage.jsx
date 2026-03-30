@@ -44,11 +44,11 @@ export default function AssetsPage() {
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: 16, flex: 1, minWidth: 180 }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Общая стоимость активов</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Наши активы</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--blue)' }}>{totalValue.toLocaleString('ru-RU')} ₽</div>
           </div>
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: 16, flex: 1, minWidth: 180 }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Сумма выданных активов</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Выдано проектам</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--amber)' }}>{issuedValue.toLocaleString('ru-RU')} ₽</div>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default function AssetsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Поиск по названию или серийному №..."
+            placeholder="Найдите по названию или серийному №..."
             style={{ flex: 1, minWidth: 200, height: 38, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }}
           />
           {warehouses.length > 1 && (
@@ -65,7 +65,7 @@ export default function AssetsPage() {
               height: 38, padding: '0 10px', border: '1px solid var(--border)',
               borderRadius: 'var(--radius-btn)', fontSize: 13, cursor: 'pointer',
             }}>
-              <option value="">Все склады</option>
+              <option value="">Выбрать склад</option>
               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           )}

@@ -3,12 +3,12 @@ import ProductionLayout from './ProductionLayout'
 import { requests as requestsApi, units as unitsApi, issuances as issuancesApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 
-const TABS = ['На рассмотрении', 'Получено', 'Архив']
+const TABS = ['Смотрим', 'Получено', 'Прошлые']
 
 const STATUS_MAP = {
-  'На рассмотрении': ['new', 'approved', 'collecting', 'ready'],
-  'Получено':        ['issued'],
-  'Архив':           ['cancelled', 'rejected'],
+  'Смотрим':   ['new', 'approved', 'collecting', 'ready'],
+  'Получено':  ['issued'],
+  'Прошлые':   ['cancelled', 'rejected'],
 }
 
 const STATUS_BADGE = {
@@ -39,7 +39,7 @@ const css = `
 
 export default function RequestsProductionPage() {
   const { user } = useAuth()
-  const [tab, setTab] = useState('На рассмотрении')
+  const [tab, setTab] = useState('Смотрим')
   const [allRequests, setAllRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
@@ -106,7 +106,7 @@ export default function RequestsProductionPage() {
               marginBottom: -2,
             }}>
               {t}
-              {t === 'На рассмотрении' && allRequests.filter(r => STATUS_MAP[t].includes(r.status)).length > 0 && (
+              {t === 'Смотрим' && allRequests.filter(r => STATUS_MAP[t].includes(r.status)).length > 0 && (
                 <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 10, background: 'var(--blue-dim)', color: 'var(--blue)' }}>
                   {allRequests.filter(r => STATUS_MAP[t].includes(r.status)).length}
                 </span>
@@ -119,7 +119,7 @@ export default function RequestsProductionPage() {
           <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)', fontSize: 14 }}>
-            {tab === 'На рассмотрении' ? 'Нет активных заявок' : 'Нет заявок'}
+            {tab === 'Смотрим' ? 'Нет активных заявок' : 'Нет заявок'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

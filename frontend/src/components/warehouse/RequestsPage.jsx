@@ -184,7 +184,7 @@ export default function RequestsPage() {
                       {r.status === 'new' && (<>
                         <Button variant="secondary" style={{ height: 34, fontSize: 13 }}
                           disabled={updating === r.id} onClick={() => changeStatus(r.id, 'collecting')}>
-                          В работу
+                          Принять
                         </Button>
                         <Button variant="danger" style={{ height: 34, fontSize: 13 }}
                           disabled={updating === r.id} onClick={() => changeStatus(r.id, 'cancelled')}>
