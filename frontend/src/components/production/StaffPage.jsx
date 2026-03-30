@@ -135,17 +135,19 @@ export default function StaffPage() {
   return (
     <ProductionLayout>
       <div style={{ padding: '24px 32px', maxWidth: 800 }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600 }}>Сотрудники</h1>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
-            Переключитесь в интерфейс любого сотрудника
-          </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 600 }}>Сотрудники</h1>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+              Переключитесь в интерфейс любого сотрудника
+            </p>
+          </div>
+          {inviteRoles.length > 0 && (
+            <Button onClick={openInvite} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <UserPlus size={15} /> Пригласить
+            </Button>
+          )}
         </div>
-        {inviteRoles.length > 0 && (
-          <Button onClick={openInvite} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <UserPlus size={15} /> Пригласить
-          </Button>
-        )}
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
