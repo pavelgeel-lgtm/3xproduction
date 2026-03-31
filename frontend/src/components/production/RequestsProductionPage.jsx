@@ -216,7 +216,7 @@ export default function RequestsProductionPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                   {photos.length > 0 && (
                                     <img src={photos[0].url || photos[0]} alt="" style={{
-                                      width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0,
+                                      width: 44, height: 44, borderRadius: 6, objectFit: 'contain', flexShrink: 0,
                                     }} />
                                   )}
                                   <div style={{ flex: 1 }}>
@@ -250,7 +250,7 @@ export default function RequestsProductionPage() {
                                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                         {photos.map((p, i) => (
                                           <img key={i} src={p.url || p} alt="" style={{
-                                            width: 80, height: 80, borderRadius: 8, objectFit: 'cover',
+                                            width: 80, height: 80, borderRadius: 8, objectFit: 'contain',
                                           }} />
                                         ))}
                                       </div>

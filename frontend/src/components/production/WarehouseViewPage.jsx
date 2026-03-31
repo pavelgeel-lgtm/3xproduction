@@ -139,7 +139,7 @@ export default function WarehouseViewPage() {
                     overflow: 'hidden',
                   }}>
                     {u.photo_url
-                      ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                       : '📦'}
                   </div>
 
@@ -233,7 +233,7 @@ export default function WarehouseViewPage() {
                         fontSize: 16, overflow: 'hidden',
                       }}>
                         {u.photo_url
-                          ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                           : '📦'}
                       </div>
                       <div style={{ flex: 1 }}>

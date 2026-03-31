@@ -36,7 +36,7 @@ export default function PhotoUpload({ label, onChange }) {
       }}
     >
       {preview ? (
-        <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       ) : (
         <>
           <span style={{ fontSize: 28, marginBottom: 8 }}>

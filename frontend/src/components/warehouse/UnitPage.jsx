@@ -71,7 +71,7 @@ export default function UnitPage() {
               marginBottom: 10, overflow: 'hidden',
             }}>
               {photos[activePhoto]?.url ? (
-                <img src={photos[activePhoto].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={photos[activePhoto].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               ) : (
                 <span style={{ color: 'var(--muted)', fontSize: 13 }}>📷 Нет фото</span>
               )}
@@ -85,7 +85,7 @@ export default function UnitPage() {
                     cursor: 'pointer', overflow: 'hidden',
                   }}>
                     {p.url ? (
-                      <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, color: 'var(--muted)' }}>📷</div>
                     )}

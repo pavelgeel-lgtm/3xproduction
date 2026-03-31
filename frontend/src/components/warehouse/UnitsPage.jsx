@@ -171,7 +171,7 @@ export default function UnitsPage() {
                   fontSize: 20, overflow: 'hidden',
                 }}>
                   {photo
-                    ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isWrittenOff ? 'blur(2px)' : 'none' }} />
+                    ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: isWrittenOff ? 'blur(2px)' : 'none' }} />
                     : <span>📦</span>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -268,7 +268,7 @@ export default function UnitsPage() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               {photos.map((f, i) => (
                 <div key={i} style={{ position: 'relative', width: 64, height: 64 }}>
-                  <img src={URL.createObjectURL(f)} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                  <img src={URL.createObjectURL(f)} alt="" style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--border)' }} />
                   <button onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
                     style={{ position: 'absolute', top: -6, right: -6, background: 'var(--red)', border: 'none', borderRadius: '50%', width: 18, height: 18, color: '#fff', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                 </div>

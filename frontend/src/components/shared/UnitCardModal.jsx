@@ -137,7 +137,7 @@ export default function UnitCardModal({ unitId, onClose, onChanged }) {
             <div style={{ marginBottom: 16 }}>
               <div style={styles.mainPhoto}>
                 {photos[activePhoto]?.url
-                  ? <img src={photos[activePhoto].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <img src={photos[activePhoto].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   : <span style={{ color: 'var(--muted)', fontSize: 13 }}>📷</span>
                 }
               </div>
@@ -149,7 +149,7 @@ export default function UnitCardModal({ unitId, onClose, onChanged }) {
                       border: `2px solid ${i === activePhoto ? 'var(--blue)' : 'var(--border)'}`,
                     }}>
                       {p.url
-                        ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         : <div style={{ width: '100%', height: '100%', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--muted)' }}>📷</div>
                       }
                     </div>

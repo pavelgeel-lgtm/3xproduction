@@ -227,7 +227,7 @@ export default function RequestsPage() {
                                 cursor: 'pointer',
                               }} onClick={() => navigate(`/units/${uid}`)}>
                                 {photos[0]?.url ? (
-                                  <img src={photos[0].url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                                  <img src={photos[0].url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }} />
                                 ) : (
                                   <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📦</div>
                                 )}

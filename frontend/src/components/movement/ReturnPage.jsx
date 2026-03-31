@@ -186,7 +186,7 @@ export default function ReturnPage() {
                     <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500, marginBottom: 6 }}>Фото при выдаче</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {(u.photos || []).slice(0, 3).map((p, i) => (
-                        <img key={i} src={p.url || p} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+                        <img key={i} src={p.url || p} alt="" style={{ width: 72, height: 72, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)' }} />
                       ))}
                     </div>
                   </div>

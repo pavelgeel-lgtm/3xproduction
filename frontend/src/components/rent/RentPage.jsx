@@ -266,7 +266,7 @@ function RentReturnModal({ deal, onClose, onDone }) {
                 {units.map(u => (
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 6, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, overflow: 'hidden' }}>
-                      {u.photo_url ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+                      {u.photo_url ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : '📦'}
                     </div>
                     <div>
                       <div style={{ fontWeight: 500, fontSize: 13 }}>{u.name}</div>
@@ -508,7 +508,7 @@ function NewDeal({ onDone }) {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, overflow: 'hidden',
                     }}>
                       {u.photo_url
-                        ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={u.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         : '📦'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
