@@ -164,12 +164,13 @@ export default function DocumentsPage() {
   return (
     <ProductionLayout>
       <style>{`
+        .doc-mobile-filter { display: none; }
         @media (max-width: 768px) {
           .doc-page { padding: 16px !important; }
           .doc-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-          .doc-tabs { overflow-x: auto !important; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-          .doc-tabs::-webkit-scrollbar { display: none; }
-          .doc-tab-btn { white-space: nowrap; }
+          .doc-tabs { display: none !important; }
+          .doc-mobile-filter { display: block !important; margin-bottom: 20px; }
+          .doc-mobile-filter select { width: 100% !important; height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-btn); font-size: 14px; font-weight: 500; background: var(--white); cursor: pointer; color: var(--text); }
           .doc-filters { flex-direction: column !important; align-items: stretch !important; }
           .doc-filters input { min-width: 0 !important; width: 100% !important; height: 40px !important; box-sizing: border-box !important; }
           .doc-filters select { width: 100% !important; }
@@ -180,7 +181,7 @@ export default function DocumentsPage() {
           .doc-list-grid-header { display: none !important; }
           .doc-list-row { display: flex !important; flex-direction: column !important; gap: 4px !important; padding: 12px !important; }
           .doc-list-row > div { font-size: 13px !important; }
-          .doc-list-search { width: 100% !important; height: 40px !important; box-sizing: border-box !important; }
+          .doc-list-search input { width: 100% !important; height: 40px !important; box-sizing: border-box !important; }
         }
       `}</style>
       <div className="doc-page" style={{ padding: '24px 32px', maxWidth: 860 }}>
@@ -194,15 +195,23 @@ export default function DocumentsPage() {
           )}
         </div>
 
-        {/* Tab bar — all tabs in one row */}
-        <div className="doc-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)', overflowX: 'auto' }}>
+        {/* Mobile filter select */}
+        <div className="doc-mobile-filter">
+          <select value={tab} onChange={e => setTab(e.target.value)}>
+            <option value="" disabled>Выбрать</option>
+            {allTabs.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </select>
+        </div>
+
+        {/* Tab bar — desktop only */}
+        <div className="doc-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '1px solid var(--border)' }}>
           {allTabs.map(t => (
             <button key={t.key} className="doc-tab-btn" onClick={() => setTab(t.key)} style={{
               padding: '10px 20px', border: 'none', background: 'none',
               fontWeight: 500, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
               color: tab === t.key ? 'var(--blue)' : 'var(--muted)',
               borderBottom: `2px solid ${tab === t.key ? 'var(--blue)' : 'transparent'}`,
-              marginBottom: -2, flexShrink: 0,
+              marginBottom: -1, flexShrink: 0,
             }}>
               {t.icon} {t.label}
             </button>

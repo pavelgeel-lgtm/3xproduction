@@ -54,9 +54,9 @@ export default function ProfilePage() {
     <Layout>
       <style>{`
         @media (max-width: 768px) {
-          .prof-field-row { flex-wrap: nowrap !important; align-items: center !important; }
-          .prof-field-row > div { min-width: 0; }
-          .prof-field-row button { flex-shrink: 0; white-space: nowrap; }
+          .prof-field-row { flex-wrap: nowrap !important; align-items: flex-end !important; }
+          .prof-field-row > div { min-width: 0; margin-bottom: 0 !important; }
+          .prof-field-row button { flex-shrink: 0; white-space: nowrap; margin-bottom: 0 !important; }
         }
       `}</style>
       <div style={{ padding: '24px 32px', maxWidth: 560 }}>
