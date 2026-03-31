@@ -47,8 +47,6 @@ const UPLOAD_KPP_ROLES = [
 ]
 const UPLOAD_CALLSHEET_ROLES = [...UPLOAD_KPP_ROLES, 'set_admin']
 
-const PROJECT_ID = 1
-
 export default function DocumentsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -92,9 +90,10 @@ export default function DocumentsPage() {
     ? Object.fromEntries(Object.entries(DOC_TYPES).filter(([k]) => allowedDocs.includes(k)))
     : DOC_TYPES
 
-  const projectId = user?.project_id || PROJECT_ID
+  const projectId = user?.project_id || null
 
   function loadDocs() {
+    if (!projectId) { setLoading(false); return }
     setLoading(true)
     docsApi.list(projectId).then(data => {
       setDocs(data.documents || [])
@@ -104,7 +103,7 @@ export default function DocumentsPage() {
   useEffect(() => { loadDocs() }, [projectId])
 
   useEffect(() => {
-    if (tab === 'my_list' && activeListType) {
+    if (tab === 'my_list' && activeListType && projectId) {
       setListLoading(true)
       listsApi.items(activeListType, { project_id: projectId })
         .then(data => setListItems(data.items || []))
