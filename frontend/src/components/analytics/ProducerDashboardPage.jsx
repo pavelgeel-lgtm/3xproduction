@@ -99,7 +99,7 @@ export default function ProducerDashboardPage() {
             })}
           </Card>
 
-          <Card title="Топ участников по выдачам">
+          <Card title="Самые активные сотрудники">
             {topUsers.length === 0 && <Empty />}
             {topUsers.slice(0, 5).map((u, i) => (
               <div key={u.id} style={{
@@ -137,7 +137,7 @@ export default function ProducerDashboardPage() {
             ))}
           </Card>
 
-          <Card title="Топ запрашиваемых">
+          <Card title="Популярно на складе">
             {topRequested.length === 0 && <Empty />}
             {topRequested.slice(0, 5).map((u, i) => (
               <div key={u.id} style={{
