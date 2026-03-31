@@ -52,6 +52,13 @@ export default function ProfilePage() {
 
   return (
     <Layout>
+      <style>{`
+        @media (max-width: 768px) {
+          .prof-field-row { flex-wrap: nowrap !important; align-items: center !important; }
+          .prof-field-row > div { min-width: 0; }
+          .prof-field-row button { flex-shrink: 0; white-space: nowrap; }
+        }
+      `}</style>
       <div style={{ padding: '24px 32px', maxWidth: 560 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 28 }}>Профиль</h1>
 
@@ -85,7 +92,7 @@ export default function ProfilePage() {
           border: '1px solid var(--border)', padding: '24px', marginBottom: 20,
         }}>
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14 }}>Имя и фамилия</div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div className="prof-field-row" style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <Input label="ФИО" value={nameVal} onChange={e => setNameVal(e.target.value)} />
             </div>
@@ -108,7 +115,7 @@ export default function ProfilePage() {
           {nameSaved && <div style={{ color: 'var(--green)', fontSize: 13, marginTop: 8, fontWeight: 500 }}>Сохранено</div>}
 
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14, marginTop: 20 }}>Телефон</div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div className="prof-field-row" style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <Input label="Номер телефона" placeholder="+7 900 000 00 00" value={phoneVal} onChange={e => setPhoneVal(e.target.value)} />
             </div>

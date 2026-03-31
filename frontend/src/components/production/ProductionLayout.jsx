@@ -23,8 +23,10 @@ const css = `
   border-right: 1px solid rgba(255,255,255,0.06);
 }
 .pl-logo { padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
-.pl-logo-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.pl-logo-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
 .pl-logo-sub { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 2px; }
+.pl-online-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,0.6); animation: pl-pulse 2s infinite; flex-shrink: 0; }
+@keyframes pl-pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); } 70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
 .pl-project {
   padding: 10px 12px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -94,7 +96,7 @@ const css = `
   padding: 0 16px; z-index: 200;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.pl-topbar-logo { font-size: 16px; font-weight: 600; }
+.pl-topbar-logo { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
 .pl-topbar-btn {
   width: 36px; height: 36px; border-radius: 9px;
   background: rgba(255,255,255,0.08); border: none; color: #fff;
@@ -279,7 +281,8 @@ export default function ProductionLayout({ children }) {
         <aside className="pl-sidebar">
           <div className="pl-logo" onClick={() => navigate(nav[0]?.to || '/production/documents')}>
             <div className="pl-logo-title">
-              <span style={{ color: 'var(--accent)' }}>3X</span>Media
+              <span><span style={{ color: 'var(--accent)' }}>3X</span>Media</span>
+              <span className="pl-online-dot" />
             </div>
             <div className="pl-logo-sub">Production</div>
           </div>
@@ -334,7 +337,8 @@ export default function ProductionLayout({ children }) {
         {/* Mobile top bar */}
         <div className="pl-topbar">
           <div className="pl-topbar-logo">
-            <span style={{ color: 'var(--accent)' }}>3X</span>Media
+            <span><span style={{ color: 'var(--accent)' }}>3X</span>Media</span>
+            <span className="pl-online-dot" />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="pl-topbar-btn" onClick={() => navigate('/notifications')}>

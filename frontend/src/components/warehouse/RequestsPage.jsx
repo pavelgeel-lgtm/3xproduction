@@ -37,6 +37,7 @@ const css = `
 @media (max-width: 768px) {
   .req-page { padding: 16px; overflow-x: hidden; }
   .req-title { font-size: 18px; }
+  .req-filters { display: none !important; }
   .req-item { flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 16px; }
   .req-item-body { width: 100%; }
   .req-item-meta { flex-wrap: wrap; gap: 8px; }

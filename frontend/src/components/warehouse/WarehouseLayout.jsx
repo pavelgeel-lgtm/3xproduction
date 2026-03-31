@@ -83,7 +83,9 @@ const css = `
   padding: 22px 20px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.wl-logo-title { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; cursor: pointer; }
+.wl-logo-title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.wl-online-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,0.6); animation: wl-pulse 2s infinite; flex-shrink: 0; }
+@keyframes wl-pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); } 70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
 .wl-logo-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--sidebar-muted); margin-top: 3px; }
 
 .wl-warehouse {
@@ -183,7 +185,7 @@ const css = `
   z-index: 200;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.wl-topbar-logo { font-size: 16px; font-weight: 600; }
+.wl-topbar-logo { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
 .wl-topbar-btn {
   width: 36px; height: 36px; border-radius: 9px;
   background: rgba(255,255,255,0.08);
@@ -314,7 +316,8 @@ export default function WarehouseLayout({ children }) {
         <aside className="wl-sidebar">
           <div className="wl-logo" onClick={() => navigate('/dashboard')}>
             <div className="wl-logo-title">
-              <span style={{ color: 'var(--accent)' }}>3X</span>Media
+              <span><span style={{ color: 'var(--accent)' }}>3X</span>Media</span>
+              <span className="wl-online-dot" />
             </div>
             <div className="wl-logo-sub">Production</div>
           </div>
@@ -349,7 +352,8 @@ export default function WarehouseLayout({ children }) {
         {/* Mobile top bar */}
         <div className="wl-topbar">
           <div className="wl-topbar-logo">
-            <span style={{ color: 'var(--accent)' }}>3X</span>Media
+            <span><span style={{ color: 'var(--accent)' }}>3X</span>Media</span>
+            <span className="wl-online-dot" />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="wl-topbar-btn" onClick={() => navigate('/notifications')}>

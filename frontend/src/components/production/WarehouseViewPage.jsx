@@ -85,6 +85,15 @@ export default function WarehouseViewPage() {
 
   return (
     <ProductionLayout>
+      <style>{`
+        @media (max-width: 768px) {
+          .wv-row { flex-wrap: wrap !important; gap: 10px !important; padding: 12px 14px !important; }
+          .wv-info { width: 100% !important; order: 2; }
+          .wv-photo { order: 1; }
+          .wv-right { width: 100% !important; order: 3; display: flex; align-items: center; justify-content: space-between; }
+          .wv-chevron { display: none !important; }
+        }
+      `}</style>
       <div style={{ padding: '24px 32px', maxWidth: 900 }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>Склад</h1>
@@ -129,10 +138,10 @@ export default function WarehouseViewPage() {
                 border: '1px solid var(--border)', overflow: 'hidden',
               }}>
                 {/* Main row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }}
+                <div className="wv-row" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }}
                   onClick={() => setExpanded(isOpen ? null : u.id)}>
                   {/* Photo */}
-                  <div style={{
+                  <div className="wv-photo" style={{
                     width: 52, height: 52, borderRadius: 8, flexShrink: 0,
                     background: 'var(--bg)', border: '1px solid var(--border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
@@ -143,7 +152,7 @@ export default function WarehouseViewPage() {
                       : '📦'}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="wv-info" style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14, cursor: 'pointer', color: 'var(--accent)' }}
                       onClick={e => { e.stopPropagation(); setCardId(u.id) }}>{u.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -151,32 +160,34 @@ export default function WarehouseViewPage() {
                     </div>
                   </div>
 
-                  <Badge color={STATUS_COLOR[u.status]}>{STATUS_LABEL[u.status]}</Badge>
+                  <div className="wv-right" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <Badge color={STATUS_COLOR[u.status]}>{STATUS_LABEL[u.status]}</Badge>
 
-                  {/* Cart / status */}
-                  <div onClick={e => e.stopPropagation()}>
-                    {!reqStatus && u.status === 'on_stock' ? (
-                      cart.includes(u.id) ? (
-                        <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 14px', color: 'var(--red)' }}
-                          onClick={() => removeFromCart(u.id)}>
-                          Убрать
-                        </Button>
+                    {/* Cart / status */}
+                    <div onClick={e => e.stopPropagation()}>
+                      {!reqStatus && u.status === 'on_stock' ? (
+                        cart.includes(u.id) ? (
+                          <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 14px', color: 'var(--red)' }}
+                            onClick={() => removeFromCart(u.id)}>
+                            Убрать
+                          </Button>
+                        ) : (
+                          <Button style={{ height: 34, fontSize: 13, padding: '0 14px' }}
+                            onClick={() => addToCart(u.id)}>
+                            В корзину
+                          </Button>
+                        )
+                      ) : reqStatus && REQUEST_STATUSES[reqStatus] ? (
+                        <Badge color={REQUEST_STATUSES[reqStatus].color}>
+                          {REQUEST_STATUSES[reqStatus].label}
+                        </Badge>
                       ) : (
-                        <Button style={{ height: 34, fontSize: 13, padding: '0 14px' }}
-                          onClick={() => addToCart(u.id)}>
-                          В корзину
-                        </Button>
-                      )
-                    ) : reqStatus && REQUEST_STATUSES[reqStatus] ? (
-                      <Badge color={REQUEST_STATUSES[reqStatus].color}>
-                        {REQUEST_STATUSES[reqStatus].label}
-                      </Badge>
-                    ) : (
-                      <Badge color="muted">Недоступно</Badge>
-                    )}
+                        <Badge color="muted">Недоступно</Badge>
+                      )}
+                    </div>
                   </div>
 
-                  <span style={{ color: 'var(--muted)', fontSize: 14, transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</span>
+                  <span className="wv-chevron" style={{ color: 'var(--muted)', fontSize: 14, transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</span>
                 </div>
 
                 {/* Expanded details */}
