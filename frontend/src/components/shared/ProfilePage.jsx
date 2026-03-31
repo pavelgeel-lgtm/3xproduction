@@ -97,7 +97,7 @@ export default function ProfilePage() {
               <Input label="ФИО" value={nameVal} onChange={e => setNameVal(e.target.value)} />
             </div>
             <Button disabled={nameSaving || !nameVal.trim() || nameVal === user?.name}
-              style={{ height: 40, flexShrink: 0 }}
+              style={{ height: 40, flexShrink: 0, marginBottom: 16 }}
               onClick={async () => {
                 setNameSaving(true)
                 try {
@@ -120,7 +120,7 @@ export default function ProfilePage() {
               <Input label="Номер телефона" placeholder="+7 900 000 00 00" value={phoneVal} onChange={e => setPhoneVal(e.target.value)} />
             </div>
             <Button disabled={phoneSaving || !phoneVal.trim() || phoneVal === (user?.phone || '')}
-              style={{ height: 40, flexShrink: 0 }}
+              style={{ height: 40, flexShrink: 0, marginBottom: 16 }}
               onClick={async () => {
                 setPhoneSaving(true)
                 try {
