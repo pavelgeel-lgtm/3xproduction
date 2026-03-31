@@ -3,15 +3,41 @@ import { useNavigate } from 'react-router-dom'
 import ProductionLayout from './ProductionLayout'
 import Badge from '../shared/Badge'
 import Button from '../shared/Button'
-import { documents as docsApi } from '../../services/api'
+import { documents as docsApi, lists as listsApi } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import { ROLES } from '../../constants/roles'
+import { categoryLabel } from '../../constants/categories'
 
 const DOC_TYPES = {
   kpp:       { label: 'КПП',      icon: '📋', color: 'blue' },
   scenario:  { label: 'Сценарий', icon: '📝', color: 'amber' },
   callsheet: { label: 'Вызывной', icon: '📅', color: 'green' },
 }
+
+const LIST_TYPES = {
+  props:        { label: 'Реквизит',        icon: '🎭' },
+  art_fill:     { label: 'Худ. наполнение', icon: '🖼️' },
+  dummy:        { label: 'Бутафория',       icon: '🪆' },
+  auto:         { label: 'Автомобили',      icon: '🚗' },
+  costumes:     { label: 'Костюмы',         icon: '👗' },
+  makeup:       { label: 'Грим',            icon: '💄' },
+  stunts:       { label: 'Трюки',           icon: '🤸' },
+  pyrotechnics: { label: 'Пиротехника',     icon: '🔥' },
+}
+
+const SOURCE_BADGE = {
+  kpp:      { label: 'КПП',      bg: 'var(--blue-dim)',  color: 'var(--blue)' },
+  scenario: { label: 'Сценарий', bg: 'var(--amber-dim)', color: 'var(--amber)' },
+  ai:       { label: 'ИИ',       bg: 'var(--green-dim)', color: 'var(--green)' },
+  manual:   { label: 'Вручную',  bg: 'var(--bg)',        color: 'var(--muted)' },
+}
+
+const SEE_ALL_ROLES = [
+  'production_designer', 'art_director_assistant', 'director', 'project_director', 'producer',
+  'project_deputy_upload', 'project_deputy', 'set_admin', 'assistant_director',
+  'gaffer', 'dop', 'camera_mechanic', 'casting_director', 'casting_assistant', 'playback', 'driver',
+]
+const HIDE_LIST_TYPES_ROLES = ['set_admin', 'project_director']
 
 const UPLOAD_KPP_ROLES = [
   'project_director', 'project_deputy_upload', 'director', 'assistant_director',
@@ -21,14 +47,16 @@ const UPLOAD_KPP_ROLES = [
 ]
 const UPLOAD_CALLSHEET_ROLES = [...UPLOAD_KPP_ROLES, 'set_admin']
 
-// Use a fixed project_id from user or first available
 const PROJECT_ID = 1
 
 export default function DocumentsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const allowedFirst = ROLES[user?.role]?.readDocs?.[0] || 'kpp'
+  const role = user?.role || ''
+  const allowedFirst = ROLES[role]?.readDocs?.[0] || 'kpp'
   const [tab, setTab] = useState(allowedFirst)
+
+  // Doc state
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCallDate, setActiveCallDate] = useState(null)
@@ -42,12 +70,24 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef()
 
-  const canUpload = tab === 'callsheet'
-    ? UPLOAD_CALLSHEET_ROLES.includes(user?.role)
-    : UPLOAD_KPP_ROLES.includes(user?.role)
+  // List state
+  const roleDef = ROLES[role] || {}
+  const ownListTypes = roleDef.ownLists === undefined ? [] :
+    (roleDef.ownLists[0] === 'all' ? Object.keys(LIST_TYPES) : roleDef.ownLists)
+  const canSeeAllLists = SEE_ALL_ROLES.includes(role)
+  const hideListTypes = HIDE_LIST_TYPES_ROLES.includes(role)
+  const visibleListTypes = hideListTypes ? [] : (canSeeAllLists ? Object.keys(LIST_TYPES) : ownListTypes)
+  const [activeListType] = useState(visibleListTypes[0] || 'props')
+  const [listItems, setListItems] = useState([])
+  const [listLoading, setListLoading] = useState(false)
+  const [listSearch, setListSearch] = useState('')
+  const [parsedData, setParsedData] = useState(null)
 
-  // Filter tabs by role's readDocs — if defined, show only allowed tabs
-  const allowedDocs = ROLES[user?.role]?.readDocs
+  const canUpload = tab === 'callsheet'
+    ? UPLOAD_CALLSHEET_ROLES.includes(role)
+    : UPLOAD_KPP_ROLES.includes(role)
+
+  const allowedDocs = ROLES[role]?.readDocs
   const visibleDocTypes = allowedDocs
     ? Object.fromEntries(Object.entries(DOC_TYPES).filter(([k]) => allowedDocs.includes(k)))
     : DOC_TYPES
@@ -62,6 +102,21 @@ export default function DocumentsPage() {
   }
 
   useEffect(() => { loadDocs() }, [projectId])
+
+  useEffect(() => {
+    if (tab === 'my_list' && activeListType) {
+      setListLoading(true)
+      listsApi.items(activeListType, { project_id: projectId })
+        .then(data => setListItems(data.items || []))
+        .catch(() => setListItems([]))
+        .finally(() => setListLoading(false))
+    }
+    if (tab === 'ai_check' && projectId) {
+      docsApi.parsed(projectId)
+        .then(data => setParsedData(data.parsed_data))
+        .catch(() => {})
+    }
+  }, [tab, activeListType, projectId])
 
   const tabDocs = docs.filter(d => d.type === tab)
   const callDates = [...new Set(docs.filter(d => d.type === 'callsheet').map(d =>
@@ -97,62 +152,79 @@ export default function DocumentsPage() {
     if (file) setUploadFile(file)
   }
 
+  const allTabs = [
+    ...Object.entries(visibleDocTypes).map(([key, t]) => ({ key, label: t.label, icon: t.icon })),
+    { key: 'my_list', label: 'Мой список', icon: '📄' },
+    { key: 'ai_check', label: 'Сверка ИИ', icon: '🤖' },
+  ]
+
+  const crossCheck = parsedData?.cross_check || null
+  const aiSuggestions = parsedData?.ai_suggestions || []
+
   return (
     <ProductionLayout>
       <style>{`
         @media (max-width: 768px) {
           .doc-page { padding: 16px !important; }
           .doc-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-          .doc-tabs { overflow-x: auto !important; scrollbar-width: none; }
+          .doc-tabs { overflow-x: auto !important; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
           .doc-tabs::-webkit-scrollbar { display: none; }
+          .doc-tab-btn { white-space: nowrap; }
           .doc-filters { flex-direction: column !important; align-items: stretch !important; }
-          .doc-filters input { min-width: unset !important; width: 100% !important; }
+          .doc-filters input { min-width: 0 !important; width: 100% !important; height: 40px !important; box-sizing: border-box !important; }
           .doc-filters select { width: 100% !important; }
           .doc-item-row { flex-wrap: wrap !important; gap: 10px !important; }
           .doc-item-actions { width: 100% !important; display: flex !important; }
           .doc-item-actions a, .doc-item-actions button { flex: 1 !important; text-align: center !important; }
+          .doc-list-grid { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+          .doc-list-grid-header { display: none !important; }
+          .doc-list-row { display: flex !important; flex-direction: column !important; gap: 4px !important; padding: 12px !important; }
+          .doc-list-row > div { font-size: 13px !important; }
+          .doc-list-search { width: 100% !important; height: 40px !important; box-sizing: border-box !important; }
         }
       `}</style>
       <div className="doc-page" style={{ padding: '24px 32px', maxWidth: 860 }}>
         <div className="doc-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600 }}>Документы</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600 }}>Записи</h1>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Проект #{projectId}</p>
           </div>
-          {canUpload && (
+          {canUpload && DOC_TYPES[tab] && (
             <Button onClick={() => { setUploadType(tab); setShowUpload(true) }}>+ Загрузить</Button>
           )}
         </div>
 
-        <div className="doc-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
-          {Object.entries(visibleDocTypes).map(([key, t]) => (
-            <button key={key} onClick={() => setTab(key)} style={{
+        {/* Tab bar — all tabs in one row */}
+        <div className="doc-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)', overflowX: 'auto' }}>
+          {allTabs.map(t => (
+            <button key={t.key} className="doc-tab-btn" onClick={() => setTab(t.key)} style={{
               padding: '10px 20px', border: 'none', background: 'none',
               fontWeight: 500, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              color: tab === key ? 'var(--blue)' : 'var(--muted)',
-              borderBottom: `2px solid ${tab === key ? 'var(--blue)' : 'transparent'}`,
-              marginBottom: -2,
+              color: tab === t.key ? 'var(--blue)' : 'var(--muted)',
+              borderBottom: `2px solid ${tab === t.key ? 'var(--blue)' : 'transparent'}`,
+              marginBottom: -2, flexShrink: 0,
             }}>
               {t.icon} {t.label}
             </button>
           ))}
         </div>
 
-        {loading && <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>}
+        {loading && DOC_TYPES[tab] && <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>}
 
+        {/* КПП / Сценарий */}
         {(tab === 'kpp' || tab === 'scenario') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div className="doc-filters" style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <input value={docSearch} onChange={e => setDocSearch(e.target.value)}
                 placeholder="Найдите..."
-                style={{ flex: 1, minWidth: 140, height: 36, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none' }} />
+                style={{ flex: 1, minWidth: 140, height: 40, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
               <select value={blockFilter} onChange={e => setBlockFilter(e.target.value)}
-                style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: blockFilter ? 'var(--blue-dim)' : 'var(--white)', color: blockFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>
+                style={{ height: 40, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: blockFilter ? 'var(--blue-dim)' : 'var(--white)', color: blockFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>
                 <option value="">Блок</option>
                 {Array.from({ length: 50 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Блок {n}</option>)}
               </select>
               <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}
-                style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: seasonFilter ? 'var(--blue-dim)' : 'var(--white)', color: seasonFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>
+                style={{ height: 40, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: seasonFilter ? 'var(--blue-dim)' : 'var(--white)', color: seasonFilter ? 'var(--blue)' : 'var(--text)', cursor: 'pointer' }}>
                 <option value="">Сезон</option>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Сезон {n}</option>)}
               </select>
@@ -200,7 +272,7 @@ export default function DocumentsPage() {
                     })()}
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <div className="doc-item-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     {doc.parsed_content && (
                       <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 12px' }}
                         onClick={() => navigate(`/production/documents/${projectId}/${doc.id}`)}>
@@ -211,12 +283,6 @@ export default function DocumentsPage() {
                       <a href={doc.file_url} target="_blank" rel="noreferrer">
                         <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 12px' }}>Скачать</Button>
                       </a>
-                    )}
-                    {i === 0 && (
-                      <Button variant="secondary" style={{ height: 34, fontSize: 13, padding: '0 12px' }}
-                        onClick={() => navigate('/production/lists')}>
-                        Списки →
-                      </Button>
                     )}
                   </div>
                 </div>
@@ -230,8 +296,9 @@ export default function DocumentsPage() {
           </div>
         )}
 
+        {/* Вызывной */}
         {tab === 'callsheet' && (
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             <div style={{ width: 160, flexShrink: 0 }}>
               <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                 Даты
@@ -254,10 +321,10 @@ export default function DocumentsPage() {
               })}
             </div>
 
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               {callsheetDoc ? (
                 <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', overflow: 'hidden' }}>
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                     <div>
                       <div style={{ fontWeight: 600 }}>Вызывной</div>
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -285,7 +352,7 @@ export default function DocumentsPage() {
                         return (
                           <div>
                             {c.cast?.length > 0 && c.cast.map((a, i) => (
-                              <div key={i} style={{ display: 'flex', gap: 16, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                              <div key={i} style={{ display: 'flex', gap: 16, padding: '6px 0', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
                                 <span style={{ fontWeight: 500, minWidth: 120 }}>{a.role}</span>
                                 <span>{a.actor}</span>
                                 <span style={{ color: 'var(--muted)', marginLeft: 'auto' }}>{a.call}</span>
@@ -308,6 +375,121 @@ export default function DocumentsPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Мой список */}
+        {tab === 'my_list' && (
+          <div>
+            {listLoading ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13 }}>Загрузка...</div>
+            ) : (
+              <>
+                <div className="doc-list-search" style={{ position: 'relative', marginBottom: 14 }}>
+                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>🔍</span>
+                  <input value={listSearch} onChange={e => setListSearch(e.target.value)} placeholder="Найдите по названию..."
+                    style={{ width: '100%', height: 40, padding: '0 10px 0 32px', border: '1px solid var(--border)', borderRadius: 'var(--radius-btn)', fontSize: 13, background: 'var(--white)', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+
+                {/* Desktop: grid header */}
+                {listItems.length > 0 && (
+                  <div className="doc-list-grid-header" style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 60px 50px 70px 100px 60px 100px',
+                    gap: 6, padding: '6px 12px',
+                    fontSize: 11, fontWeight: 600, color: 'var(--muted)',
+                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                  }}>
+                    <span>Наименование</span><span>Сцена</span><span>День</span>
+                    <span>Время</span><span>Локация</span><span>Кол-во</span>
+                    <span>Источник</span>
+                  </div>
+                )}
+
+                <div className="doc-list-grid">
+                  {listItems
+                    .filter(i => i.ai_status !== 'rejected' && (!listSearch || i.name.toLowerCase().includes(listSearch.toLowerCase())))
+                    .map(item => {
+                      const src = SOURCE_BADGE[item.source] || SOURCE_BADGE.manual
+                      return (
+                        <div key={item.id} className="doc-list-row" style={{
+                          display: 'grid',
+                          gridTemplateColumns: '2fr 60px 50px 70px 100px 60px 100px',
+                          gap: 6, padding: '11px 12px',
+                          background: 'var(--white)', borderRadius: 8,
+                          border: '1px solid var(--border)',
+                          marginBottom: 4, alignItems: 'center',
+                        }}>
+                          <div style={{ fontWeight: 500, fontSize: 13 }}>{item.name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.scene || '—'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.day || '—'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.time || '—'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.location || '—'}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500 }}>{item.qty} шт.</div>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '2px 7px', borderRadius: 'var(--radius-badge)',
+                            background: src.bg, color: src.color, fontSize: 10, fontWeight: 500, width: 'fit-content',
+                          }}>{src.label}</span>
+                        </div>
+                      )
+                    })}
+                </div>
+
+                {listItems.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)', fontSize: 14 }}>
+                    Список пуст
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Сверка ИИ */}
+        {tab === 'ai_check' && (
+          <div>
+            {!parsedData ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)', fontSize: 14 }}>
+                КПП ещё не загружен или не распознан ИИ
+              </div>
+            ) : (
+              <>
+                {aiSuggestions.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      🤖 Предложения ИИ <Badge color="green">{aiSuggestions.length}</Badge>
+                    </div>
+                    {aiSuggestions.map((s, i) => (
+                      <div key={i} style={{ background: 'var(--white)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 'var(--radius-card)', padding: '14px 16px', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-badge)', background: 'var(--green-dim)', color: 'var(--green)', fontWeight: 500 }}>🤖 ИИ</span>
+                              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{categoryLabel(s.category)}</span>
+                            </div>
+                            <div style={{ fontWeight: 500, marginBottom: 4 }}>{s.item}</div>
+                            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{s.reason}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {crossCheck && (
+                  <>
+                    <CrossSection icon="⚠️" title="Расхождения" color="amber" items={crossCheck.discrepancies || []} label="Расхождение" />
+                    <CrossSection icon="🔍" title="Пропуски" color="red" items={crossCheck.missing || []} label="Пропуск" />
+                    <CrossSection icon="🔗" title="Сквозные единицы" color="blue" items={crossCheck.cross_items || []} label="Сквозная" />
+                  </>
+                )}
+
+                {!crossCheck && aiSuggestions.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>Нет данных сверки</div>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -395,5 +577,26 @@ function DeltaBadge({ color, icon, label }) {
     }}>
       <span>{icon}</span>{label}
     </span>
+  )
+}
+
+function CrossSection({ icon, title, color, items, label }) {
+  const bg = { amber: 'var(--amber-dim)', red: 'var(--red-dim)', blue: 'var(--blue-dim)' }
+  const cl = { amber: 'var(--amber)', red: 'var(--red)', blue: 'var(--blue)' }
+  if (!items.length) return null
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        {icon} {title} <Badge color={color}>{items.length}</Badge>
+      </div>
+      {items.map((item, i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--white)', border: `1px solid ${cl[color]}30`, borderRadius: 8, padding: '12px 14px', marginBottom: 8 }}>
+          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--radius-badge)', background: bg[color], color: cl[color], fontWeight: 500, flexShrink: 0, marginTop: 1 }}>
+            {label}
+          </span>
+          <span style={{ fontSize: 13, lineHeight: 1.5 }}>{item}</span>
+        </div>
+      ))}
+    </div>
   )
 }

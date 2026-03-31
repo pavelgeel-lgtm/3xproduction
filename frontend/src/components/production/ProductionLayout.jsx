@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  FileText, List, Package, BarChart2, DollarSign,
+  FileText, Package, BarChart2, DollarSign,
   Bell, User, Menu, Users, Home, ChevronDown, Inbox
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -175,10 +175,7 @@ function buildNav(role) {
   // Documents — everyone
   nav.push({ to: '/production/documents', icon: FileText, label: 'Записи' })
 
-  // Lists — single link for all production roles
-  if (def.ownLists?.length || def.seeAllLists || role === 'project_director' || (def.world === 'production' && role !== 'producer')) {
-    nav.push({ to: '/production/lists', icon: List, label: 'Мои списки' })
-  }
+  // Lists nav item removed — now embedded as tab inside Записи section
 
   // Warehouse view
   if (def.ownLists?.length || def.seeAllLists || role === 'project_director') {
