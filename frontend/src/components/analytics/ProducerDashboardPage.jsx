@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react'
 import ProductionLayout from '../production/ProductionLayout'
 import { categoryLabel } from '../../constants/categories'
-import { analytics, projects as projectsApi } from '../../services/api'
+import { analytics, projects as projectsApi, rent as rentApi } from '../../services/api'
 
 export default function ProducerDashboardPage() {
   const [data, setData] = useState(null)
+  const [warehouseData, setWarehouseData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [projectList, setProjectList] = useState([])
   const [selectedProject, setSelectedProject] = useState('')
+  const [rentDeals, setRentDeals] = useState([])
 
   useEffect(() => {
     projectsApi.list().then(d => setProjectList(d.projects || [])).catch(() => {})
+    rentApi.list().then(d => setRentDeals(d.deals || [])).catch(() => {})
+    analytics.warehouse().then(setWarehouseData).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -23,13 +27,19 @@ export default function ProducerDashboardPage() {
   }
 
   const budgetByCat   = data?.budget_by_category || []
-  const projectComp   = data?.project_comparison  || []
   const topUsers      = data?.top_users           || []
-  const categoryLoad  = data?.category_load       || []
   const assetVal      = data?.asset_valuation     || {}
+
+  const byCategory   = warehouseData?.by_category  || []
+  const topRequested = warehouseData?.top_requested || []
+  const maxCat = Math.max(...byCategory.map(c => Number(c.total)), 1)
 
   const totalBudget = budgetByCat.reduce((s, c) => s + Number(c.estimated_cost || 0), 0)
   const maxBudget = Math.max(...budgetByCat.map(c => Number(c.estimated_cost || 0)), 1)
+
+  const activeDeals  = rentDeals.filter(d => d.status === 'active').length
+  const overdueDeals = rentDeals.filter(d => d.status === 'overdue').length
+  const rentRevenue  = rentDeals.filter(d => d.status !== 'cancelled').reduce((a, d) => a + (Number(d.price_total) || 0), 0)
 
   const COLORS = ['var(--blue)', 'var(--green)', 'var(--amber)', 'var(--red)', 'var(--muted)']
 
@@ -52,10 +62,18 @@ export default function ProducerDashboardPage() {
           </select>
         </div>
 
-        <div className="resp-3-col" style={{ marginBottom: 28 }}>
+        {/* Основные метрики */}
+        <div className="resp-3-col" style={{ marginBottom: 20 }}>
           <StatCard label="Потрачено" value={totalBudget.toLocaleString('ru-RU') + ' ₽'} color="var(--blue)" />
           <StatCard label="Хранится" value={Number(assetVal.total_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--green)" />
           <StatCard label="Выдано" value={Number(assetVal.issued_assets_value || 0).toLocaleString('ru-RU') + ' ₽'} color="var(--amber)" />
+        </div>
+
+        {/* Аренда */}
+        <div className="resp-3-col" style={{ marginBottom: 28 }}>
+          <StatCard label="Активные сделки" value={activeDeals} color="var(--blue)" />
+          <StatCard label="Выручка с аренды" value={rentRevenue.toLocaleString('ru-RU') + ' ₽'} color="var(--green)" />
+          <StatCard label="Просрочено" value={overdueDeals} color="var(--red)" />
         </div>
 
         <div className="resp-2-col" style={{ marginBottom: 20 }}>
@@ -81,26 +99,6 @@ export default function ProducerDashboardPage() {
             })}
           </Card>
 
-          <Card title="Сравнение проектов">
-            {projectComp.length === 0 && <Empty />}
-            {projectComp.slice(0, 5).map((p, i) => (
-              <div key={p.id} style={{
-                padding: '12px 0',
-                borderBottom: i < Math.min(projectComp.length, 5) - 1 ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name || `Проект #${p.id}`}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-                  <span style={{ color: 'var(--blue)' }}>📋 {p.requests} запросов</span>
-                  <span style={{ color: 'var(--green)' }}>📦 {p.unique_units} ед.</span>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
-
-        <div className="resp-2-col">
           <Card title="Топ участников по выдачам">
             {topUsers.length === 0 && <Empty />}
             {topUsers.slice(0, 5).map((u, i) => (
@@ -121,23 +119,44 @@ export default function ProducerDashboardPage() {
               </div>
             ))}
           </Card>
+        </div>
 
-          <Card title="Нагрузка по категориям">
-            {categoryLoad.length === 0 && <Empty />}
-            {categoryLoad.slice(0, 5).map((c, i) => {
-              const maxR = Math.max(...categoryLoad.map(x => Number(x.request_count)), 1)
-              return (
-                <div key={c.category} style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                    <span>{categoryLabel(c.category) || '—'}</span>
-                    <span style={{ fontWeight: 500 }}>{c.request_count} запросов</span>
-                  </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.round((Number(c.request_count) / maxR) * 100)}%`, background: COLORS[i % COLORS.length], borderRadius: 3 }} />
-                  </div>
+        <div className="resp-2-col">
+          <Card title="Топ категории">
+            {byCategory.length === 0 && <Empty />}
+            {byCategory.map(c => (
+              <div key={c.category} style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
+                  <span>{categoryLabel(c.category) || '—'}</span>
+                  <span style={{ fontWeight: 500 }}>{c.total} ед.</span>
                 </div>
-              )
-            })}
+                <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round((Number(c.total) / maxCat) * 100)}%`, background: 'var(--blue)', borderRadius: 3 }} />
+                </div>
+              </div>
+            ))}
+          </Card>
+
+          <Card title="Топ запрашиваемых">
+            {topRequested.length === 0 && <Empty />}
+            {topRequested.slice(0, 5).map((u, i) => (
+              <div key={u.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '9px 0', borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
+              }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                  background: i === 0 ? 'var(--amber-dim)' : 'var(--bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, color: i === 0 ? 'var(--amber)' : 'var(--muted)',
+                }}>{i + 1}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{u.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{categoryLabel(u.category)}</div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue)' }}>{u.request_count}×</div>
+              </div>
+            ))}
           </Card>
         </div>
       </div>

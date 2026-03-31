@@ -171,7 +171,7 @@ function buildNav(role) {
   const nav = []
 
   // Documents — everyone
-  nav.push({ to: '/production/documents', icon: FileText, label: 'Документы' })
+  nav.push({ to: '/production/documents', icon: FileText, label: 'Записи' })
 
   // Lists — single link for all production roles
   if (def.ownLists?.length || def.seeAllLists || role === 'project_director' || (def.world === 'production' && role !== 'producer')) {
@@ -186,7 +186,6 @@ function buildNav(role) {
 
   // Producer sections
   if (role === 'producer') {
-    nav.push({ to: '/production/lists',     icon: List,      label: 'Сверка ИИ' })
     nav.push({ to: '/production/warehouse', icon: Package,   label: 'Склад' })
     nav.push({ to: '/production/requests',  icon: Inbox,     label: 'Заявки' })
     nav.push({ to: '/production/staff',     icon: Users,     label: 'Сотрудники' })
@@ -220,7 +219,10 @@ export default function ProductionLayout({ children }) {
 
   useEffect(() => {
     projectsApi.list().then(d => {
-      const list = (d.projects || []).map(p => p.name)
+      const HIDDEN = ['3xmedia', 'тестовый проект']
+      const list = (d.projects || [])
+        .filter(p => !HIDDEN.includes((p.name || '').toLowerCase()))
+        .map(p => p.name)
       setProjectsList(list)
       if (!selectedProject && list.length) {
         setSelectedProject(list[0])

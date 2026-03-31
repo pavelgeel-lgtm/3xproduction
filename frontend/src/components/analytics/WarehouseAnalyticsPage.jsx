@@ -71,45 +71,6 @@ export default function WarehouseAnalyticsPage() {
           </div>
         </div>
 
-        <div className="wa-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-          <Card title="По категориям">
-            {byCategory.length === 0 && <Empty />}
-            {byCategory.map(c => (
-              <div key={c.category} style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                  <span>{categoryLabel(c.category) || '—'}</span>
-                  <span style={{ fontWeight: 500 }}>{c.total} ед.</span>
-                </div>
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.round((Number(c.total) / maxCat) * 100)}%`, background: 'var(--blue)', borderRadius: 3 }} />
-                </div>
-              </div>
-            ))}
-          </Card>
-
-          <Card title="Топ запрашиваемых">
-            {topRequested.length === 0 && <Empty />}
-            {topRequested.slice(0, 5).map((u, i) => (
-              <div key={u.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '9px 0', borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{
-                  width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-                  background: i === 0 ? 'var(--amber-dim)' : 'var(--bg)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700, color: i === 0 ? 'var(--amber)' : 'var(--muted)',
-                }}>{i + 1}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{u.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{categoryLabel(u.category)}</div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue)' }}>{u.request_count}×</div>
-              </div>
-            ))}
-          </Card>
-        </div>
-
         <div className="wa-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <Card title="Динамика по месяцам">
             {dynamics.length === 0 && <Empty />}
